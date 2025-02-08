@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Аутентификация | Cosmic Auth</title>
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+	<style>
+		:root {
+			/* Основные цвета */
+			--primary-color: #2196F3;
+			--error-color: #ff4444;
+			--success-color: #00C851;
+			--text-dark: #2c3e50;
+			--text-light: #ecf0f1;
+			--transition-speed: 0.3s;
+
+			/* Цвет фона контейнера для светлой и темной темы */
+			--form-container-light: rgba(255, 255, 255, 0.88);
+			--form-container-dark: rgba(44, 62, 80, 0.88);
+
+			/* Цвет кнопки Google для темной и светлой темы */
+			--google-auth-light: white;
+			--google-auth-dark: #2c3e50;
+
+			/* Цвета для текстовых полей */
+			--input-bg-light: white;
+			--input-bg-dark: #34495e;
+			--input-text-light: #2c3e50;
+			--input-text-dark: #ecf0f1;
+
+			/* Цвета для кнопки глаз */
+			--eye-button-light: #2c3e50;
+			/* Темный цвет для светлой темы */
+			--eye-button-dark: #ecf0f1;
+			/* Светлый цвет для темной темы */
+			--eye-button-light-hover: #ecf0f1;
+			/* Белый цвет при наведении в светлой теме */
+			--eye-button-dark-hover: #2c3e50;
+			/* Черный цвет при наведении в темной теме */
+		}
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: 'Segoe UI', system-ui, sans-serif;
+		}
+
+		canvas {
+			position: fixed;
+			top: 0;
+			left: 0;
+			z-index: -1;
+		}
+
+		/* Стиль для body, который будет изменяться в зависимости от темы */
+		body {
+			min-height: 100vh;
+			overflow-x: hidden;
+			background: var(--background-color);
+			transition: background-color var(--transition-speed);
+		}
+
+		/* Контейнер с формой */
+		.form-container {
+			position: relative;
+			max-width: 440px;
+			margin: 2rem auto;
+			padding: 2rem;
+			background: var(--form-container-light);
+			/* По умолчанию светлый фон */
+			border-radius: 16px;
+			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+			backdrop-filter: blur(12px);
+			transition: background var(--transition-speed);
+		}
+
+		.theme-toggle-button {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			width: 50px;
+			height: 50px;
+			border-radius: 50%;
+			background: var(--primary-color);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+			overflow: hidden;
+		}
+
+		.theme-toggle-button .icon {
+			font-size: 25px;
+			position: absolute;
+			transition: var(--icon-transition);
+		}
+
+		/* Темная тема */
+		.dark-mode {
+			--background-color: #2c3e50;
+			/* Темный фон для всей страницы */
+			--text-dark: #ecf0f1;
+			--text-light: #2c3e50;
+			--form-container-light: rgba(44, 62, 80, 0.88);
+			/* Темный фон для контейнера */
+			--google-auth-light: #2c3e50;
+			/* Темный цвет фона кнопки Google */
+			--input-bg-light: #34495e;
+			/* Темный фон для текстовых полей */
+			--input-bg-dark: #34495e;
+			/* Темный фон для текстовых полей */
+			--input-text-light: #ecf0f1;
+			/* Светлый текст в полях */
+			--input-text-dark: #2c3e50;
+			/* Темный текст в полях */
+			--eye-button-light: #ecf0f1;
+			/* Светлый цвет кнопки глаз */
+			--eye-button-dark: #2c3e50;
+			/* Темный цвет кнопки глаз */
+			--eye-button-light-hover: #2c3e50;
+			/* Черный цвет при наведении */
+			--eye-button-dark-hover: #ecf0f1;
+			/* Белый цвет при наведении */
+		}
+
+		/* Светлая тема */
+		.light-mode {
+			--background-color: #ecf0f1;
+			/* Светлый фон для всей страницы */
+			--text-dark: #2c3e50;
+			--text-light: #ecf0f1;
+			--form-container-light: rgba(255, 255, 255, 0.88);
+			/* Светлый фон для контейнера */
+			--google-auth-light: white;
+			/* Светлый цвет фона кнопки Google */
+			--input-bg-light: white;
+			/* Светлый фон для текстовых полей */
+			--input-bg-dark: #34495e;
+			/* Темный фон для текстовых полей */
+			--input-text-light: #2c3e50;
+			/* Темный текст в полях */
+			--input-text-dark: #ecf0f1;
+			/* Светлый текст в полях */
+			--eye-button-light: #2c3e50;
+			/* Темный цвет кнопки глаз */
+			--eye-button-dark: #ecf0f1;
+			/* Светлый цвет кнопки глаз */
+			--eye-button-light-hover: #ecf0f1;
+			/* Белый цвет при наведении */
+			--eye-button-dark-hover: #2c3e50;
+			/* Черный цвет при наведении */
+		}
+
+		.sun-icon {
+			color: #fff;
+			/* Белое солнце */
+		}
+
+		.moon-icon {
+			color: #fff;
+			/* Белая луна */
+		}
+
+		.dark-mode .sun-icon {
+			opacity: 0;
+			transform: scale(0.5);
+		}
+
+		.light-mode .moon-icon {
+			opacity: 0;
+			transform: scale(0.5);
+		}
+
+		.dark-mode .moon-icon {
+			opacity: 1;
+			transform: scale(1);
+		}
+
+		.light-mode .sun-icon {
+			opacity: 1;
+			transform: scale(1);
+		}
+
+		.tabs {
+			display: flex;
+			margin-bottom: 2rem;
+			gap: 1rem;
+		}
+
+		.tab {
+			flex: 1;
+			padding: 1rem;
+			text-align: center;
+			cursor: pointer;
+			border: none;
+			background: none;
+			font-size: 1.1rem;
+			color: var(--text-dark);
+			transition: all var(--transition-speed);
+			border-radius: 8px;
+		}
+
+		.tab.active {
+			background: var(--primary-color);
+			color: white;
+			box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+		}
+
+		.form-section {
+			display: none;
+			animation: fadeIn 0.5s ease;
+		}
+
+		@keyframes fadeIn {
+			from {
+				opacity: 0;
+				transform: translateY(-10px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		h2 {
+			margin-bottom: 1.5rem;
+			color: var(--text-dark);
+			text-align: center;
+		}
+
+		.password-wrapper {
+			position: relative;
+			margin: 8px 0;
+		}
+
+		/* Стиль для текстовых полей */
+		input {
+			width: 100%;
+			padding: 12px;
+			margin: 0;
+			border: 2px solid #e0e0e0;
+			border-radius: 8px;
+			font-size: 16px;
+			background-color: var(--input-bg-light);
+			/* Цвет фона зависит от темы */
+			color: var(--input-text-light);
+			/* Цвет текста зависит от темы */
+			transition: background-color var(--transition-speed), color var(--transition-speed);
+		}
+
+		input:focus {
+			outline: none;
+			border-color: var(--primary-color);
+			box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+		}
+
+		/* Стиль для кнопки глаз */
+		.toggle-password {
+			position: absolute;
+			right: 12px;
+			top: 50%;
+			transform: translateY(-50%);
+			background: none;
+			border: none;
+			cursor: pointer;
+			padding: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.toggle-password svg {
+			width: 24px;
+			height: 24px;
+			fill: var(--eye-button-light);
+			/* Цвет кнопки глаз зависит от темы */
+			transition: fill 0.3s ease;
+		}
+
+		.toggle-password:hover svg {
+			fill: var(--eye-button-dark-hover);
+			/* Изменение цвета при наведении */
+		}
+
+		.toggle-password .eye-open {
+			display: none;
+		}
+
+		.toggle-password.show-password .eye-closed {
+			display: none;
+		}
+
+		.toggle-password.show-password .eye-open {
+			display: block;
+		}
+
+		button.primary {
+			width: 100%;
+			padding: 14px;
+			margin-top: 1rem;
+			background: var(--primary-color);
+			color: white;
+			border: none;
+			border-radius: 8px;
+			font-size: 16px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: transform 0.1s, box-shadow 0.3s;
+		}
+
+		button.primary:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 6px 16px rgba(33, 150, 243, 0.3);
+		}
+
+		/* Кнопка Google с изображением */
+		.google-auth {
+			width: 100%;
+			padding: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 12px;
+			background: var(--google-auth-light);
+			/* Цвет фона кнопки зависит от темы */
+			border: 2px solid #e0e0e0;
+			border-radius: 8px;
+			font-weight: 500;
+			color: var(--text-dark);
+			cursor: pointer;
+			transition: all var(--transition-speed);
+		}
+
+		.google-auth:hover {
+			border-color: var(--primary-color);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		}
+
+		.google-auth img {
+			height: 24px;
+		}
+
+		.separator {
+			margin: 1.5rem 0;
+			display: flex;
+			align-items: center;
+			color: #95a5a6;
+		}
+
+		.separator::before,
+		.separator::after {
+			content: '';
+			flex: 1;
+			border-bottom: 1px solid #e0e0e0;
+		}
+
+		.separator span {
+			padding: 0 1rem;
+		}
+
+		.error-message,
+		.success-message {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			padding: 12px 24px;
+			color: white;
+			border-radius: 8px;
+			display: flex;
+			align-items: center;
+			animation: slideIn 0.3s ease forwards;
+			opacity: 0;
+			z-index: 1000;
+		}
+
+		.error-message {
+			background: var(--error-color);
+		}
+
+		.success-message {
+			background: var(--success-color);
+		}
+
+		.forgot-password {
+			display: block;
+			margin: 8px 0 0 4px;
+			color: var(--primary-color);
+			text-decoration: none;
+			font-size: 14px;
+			text-align: left;
+			transition: opacity var(--transition-speed);
+		}
+
+		.forgot-password:hover {
+			text-decoration: underline;
+			opacity: 0.9;
+		}
+
+		.back-button {
+			top: 1rem;
+			left: 1rem;
+			background: none;
+			border: none;
+			cursor: pointer;
+			padding: 8px;
+			display: flex;
+			align-items: center;
+			gap: 4px;
+			color: var(--primary-color);
+		}
+
+		.back-button svg {
+			width: 20px;
+			height: 20px;
+			transition: transform 0.2s;
+		}
+
+		.back-button:hover svg {
+			transform: translateX(-4px);
+		}
+
+		.reset-form {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			padding: 2rem;
+			background: rgba(255, 255, 255, 0.95);
+			border-radius: 16px;
+		}
+
+		/* Стиль для индикатора сложности пароля */
+		.password-strength-container {
+			display: none;
+			/* Скрываем по умолчанию */
+			margin-top: 10px;
+			margin-bottom: 15px;
+			width: 100%;
+			height: 8px;
+			background-color: #e0e0e0;
+			border-radius: 5px;
+			position: relative;
+		}
+
+		.password-strength {
+			height: 100%;
+			width: 0;
+			border-radius: 5px;
+			transition: width 0.3s ease;
+		}
+
+		#password-strength-text {
+			position: absolute;
+			top: 12px;
+			left: 0;
+			font-size: 14px;
+			font-weight: bold;
+			color: var(--text-dark);
+			/* Используем CSS-переменную */
+			transition: color 0.3s ease;
+		}
+
+		@keyframes slideIn {
+			from {
+				opacity: 0;
+				transform: translateX(100%);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateX(0);
+			}
+		}
+
+		@keyframes slideOut {
+			from {
+				opacity: 1;
+				transform: translateX(0);
+			}
+
+			to {
+				opacity: 0;
+				transform: translateX(100%);
+			}
+		}
+
+		.message-exit {
+			animation: slideOut 0.3s ease forwards;
+		}
+
+		@media (max-width: 480px) {
+			.form-container {
+				margin: 1rem;
+				padding: 1.5rem;
+			}
+
+			.tab {
+				font-size: 1rem;
+				padding: 0.8rem;
+			}
+
+			.error-message,
+			.success-message {
+				max-width: 90%;
+				font-size: 14px;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<canvas id="networkCanvas"></canvas>
+
+	<!-- Кнопка для переключения темы -->
+	<div class="theme-toggle-button" id="theme-toggle">
+		<i class="fas fa-sun sun-icon icon"></i> <!-- Белое Солнце -->
+		<i class="fas fa-moon moon-icon icon"></i> <!-- Белая Луна -->
+	</div>
+
+	<div class="form-container">
+		<!-- Секция восстановления пароля -->
+		<section id="reset-section" class="form-section" style="display: none;">
+			<button class="back-button" id="back-to-login">
+				<svg viewBox="0 0 24 24" fill="currentColor">
+					<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+				</svg>
+			</button>
+			<h2>Восстановление пароля</h2>
+			<form id="reset-form">
+				<input type="email" id="reset-email" placeholder="Ваш email" required>
+				<button type="submit" class="primary">Отправить письмо</button>
+			</form>
+		</section>
+
+		<div class="tabs">
+			<button id="tab-login" class="tab active">Вход</button>
+			<button id="tab-signup" class="tab">Регистрация</button>
+		</div>
+
+		<section id="login-section" class="form-section">
+			<h2>Добро пожаловать!</h2>
+			<form id="login-form">
+				<input type="email" id="login-email" placeholder="Email" required>
+
+				<div class="password-wrapper">
+					<input type="password" id="login-password" placeholder="Пароль" required>
+					<button type="button" class="toggle-password" aria-label="Показать пароль">
+						<svg class="eye-closed" viewBox="0 0 24 24">
+							<path
+								d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+						</svg>
+						<svg class="eye-open" viewBox="0 0 24 24">
+							<path
+								d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-1.65 3.37-5.02 5.5-8.82 5.5s-7.17-2.13-8.82-5.5C4.83 8.63 8.21 6.5 12 6.5m0-2C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 5c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z" />
+							<path d="M0 0h24v24H0z" fill="none" />
+						</svg>
+					</button>
+				</div>
+				<a href="#" id="forgot-password" class="forgot-password">Забыли пароль?</a>
+				<button type="submit" class="primary">Войти</button>
+			</form>
+
+			<div class="separator"><span>ИЛИ</span></div>
+			<button class="google-auth">
+				<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+				Продолжить с Google
+			</button>
+		</section>
+
+		<section id="signup-section" class="form-section">
+			<h2>Создать аккаунт</h2>
+			<form id="signup-form" autocomplete="off">
+				<input type="email" id="email" placeholder="Email" required autocomplete="new-email">
+
+				<div class="password-wrapper">
+					<input type="password" id="password" placeholder="Пароль" required autocomplete="new-password">
+					<button type="button" class="toggle-password" aria-label="Показать пароль">
+						<svg class="eye-closed" viewBox="0 0 24 24">
+							<path
+								d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+						</svg>
+						<svg class="eye-open" viewBox="0 0 24 24">
+							<path
+								d="M12 6.5c3.79 0 7.17 2.13 8.82 5.5-1.65 3.37-5.02 5.5-8.82 5.5s-7.17-2.13-8.82-5.5C4.83 8.63 8.21 6.5 12 6.5m0-2C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 5c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z" />
+							<path d="M0 0h24v24H0z" fill="none" />
+						</svg>
+					</button>
+				</div>
+
+				<!-- Структура для отображения сложности пароля -->
+				<div class="password-strength-container">
+					<div class="password-strength" id="password-strength"></div>
+					<span id="password-strength-text">Слабый</span>
+				</div>
+
+				<button type="submit" class="primary">Зарегистрироваться</button>
+			</form>
+
+			<div class="separator"><span>ИЛИ</span></div>
+			<button class="google-auth">
+				<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+				Продолжить с Google
+			</button>
+		</section>
+	</div>
+
+	<script>
+		class Node {
+			constructor(x, y) {
+				this.x = x;
+				this.y = y;
+				// Уменьшаем скорость, например, до -0.5 до 0.5
+				this.vx = Math.random() * 0.5 - 0.25;  // замедляем движение по оси X
+				this.vy = Math.random() * 0.5 - 0.25;  // замедляем движение по оси Y
+				this.radius = 3;
+			}
+
+			update() {
+				if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+				if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+				this.x += this.vx;
+				this.y += this.vy;
+			}
+
+			draw(ctx) {
+				ctx.beginPath();
+				ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+				ctx.fillStyle = 'rgba(33, 150, 243, 0.8)';
+				ctx.fill();
+			}
+		}
+
+		class Connection {
+			constructor(node1, node2) {
+				this.node1 = node1;
+				this.node2 = node2;
+			}
+
+			draw(ctx) {
+				const dx = this.node1.x - this.node2.x;
+				const dy = this.node1.y - this.node2.y;
+				const dist = Math.sqrt(dx * dx + dy * dy);
+
+				if (dist < 150) {
+					ctx.beginPath();
+					ctx.moveTo(this.node1.x, this.node1.y);
+					ctx.lineTo(this.node2.x, this.node2.y);
+					ctx.strokeStyle = `rgba(33, 150, 243, ${1 - dist / 150})`;
+					ctx.lineWidth = 1.5;
+					ctx.stroke();
+				}
+			}
+		}
+
+		const canvas = document.getElementById('networkCanvas');
+		const ctx = canvas.getContext('2d');
+		let mouseX = 0, mouseY = 0;
+
+		function resizeCanvas() {
+			canvas.width = window.innerWidth;
+			canvas.height = window.innerHeight;
+		}
+		resizeCanvas();
+		window.addEventListener('resize', resizeCanvas);
+
+		const nodes = Array.from({ length: 40 }, () =>
+			new Node(Math.random() * canvas.width, Math.random() * canvas.height)
+		);
+
+		document.addEventListener('mousemove', (e) => {
+			mouseX = e.clientX;
+			mouseY = e.clientY;
+		});
+
+		function animate() {
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+			nodes.forEach(node => {
+				node.update();
+				node.draw(ctx);
+
+				const dx = node.x - mouseX;
+				const dy = node.y - mouseY;
+				const dist = Math.sqrt(dx * dx + dy * dy);
+
+				if (dist < 150) {
+					ctx.beginPath();
+					ctx.moveTo(node.x, node.y);
+					ctx.lineTo(mouseX, mouseY);
+					ctx.strokeStyle = `rgba(33, 150, 243, ${1 - dist / 150})`;
+					ctx.lineWidth = 1;
+					ctx.stroke();
+				}
+			});
+
+			nodes.forEach((node1, i) => {
+				nodes.slice(i + 1).forEach(node2 => {
+					new Connection(node1, node2).draw(ctx);
+				});
+			});
+
+			requestAnimationFrame(animate);
+		}
+		animate();
+	</script>
+
+	<script type="module">
+		import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+		import {
+			getAuth, createUserWithEmailAndPassword, sendEmailVerification,
+			signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider,
+			onAuthStateChanged, sendPasswordResetEmail
+		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+		import { getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+
+		const firebaseConfig = {
+			apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+			authDomain: "tpoproject-35957.firebaseapp.com",
+			databaseURL: "https://tpoproject-35957-default-rtdb.firebaseio.com",
+			projectId: "tpoproject-35957",
+			storageBucket: "tpoproject-35957.appspot.com",
+			messagingSenderId: "683982725892",
+			appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+		};
+
+		const app = initializeApp(firebaseConfig);
+		const auth = getAuth(app);
+		const db = getDatabase(app);
+		const googleProvider = new GoogleAuthProvider();
+
+		const elements = {
+			tabs: {
+				login: document.getElementById('tab-login'),
+				signup: document.getElementById('tab-signup')
+			},
+			sections: {
+				login: document.getElementById('login-section'),
+				signup: document.getElementById('signup-section'),
+				reset: document.getElementById('reset-section')
+			},
+			forms: {
+				login: document.getElementById('login-form'),
+				signup: document.getElementById('signup-form'),
+				reset: document.getElementById('reset-form')
+			}
+		};
+
+		const showMessage = (type, message, duration = 5000) => {
+			document.querySelectorAll('.error-message, .success-message').forEach(el => el.remove());
+
+			const messageBox = document.createElement('div');
+			messageBox.className = `${type}-message`;
+			messageBox.innerHTML = `
+        <svg viewBox="0 0 24 24" style="height:20px;margin-right:8px;">
+          ${type === 'error' ?
+					'<path fill="white" d="M11 15h2v2h-2zm0-8h2v6h-2zm1-5C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 18a8 8 0 0 1-8-8a8 8 0 0 1 8-8a8 8 0 0 1 8 8a8 8 0 0 1-8 8"/>' :
+					'<path fill="white" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2m-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>'}
+        </svg>
+        ${message}
+      `;
+
+			document.body.appendChild(messageBox);
+
+			setTimeout(() => {
+				messageBox.classList.add('message-exit');
+				messageBox.addEventListener('animationend', () => messageBox.remove());
+			}, duration);
+		};
+
+		const showError = (message, duration) => showMessage('error', message, duration);
+		const showSuccess = (message, duration) => showMessage('success', message, duration);
+
+		const handleGoogleAuth = async () => {
+			try {
+				const result = await signInWithPopup(auth, googleProvider);
+				if (!result.user.emailVerified) {
+					await auth.signOut();
+					showError('Аккаунт требует подтверждения email');
+					return;
+				}
+
+				await set(ref(db, `users/${result.user.uid}`), {
+					email: result.user.email,
+					name: result.user.displayName,
+					photoURL: result.user.photoURL
+				});
+				window.location.href = 'home.html';
+			} catch (error) {
+				showError(`Ошибка авторизации: ${error.message}`);
+			}
+		};
+
+		onAuthStateChanged(auth, async (user) => {
+			if (user) {
+				if (!user.emailVerified) {
+					await auth.signOut();
+				} else {
+					window.location.href = 'home.html';
+				}
+			}
+		});
+
+		const switchTab = (tab) => {
+			const isLogin = tab === 'login';
+			elements.tabs.login.classList.toggle('active', isLogin);
+			elements.tabs.signup.classList.toggle('active', !isLogin);
+			elements.sections.login.style.display = isLogin ? 'block' : 'none';
+			elements.sections.signup.style.display = isLogin ? 'none' : 'block';
+		};
+
+		const showResetForm = () => {
+			document.querySelectorAll('.form-section').forEach(section => {
+				section.style.display = 'none';
+			});
+			elements.sections.reset.style.display = 'block';
+			document.querySelector('.tabs').style.display = 'none';
+		};
+
+		const hideResetForm = () => {
+			elements.sections.reset.style.display = 'none';
+			document.querySelector('.tabs').style.display = 'flex';
+			switchTab('login');
+		};
+
+		document.querySelectorAll('.google-auth').forEach(btn => {
+			btn.addEventListener('click', handleGoogleAuth);
+		});
+
+		elements.tabs.login.addEventListener('click', () => switchTab('login'));
+		elements.tabs.signup.addEventListener('click', () => switchTab('signup'));
+
+		elements.forms.login.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const email = e.target['login-email'].value;
+			const password = e.target['login-password'].value;
+
+			try {
+				const userCredential = await signInWithEmailAndPassword(auth, email, password);
+				const user = userCredential.user;
+
+				if (!user.emailVerified) {
+					await auth.signOut();
+					showError('Аккаунт не активирован. Проверьте почту для подтверждения.');
+					return;
+				}
+
+				window.location.href = 'home.html';
+			} catch (error) {
+				// Модифицируем обработку ошибки
+				if (error.code === 'auth/invalid-login-credentials') {
+					showError('Ошибка входа: Неверный логин или пароль.');
+				} else {
+					showError(`Ошибка входа: ${error.message}`);
+				}
+			}
+		});
+
+		// Функция для оценки сложности пароля
+		const getPasswordStrength = (password) => {
+			let strength = 0;
+
+			if (password.length >= 8) strength++; // минимальная длина для среднего уровня
+			if (/[A-Z]/.test(password)) strength++; // наличие заглавной буквы
+			if (/[a-z]/.test(password)) strength++; // наличие строчной буквы
+			if (/\d/.test(password)) strength++; // наличие цифры
+			if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++; // наличие спецсимволов
+
+			return strength;
+		};
+
+		// Функция для отображения уровня сложности пароля
+		const updatePasswordStrength = (password) => {
+			const strength = getPasswordStrength(password);
+			const strengthText = document.getElementById('password-strength-text');
+			const strengthBar = document.getElementById('password-strength');
+
+			switch (strength) {
+				case 0:
+				case 1:
+					strengthText.textContent = 'Слабый';
+					strengthBar.style.width = '10%';
+					strengthBar.style.backgroundColor = '#ff4444';
+					break;
+				case 2:
+					strengthText.textContent = 'Средний';
+					strengthBar.style.width = '40%';
+					strengthBar.style.backgroundColor = '#FFD700';
+					break;
+				case 3:
+					strengthText.textContent = 'Высокий';
+					strengthBar.style.width = '75%';
+					strengthBar.style.backgroundColor = '#006400';
+					break;
+				case 4:
+					strengthText.textContent = 'Безопасный';
+					strengthBar.style.width = '100%';
+					strengthBar.style.backgroundColor = '#32CD32';
+					break;
+			}
+		};
+
+		// Обработчик события ввода пароля
+		document.getElementById('password').addEventListener('input', (e) => {
+			const password = e.target.value;
+			const passwordStrengthContainer = document.querySelector('.password-strength-container');
+
+			if (password.length === 0) {
+				// Если поле пароля пустое, скрываем индикатор сложности
+				passwordStrengthContainer.style.display = 'none';
+			} else {
+				// Показываем индикатор сложности пароля
+				passwordStrengthContainer.style.display = 'block';
+				updatePasswordStrength(password);
+			}
+		});
+
+		// Обработчик для отправки формы регистрации
+		elements.forms.signup.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const email = e.target.email.value;
+			const password = e.target.password.value;
+
+			const strength = getPasswordStrength(password);
+
+			if (strength < 2) {
+				showError('Ошибка регистрации: Пароль слишком слабый. Используйте более сложный пароль.');
+				return;
+			}
+
+			try {
+				const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+				await sendEmailVerification(userCredential.user);
+				await auth.signOut();
+				showSuccess('Проверьте вашу почту для подтверждения регистрации.');
+				switchTab('login');
+
+				// Очищаем форму только после успешной регистрации
+				elements.forms.signup.reset();
+
+				// Скрываем индикатор сложности пароля
+				const passwordStrengthContainer = document.querySelector('.password-strength-container');
+				passwordStrengthContainer.style.display = 'none';
+
+				// Сброс индикатора сложности пароля
+				document.getElementById('password-strength-text').textContent = 'Слабый';
+				document.getElementById('password-strength').style.width = '0%';
+				document.getElementById('password-strength').style.backgroundColor = '#e0e0e0';
+
+			} catch (error) {
+				// Обработчик ошибок регистрации
+				if (error.code === 'auth/email-already-in-use') {
+					showError('Ошибка регистрации: Такой пользователь уже существует');
+				} else if (error.code === 'auth/weak-password') {
+					showError('Ошибка регистрации: Пароль должен содержать не менее 6 символов');
+				} else {
+					showError(`Ошибка регистрации: ${error.message}`);
+				}
+			}
+		});
+
+
+		elements.forms.reset.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const email = e.target['reset-email'].value;
+
+			if (!email) {
+				showError('Пожалуйста, введите ваш email');
+				return;
+			}
+
+			try {
+				await sendPasswordResetEmail(auth, email);
+				showSuccess('Письмо с инструкциями отправлено на вашу почту');
+				hideResetForm();
+			} catch (error) {
+				showError(`Ошибка отправки: ${error.message}`);
+			}
+		});
+
+		document.getElementById('forgot-password').addEventListener('click', (e) => {
+			e.preventDefault();
+			showResetForm();
+		});
+
+		document.getElementById('back-to-login').addEventListener('click', (e) => {
+			e.preventDefault();
+			hideResetForm();
+		});
+
+		document.querySelectorAll('.toggle-password').forEach(button => {
+			button.addEventListener('click', function () {
+				const input = this.parentElement.querySelector('input');
+				const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+				input.setAttribute('type', type);
+				this.classList.toggle('show-password');
+			});
+		});
+
+		switchTab('login');
+	</script>
+
+	<script>
+		// Обнаруживаем текущую тему в системе
+		const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+		// Применяем темную тему по умолчанию, если она предпочтительна в системе
+		if (prefersDarkMode) {
+			document.body.classList.add('dark-mode');
+		} else {
+			document.body.classList.add('light-mode');
+		}
+
+		// Переключение темы при клике на кнопку
+		const themeToggleButton = document.getElementById('theme-toggle');
+		const sunIcon = document.querySelector('.theme-toggle-button .sun-icon');
+		const moonIcon = document.querySelector('.theme-toggle-button .moon-icon');
+
+		themeToggleButton.addEventListener('click', () => {
+			if (document.body.classList.contains('dark-mode')) {
+				document.body.classList.remove('dark-mode');
+				document.body.classList.add('light-mode');
+			} else {
+				document.body.classList.remove('light-mode');
+				document.body.classList.add('dark-mode');
+			}
+		});
+
+	</script>
+</body>
+
+</html>
