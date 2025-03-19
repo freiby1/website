@@ -1,0 +1,3177 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Просмотр теста</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+  
+  <style>
+    .test-header {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    
+    .test-cover {
+      width: 100%;
+      height: 250px;
+      background-color: #e9e9e9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .test-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .test-info {
+      padding: 25px;
+      background-color: var(--card-background);
+      position: relative;
+      z-index: 2;
+    }
+    
+    .test-title {
+      margin: 0 0 15px 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+    
+    .test-description {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      line-height: 1.5;
+      color: rgba(33, 33, 33, 0.7);
+    }
+    
+    .test-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      color: rgba(33, 33, 33, 0.6);
+    }
+    
+    .test-meta span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .test-meta i {
+      color: var(--primary-color);
+    }
+    
+    .test-actions {
+      display: flex;
+      margin-top: 20px;
+      gap: 10px;
+      flex-wrap: wrap; /* Добавляем перенос кнопок */
+    }
+    
+    .start-test-btn, .edit-test-btn, .stats-test-btn {
+      flex: 1;
+      min-width: 150px; /* Минимальная ширина кнопки */
+      padding: 14px 20px;
+      margin-bottom: 10px; /* Отступ между строками кнопок */
+      font-size: clamp(14px, 3vw, 16px); /* Адаптивный размер шрифта */
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .start-test-btn:hover, .edit-test-btn:hover, .stats-test-btn:hover {
+      background-color: #1976D2;
+      transform: translateY(-2px);
+    }
+    
+    /* Добавляем отдельные стили для кнопок редактирования и статистики */
+    .edit-test-btn, .stats-test-btn {
+      background-color: var(--card-background);
+      color: var(--text-color);
+      border: 1px solid var(--primary-color);
+    }
+    
+    .edit-test-btn:hover, .stats-test-btn:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .edit-test-btn i, .stats-test-btn i {
+      color: var(--primary-color);
+    }
+    
+    .edit-test-btn:hover i, .stats-test-btn:hover i {
+      color: white;
+    }
+    
+    .test-container {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+    
+    .dark-mode .test-cover {
+      background-color: #2c2c2c;
+    }
+    
+    .dark-mode .test-description {
+      color: rgba(236, 240, 241, 0.7);
+    }
+    
+    .dark-mode .test-meta {
+      color: rgba(236, 240, 241, 0.6);
+    }
+    
+    /* Стили для прохождения теста */
+    .test-taking-container {
+      display: none;
+    }
+    
+    .test-taking-container.active {
+      display: block;
+    }
+    
+    .test-question {
+      background-color: var(--card-background);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: var(--card-shadow);
+    }
+    
+    .question-text {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 20px;
+    }
+    
+    .answers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .answer-option {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    .answer-option:hover {
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .answer-option.selected {
+      background-color: rgba(33, 150, 243, 0.15);
+      border: 1px solid var(--primary-color);
+    }
+    
+    .answer-checkbox {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border: 2px solid rgba(33, 33, 33, 0.3);
+      border-radius: 4px;
+      margin-right: 15px;
+      transition: background-color 0.3s, border-color 0.3s;
+      position: relative;
+    }
+    
+    .answer-option.selected .answer-checkbox {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .answer-option.selected .answer-checkbox::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+      color: white;
+      font-size: 12px;
+    }
+    
+    .answer-option-text {
+      font-size: 16px;
+      color: var(--text-color);
+    }
+    
+    .navigation-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+    }
+    
+    .nav-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .prev-btn {
+      background-color: #e0e0e0;
+      color: #424242;
+    }
+    
+    .prev-btn:hover {
+      background-color: #d5d5d5;
+      transform: translateY(-2px);
+    }
+    
+    .next-btn, .submit-btn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .next-btn:hover, .submit-btn:hover {
+      background-color: #1976D2;
+      transform: translateY(-2px);
+    }
+    
+    .progress-indicator {
+      margin-bottom: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .progress-bar {
+      height: 8px;
+      background-color: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .progress-bar-inner {
+      height: 100%;
+      background-color: var(--primary-color);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+      font-size: 14px;
+      color: rgba(33, 33, 33, 0.6);
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    /* Стили для результатов теста */
+    .results-container {
+      display: none;
+    }
+    
+    .results-container.active {
+      display: block;
+    }
+    
+    .results-card {
+      background-color: var(--card-background);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: var(--card-shadow);
+      text-align: center;
+    }
+    
+    .results-header {
+      margin-bottom: 20px;
+    }
+    
+    .results-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-color);
+      margin-bottom: 5px;
+    }
+    
+    .results-subtitle {
+      font-size: 16px;
+      color: rgba(33, 33, 33, 0.7);
+    }
+    
+    .score-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 30px 0;
+    }
+    
+    .score-circle {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 10px solid var(--primary-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-color);
+    }
+    
+    .score-value {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    
+    .score-text {
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    
+    .results-actions {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 30px;
+    }
+    
+    .dark-mode .answer-option {
+      background-color: rgba(48, 48, 48, 0.7);
+    }
+    
+    .dark-mode .answer-option:hover {
+      background-color: rgba(48, 48, 48, 0.9);
+    }
+    
+    .dark-mode .answer-checkbox {
+      border-color: rgba(236, 240, 241, 0.3);
+    }
+    
+    .dark-mode .prev-btn {
+      background-color: #424242;
+      color: #e0e0e0;
+    }
+    
+    .dark-mode .prev-btn:hover {
+      background-color: #525252;
+    }
+    
+    .dark-mode .progress-bar {
+      background-color: #3a3a3a;
+    }
+    
+    .dark-mode .progress-text {
+      color: rgba(236, 240, 241, 0.6);
+    }
+    
+    .dark-mode .results-subtitle {
+      color: rgba(236, 240, 241, 0.7);
+    }
+    
+    /* Стили для совместного прохождения */
+    .cooperative-mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background-color: rgba(33, 150, 243, 0.1);
+      color: var(--primary-color);
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 15px;
+    }
+    
+    .cooperative-mode-badge i {
+      color: var(--primary-color);
+    }
+    
+    .cooperative-lobby {
+      background-color: var(--card-background);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: var(--card-shadow);
+    }
+    
+    .cooperative-lobby-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .lobby-code {
+      background-color: rgba(33, 150, 243, 0.1);
+      color: var(--text-color);
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: 600;
+      display: inline-block;
+      margin: 10px 0;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .lobby-participants {
+      margin: 15px 0;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      padding-top: 15px;
+    }
+    
+    .participant-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 15px;
+      margin-bottom: 8px;
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    
+    .participant-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .participant-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 500;
+      overflow: hidden; /* Добавляем overflow: hidden для обрезки изображения по границе контейнера */
+      border: 2px solid transparent; /* Добавляем прозрачную рамку для всех аватаров */
+    }
+    
+    /* Добавляем стили для изображений внутри participant-avatar */
+    .participant-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    
+    .participant-name {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-color);
+    }
+    
+    .host-badge {
+      font-size: 12px;
+      color: white;
+      background-color: var(--primary-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 5px;
+    }
+    
+    .join-test-container {
+      margin-top: 20px;
+    }
+    
+    .join-test-input {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      width: 100%;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    
+    .dark-mode .cooperative-lobby {
+      background-color: rgba(48, 48, 48, 0.9);
+    }
+    
+    .dark-mode .lobby-participants {
+      border-top-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .dark-mode .join-test-input {
+      background-color: rgba(48, 48, 48, 0.7);
+      color: white;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Стили для отображения ответов участников */
+    .participants-answers {
+      margin-top: 20px;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      padding-top: 15px;
+    }
+    
+    .participants-answers h3 {
+      margin-bottom: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    
+    .participant-answer {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      background-color: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+    
+    .participant-answer:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .participant-answer .participant-avatar {
+      flex-shrink: 0;
+    }
+    
+    .participant-answer .participant-name {
+      margin-left: 8px; /* Отступ между аватаркой и именем */
+      font-weight: 500;
+      flex-grow: 1;
+    }
+    
+    .dark-mode .participants-answers {
+      border-top-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .dark-mode .participant-answer {
+      background-color: rgba(48, 48, 48, 0.7);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .dark-mode .participant-answer:hover {
+      background-color: rgba(48, 48, 48, 0.9);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .answer-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: auto;
+    }
+    
+    .status-waiting {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: #ffc107;
+    }
+    
+    .status-answered {
+      background-color: rgba(76, 175, 80, 0.1);
+      color: #4caf50;
+    }
+    
+    .participant-selected-answer {
+      background-color: rgba(33, 150, 243, 0.1);
+      color: var(--primary-color);
+      border-radius: 8px;
+      padding: 6px 10px;
+      margin-left: 10px;
+      font-weight: 500;
+    }
+    
+    .timer-container {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    .timer {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      background-color: rgba(33, 150, 243, 0.1);
+      color: var(--primary-color);
+    }
+    
+    .timer.warning {
+      background-color: rgba(255, 152, 0, 0.1);
+      color: #ff9800;
+      animation: pulse 1s infinite;
+    }
+    
+    .timer.danger {
+      background-color: rgba(244, 67, 54, 0.1);
+      color: #f44336;
+      animation: pulse 0.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+    
+    .dark-mode .participant-answer {
+      background-color: rgba(48, 48, 48, 0.7);
+    }
+    
+    .dark-mode .participants-answers {
+      border-top-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Стили для рейтинга участников */
+    .ranking-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 8px;
+      transition: transform 0.2s;
+    }
+    
+    .ranking-item:hover {
+      transform: translateY(-2px);
+    }
+    
+    .rank-position {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-color);
+      min-width: 40px;
+      text-align: center;
+    }
+    
+    .rank-medal {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+    
+    .rank-gold {
+      color: #FFD700;
+    }
+    
+    .rank-silver {
+      color: #C0C0C0;
+    }
+    
+    .rank-bronze {
+      color: #CD7F32;
+    }
+    
+    .participant-details {
+      display: flex;
+      align-items: center;
+      flex-grow: 1;
+    }
+    
+    .rank-avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 500;
+      margin-right: 10px;
+      overflow: hidden; /* Добавляем overflow: hidden для обрезки изображения */
+    }
+    
+    /* Добавляем стили для изображений внутри аватаров в рейтинге */
+    .rank-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    
+    .rank-name {
+      font-weight: 500;
+      color: var(--text-color);
+    }
+    
+    .rank-score {
+      margin-left: auto;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+    
+    .dark-mode .ranking-item {
+      background-color: rgba(48, 48, 48, 0.7);
+    }
+    
+    /* Стили для мини-аватаров участников возле вариантов ответов */
+    .answer-participants {
+      display: flex;
+      margin-left: auto;
+      margin-right: 10px;
+      gap: 5px;
+    }
+    
+    .participant-mini-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 500;
+      margin-right: 5px;
+      font-size: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 2px solid white;
+      transition: transform 0.2s;
+    }
+    
+    .participant-mini-avatar:hover {
+      transform: scale(1.2);
+      z-index: 2;
+    }
+    
+    .participant-mini-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    
+    .participant-mini-avatar.host-avatar {
+      border: 2px solid gold;
+    }
+    
+    .host-avatar {
+      border: 2px solid var(--primary-color);
+    }
+    
+    /* Исправление стилей для правильного отображения вариантов ответов */
+    .answer-option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    .answer-option .answer-checkbox {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+    
+    .answer-option.selected .answer-checkbox {
+      background-color: var(--primary-color);
+    }
+    
+    .answer-option.selected .answer-checkbox::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      background-color: white;
+      border-radius: 50%;
+    }
+    
+    .answer-option .answer-option-text {
+      flex-grow: 1;
+      font-size: 16px;
+      color: var(--text-color);
+    }
+    
+    .answer-option .participant-mini-avatar:nth-child(n+4) {
+      margin-left: -10px;
+    }
+    
+    .dark-mode .participant-mini-avatar {
+      border-color: #303030;
+    }
+    
+    .dark-mode .answer-option {
+      background-color: rgba(48, 48, 48, 0.7);
+    }
+    
+    /* Стили для правильных и неправильных ответов */
+    .answer-option.correct {
+      background-color: rgba(76, 175, 80, 0.2);
+      border-color: #4CAF50;
+    }
+    
+    .answer-option.correct .answer-checkbox {
+      background-color: #4CAF50;
+      border-color: #4CAF50;
+    }
+    
+    .answer-option.incorrect {
+      background-color: rgba(244, 67, 54, 0.2);
+      border-color: #F44336;
+    }
+    
+    .answer-option.incorrect .answer-checkbox {
+      background-color: #F44336;
+      border-color: #F44336;
+    }
+    
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 768px) {
+      .test-actions {
+        flex-direction: column;
+      }
+      
+      .cooperative-lobby {
+        padding: 15px;
+      }
+      
+      /* Адаптация кнопок в лобби */
+      .lobby-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      
+      #copy-code-btn, #leave-lobby-btn {
+        flex: 1;
+        min-width: 140px;
+        margin: 0 0 10px 0;
+        font-size: 13px;
+        padding: 8px 10px;
+      }
+      
+      /* Адаптация для навигационных кнопок */
+      .navigation-buttons {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      
+      .nav-btn {
+        font-size: 14px;
+        padding: 10px 15px;
+        min-width: 120px;
+      }
+      
+      /* Адаптация для интерфейса теста */
+      .test-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+      }
+      
+      .test-title {
+        font-size: 24px;
+      }
+      
+      /* Исправляем отображение результатов */
+      .results-card {
+        padding: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .test-cover {
+        height: 120px;
+      }
+      
+      .question-text {
+        font-size: 18px;
+      }
+      
+      .answer-option-text {
+        font-size: 14px;
+      }
+    }
+    
+    /* Стиль для аватара хоста */
+    .host-avatar {
+      border: 2px solid gold !important;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .dark-mode .participant-item {
+      background-color: rgba(48, 48, 48, 0.7);
+    }
+
+    .dark-mode .participant-item:hover {
+      background-color: rgba(48, 48, 48, 0.9);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+  
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedTheme === 'system') {
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.style.visibility = 'visible';
+        });
+      } else {
+        const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(theme);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(theme);
+          document.documentElement.classList.remove(theme);
+          document.documentElement.style.visibility = 'visible';
+        });
+      }
+
+      // Добавляем слушатель изменения системной темы
+      if (savedTheme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          document.body.classList.remove('dark-mode', 'light-mode');
+          document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+        });
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <div class="back-button" onclick="window.location.href='home.html'">
+    <i class="fas fa-arrow-left"></i>
+  </div>
+
+  <div class="test-container">
+    <!-- Информация о тесте -->
+    <div id="test-info-container" class="test-info-container">
+      <div class="test-header">
+        <div class="test-cover" id="test-cover">
+          <i class="fas fa-image" style="font-size: 48px; color: #bdbdbd;"></i>
+        </div>
+        <div class="test-info">
+          <h1 class="test-title" id="test-title">Загрузка...</h1>
+          <p class="test-description" id="test-description"></p>
+          <div id="cooperative-badge" class="cooperative-mode-badge" style="display: none;">
+            <i class="fas fa-users"></i>
+            Совместное прохождение
+          </div>
+          <div class="test-meta">
+            <span><i class="fas fa-question-circle"></i> <span id="test-questions-count">0</span> вопросов</span>
+            <span><i class="fas fa-user"></i> <span id="test-author">Загрузка...</span></span>
+            <span><i class="fas fa-calendar-alt"></i> <span id="test-date">Загрузка...</span></span>
+          </div>
+          <div class="test-actions">
+            <button id="start-test-btn" class="start-test-btn">
+              <i class="fas fa-play"></i>
+              Начать тест
+            </button>
+            <button id="start-cooperative-btn" class="start-test-btn" style="display: none;">
+              <i class="fas fa-users"></i>
+              Начать совместное прохождение
+            </button>
+            <button id="join-cooperative-btn" class="start-test-btn" style="display: none;">
+              <i class="fas fa-sign-in-alt"></i>
+              Присоединиться
+            </button>
+            <button id="edit-test-btn" class="edit-test-btn" style="display: none;">
+              <i class="fas fa-edit"></i>
+              Редактировать
+            </button>
+            <button id="stats-test-btn" class="stats-test-btn" style="display: none;">
+              <i class="fas fa-chart-bar"></i>
+              Статистика
+            </button>
+          </div>
+          
+          <!-- Лобби для совместного прохождения -->
+          <div id="cooperative-lobby" class="cooperative-lobby" style="display: none;">
+            <div class="cooperative-lobby-title">
+              <i class="fas fa-users"></i> Лобби совместного прохождения
+            </div>
+            <p>Код для подключения:</p>
+            <div class="lobby-code" id="lobby-code">XXXXXX</div>
+            <div class="lobby-buttons">
+              <button id="copy-code-btn" class="btn btn-secondary" style="padding: 8px 15px; font-size: 14px;">
+                <i class="fas fa-copy"></i> Копировать код
+              </button>
+              
+              <button id="leave-lobby-btn" class="btn btn-danger" style="padding: 8px 15px; font-size: 14px; margin-left: 10px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                <i class="fas fa-sign-out-alt"></i> Выйти из лобби
+              </button>
+            </div>
+            
+            <div class="lobby-participants">
+              <h3>Участники: <span id="participants-count">0</span></h3>
+              <div id="participants-list">
+                <!-- Сюда будут добавляться участники -->
+              </div>
+            </div>
+            
+            <button id="start-cooperative-test-btn" class="start-test-btn" style="margin-top: 15px;">
+              <i class="fas fa-play"></i> Начать тест
+            </button>
+          </div>
+          
+          <!-- Форма для ввода кода и присоединения к совместному прохождению -->
+          <div id="join-cooperative-container" class="join-test-container" style="display: none;">
+            <p>Введите код совместного прохождения:</p>
+            <input type="text" id="join-code-input" class="join-test-input" placeholder="Введите 6-значный код">
+            <button id="join-by-code-btn" class="start-test-btn">
+              <i class="fas fa-sign-in-alt"></i> Присоединиться
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Прохождение теста -->
+    <div id="test-taking-container" class="test-taking-container">
+      <div class="progress-indicator">
+        <div class="progress-bar">
+          <div class="progress-bar-inner" id="progress-bar"></div>
+        </div>
+        <div class="progress-text">
+          <span>Вопрос <span id="current-question-num">1</span> из <span id="total-questions">10</span></span>
+          <span>Прогресс: <span id="progress-percentage">0%</span></span>
+        </div>
+      </div>
+      
+      <!-- Таймер для ограничения времени -->
+      <div id="timer-container" class="timer-container" style="display: none;">
+        <div class="timer">
+          <i class="fas fa-clock"></i>
+          <span id="timer-display">00:00</span>
+        </div>
+      </div>
+      
+      <div class="test-question" id="question-container">
+        <!-- Здесь будут динамически создаваться вопросы -->
+      </div>
+      
+      <!-- Блок для отображения ответов участников в совместном режиме -->
+      <div id="participants-answers" class="participants-answers" style="display: none;">
+        <h3>Ответы участников:</h3>
+        <div id="answers-list">
+          <!-- Здесь будут отображаться ответы участников -->
+        </div>
+      </div>
+      
+      <div class="navigation-buttons">
+        <button class="nav-btn prev-btn" id="prev-question-btn" style="visibility: hidden">
+          <i class="fas fa-arrow-left"></i> Предыдущий
+        </button>
+        <button class="nav-btn next-btn" id="next-question-btn">
+          Следующий <i class="fas fa-arrow-right"></i>
+        </button>
+        <button class="nav-btn submit-btn" id="submit-test-btn" style="display: none">
+          Завершить тест <i class="fas fa-check"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Результаты теста -->
+    <div id="results-container" class="results-container">
+      <div class="results-card">
+        <div class="results-header">
+          <h2 class="results-title">Результаты теста</h2>
+          <p class="results-subtitle">Тест "<span id="result-test-title">Загрузка...</span>"</p>
+        </div>
+        
+        <div class="score-container">
+          <div class="score-circle">
+            <div class="score-value" id="score-value">0/0</div>
+            <div class="score-text" id="score-percentage">0%</div>
+          </div>
+        </div>
+        
+        <!-- Добавляем рейтинг участников для совместного режима -->
+        <div id="participants-ranking" style="display: none; margin: 20px 0;">
+          <h3 style="margin-bottom: 15px;">Рейтинг участников</h3>
+          <div id="ranking-list" class="ranking-list">
+            <!-- Сюда будут добавляться участники с их местами -->
+          </div>
+        </div>
+        
+        <!-- Добавляем блок для отображения правильных ответов -->
+        <div id="correct-answers-container" style="display: none; margin: 20px 0;">
+          <h3 style="margin-bottom: 15px;">Правильные ответы</h3>
+          <div id="correct-answers-list">
+            <!-- Сюда будут добавляться вопросы и правильные ответы -->
+          </div>
+        </div>
+        
+        <div class="results-actions">
+          <button class="nav-btn prev-btn" onclick="window.location.href='home.html'">
+            <i class="fas fa-home"></i> На главную
+          </button>
+          <!-- Удаляем кнопку "Пройти еще раз" -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getDatabase, ref, get, child, push, set, onValue, update, onDisconnect } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { initializeSidebar } from './sidebar.js';
+
+    // Инициализация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+      authDomain: "tpoproject-35957.firebaseapp.com",
+      databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tpoproject-35957",
+      storageBucket: "tpoproject-35957.appspot.com",
+      messagingSenderId: "683982725892",
+      appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    
+    // Проверка авторизации
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+      }
+    });
+    
+    let currentUser = null;
+    let currentTest = null;
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    let questionStartTime = 0;
+    let questionTimeSpent = [];
+    
+    // Переменные для совместного прохождения
+    let isCooperativeMode = false;
+    let isHost = false;
+    let lobbyCode = null;
+    let lobbyRef = null;
+    let participants = {};
+    let participantsAnswers = {};
+    let everyoneAnswered = false;
+    
+    // Переменные для таймера
+    let timeLimit = 0;
+    let timerInterval = null;
+    let remainingTime = 0;
+    let timeExpired = false;
+    let timerDisplay = null;
+    
+    // Получаем данные пользователя из localStorage
+    const savedUserData = localStorage.getItem('userData');
+    if (savedUserData) {
+      currentUser = JSON.parse(savedUserData);
+    } else {
+      window.location.href = 'index.html';
+    }
+    
+    // Получаем ID теста из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const testId = urlParams.get('id');
+    
+    if (!testId) {
+      window.location.href = 'home.html';
+    }
+    
+    // Элементы DOM
+    const testInfoContainer = document.getElementById('test-info-container');
+    const testTakingContainer = document.getElementById('test-taking-container');
+    const resultsContainer = document.getElementById('results-container');
+    
+    const testTitle = document.getElementById('test-title');
+    const testDescription = document.getElementById('test-description');
+    const testQuestionsCount = document.getElementById('test-questions-count');
+    const testAuthor = document.getElementById('test-author');
+    const testDate = document.getElementById('test-date');
+    const testCover = document.getElementById('test-cover');
+    
+    const startTestBtn = document.getElementById('start-test-btn');
+    const prevQuestionBtn = document.getElementById('prev-question-btn');
+    const nextQuestionBtn = document.getElementById('next-question-btn');
+    const submitTestBtn = document.getElementById('submit-test-btn');
+    
+    const progressBar = document.getElementById('progress-bar');
+    const currentQuestionNum = document.getElementById('current-question-num');
+    const totalQuestions = document.getElementById('total-questions');
+    const progressPercentage = document.getElementById('progress-percentage');
+    
+    const questionContainer = document.getElementById('question-container');
+    
+    const resultTestTitle = document.getElementById('result-test-title');
+    const scoreValue = document.getElementById('score-value');
+    const scorePercentage = document.getElementById('score-percentage');
+    
+    // Загрузка данных теста
+    async function loadTestData() {
+      try {
+        const testSnapshot = await get(ref(db, `tests/${testId}`));
+        
+        if (!testSnapshot.exists()) {
+          alert('Тест не найден');
+          window.location.href = 'home.html';
+          return;
+        }
+        
+        currentTest = testSnapshot.val();
+        console.log('Загружен тест:', currentTest);
+        
+        if (!currentTest.questions || !Array.isArray(currentTest.questions) || currentTest.questions.length === 0) {
+          console.error('Тест не содержит вопросов или вопросы не в формате массива:', currentTest);
+          alert('Ошибка: тест не содержит вопросов');
+          window.location.href = 'home.html';
+          return;
+        }
+        
+        // Проверяем формат вопросов
+        console.log('Первый вопрос теста:', currentTest.questions[0]);
+        
+        // Отображаем данные теста
+        testTitle.textContent = currentTest.title;
+        resultTestTitle.textContent = currentTest.title;
+        
+        if (currentTest.description) {
+          testDescription.textContent = currentTest.description;
+        } else {
+          testDescription.textContent = 'Описание отсутствует';
+        }
+        
+        testQuestionsCount.textContent = currentTest.questionsCount;
+        totalQuestions.textContent = currentTest.questionsCount;
+        
+        // Загружаем обложку
+        if (currentTest.coverURL) {
+          testCover.innerHTML = `<img src="${currentTest.coverURL}" alt="${currentTest.title}">`;
+        }
+        
+        // Загружаем данные автора
+        const authorSnapshot = await get(ref(db, `users/${currentTest.createdBy}`));
+        if (authorSnapshot.exists()) {
+          const authorData = authorSnapshot.val();
+          testAuthor.textContent = authorData.name || authorData.email;
+        } else {
+          testAuthor.textContent = 'Неизвестный автор';
+        }
+        
+        // Форматируем дату
+        const testDateTime = new Date(currentTest.createdAt);
+        testDate.textContent = testDateTime.toLocaleDateString();
+        
+        // Инициализируем массив ответов пользователя
+        userAnswers = new Array(currentTest.questions.length).fill(null);
+        
+        // Проверяем ограничение времени
+        if (currentTest.timeLimit && currentTest.timeLimit > 0) {
+          timeLimit = currentTest.timeLimit;
+          timerDisplay = document.getElementById('timer-display');
+        }
+        
+        // Проверяем, поддерживает ли тест совместное прохождение
+        if (currentTest.cooperativeMode) {
+          isCooperativeMode = true;
+          
+          // Показываем значок совместного режима
+          document.getElementById('cooperative-badge').style.display = 'inline-flex';
+          
+          // Скрываем обычную кнопку начала теста и показываем кнопки для совместного режима
+          document.getElementById('start-test-btn').style.display = 'none';
+          document.getElementById('start-cooperative-btn').style.display = 'flex';
+          document.getElementById('join-cooperative-btn').style.display = 'flex';
+        }
+        
+      } catch (error) {
+        console.error('Ошибка при загрузке теста:', error);
+        alert('Произошла ошибка при загрузке теста');
+      }
+    }
+    
+    // Функции для работы с таймером
+    
+    // Запуск таймера для вопроса
+    function startTimer() {
+      // Если таймер уже запущен, останавливаем его
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+      
+      // Если нет ограничения по времени, не запускаем таймер
+      if (!timeLimit || timeLimit <= 0) {
+        document.getElementById('timer-container').style.display = 'none';
+        return;
+      }
+      
+      // Показываем таймер
+      document.getElementById('timer-container').style.display = 'block';
+      
+      // Инициализируем оставшееся время
+      remainingTime = timeLimit;
+      timeExpired = false;
+      
+      // Обновляем отображение таймера
+      updateTimerDisplay();
+      
+      // В обычном режиме проверяем, есть ли уже ответ пользователя, и если есть, останавливаем таймер
+      if (!isCooperativeMode && userAnswers[currentQuestionIndex] !== null) {
+        stopTimer();
+        return;
+      }
+      
+      // В совместном режиме проверяем, все ли ответили, и если да, останавливаем таймер
+      if (isCooperativeMode && everyoneAnswered) {
+        stopTimer();
+        // Показываем правильный ответ и аватары
+        displayParticipantAvatarsOnAnswers();
+        return;
+      }
+      
+      // Запускаем интервал
+      timerInterval = setInterval(() => {
+        remainingTime--;
+        
+        // Обновляем отображение
+        updateTimerDisplay();
+        
+        // Проверяем, не истекло ли время
+        if (remainingTime <= 0) {
+          clearInterval(timerInterval);
+          timeExpired = true;
+          
+          // В совместном режиме автоматически отправляем текущий ответ
+          if (isCooperativeMode) {
+            // Сначала отправляем ответ (даже если не выбран)
+            submitAnswer();
+            
+            // После истечения времени для всех показываем правильный ответ
+            if (everyoneAnswered) {
+              displayParticipantAvatarsOnAnswers();
+            }
+          } else {
+            // В обычном режиме автоматически переходим к следующему вопросу
+            if (currentQuestionIndex < currentTest.questions.length - 1) {
+              goToNextQuestion();
+            } else {
+              finishTest();
+            }
+          }
+        }
+      }, 1000);
+    }
+    
+    // Обновление отображения таймера
+    function updateTimerDisplay() {
+      if (!timerDisplay) return;
+      
+      // Форматируем время
+      const minutes = Math.floor(remainingTime / 60);
+      const seconds = remainingTime % 60;
+      
+      // Обновляем текст
+      timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Обновляем класс для стилизации
+      const timerElement = timerDisplay.parentElement;
+      
+      if (remainingTime <= 10) {
+        timerElement.className = 'timer danger';
+      } else if (remainingTime <= 30) {
+        timerElement.className = 'timer warning';
+      } else {
+        timerElement.className = 'timer';
+      }
+    }
+    
+    // Остановка таймера
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+    
+    // Отображение текущего вопроса
+    function displayCurrentQuestion() {
+      // Проверка на корректность индекса
+      if (!currentTest || !currentTest.questions || currentQuestionIndex >= currentTest.questions.length) {
+        console.error('Ошибка: некорректный индекс вопроса или вопросы отсутствуют', {
+          currentTest: currentTest,
+          currentQuestionIndex: currentQuestionIndex
+        });
+        alert('Ошибка при отображении вопроса');
+        return;
+      }
+      
+      // Сбрасываем флаг everyoneAnswered при переходе к новому вопросу
+      everyoneAnswered = false;
+      
+      // Очищаем participantsAnswers для текущего вопроса (чтобы не использовались данные предыдущего вопроса)
+      participantsAnswers = {};
+      
+      console.log("Сбрасываем статус ответов при переходе к новому вопросу");
+      
+      const question = currentTest.questions[currentQuestionIndex];
+      console.log('Отображаем вопрос:', question);
+      console.log('Текущий индекс вопроса:', currentQuestionIndex, 'Всего вопросов:', currentTest.questionsCount);
+      
+      // Обновляем прогресс
+      currentQuestionNum.textContent = currentQuestionIndex + 1;
+      const progress = ((currentQuestionIndex + 1) / currentTest.questionsCount) * 100;
+      progressBar.style.width = `${progress}%`;
+      progressPercentage.textContent = `${Math.round(progress)}%`;
+      
+      // Проверяем формат данных вопроса и определяем варианты ответов
+      let answerOptions = [];
+      if (question.options) {
+        // Новый формат
+        answerOptions = question.options.map((option, index) => ({
+          text: option,
+          index: index
+        }));
+      } else if (question.answers) {
+        // Старый формат
+        answerOptions = question.answers.map((answer, index) => ({
+          text: answer.text || answer,
+          index: index
+        }));
+      } else {
+        // Если нет ни options, ни answers, создаем пустой массив
+        console.error('Формат вопроса не распознан:', question);
+        answerOptions = [];
+      }
+      
+      // Обновляем контейнер вопроса с правильной структурой для отображения вариантов ответов
+      questionContainer.innerHTML = `
+        <div class="question-text">${question.text}</div>
+        <div class="answers-list">
+          ${answerOptions.map(option => `
+            <div class="answer-option ${userAnswers[currentQuestionIndex] === option.index ? 'selected' : ''}" data-index="${option.index}">
+              <div class="answer-checkbox"></div>
+              <div class="answer-option-text">${option.text}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      // Удаляем все аватары и подсветку при переходе к новому вопросу
+      const existingAvatarContainers = document.querySelectorAll('.answer-participants');
+      existingAvatarContainers.forEach(container => {
+        container.remove();
+      });
+
+      // Получаем новые варианты ответов после обновления DOM
+      const answerOptionElements = questionContainer.querySelectorAll('.answer-option');
+      
+      // Добавляем обработчики для вариантов ответов
+      answerOptionElements.forEach(option => {
+        option.addEventListener('click', () => {
+          // Проверяем, можно ли изменить ответ (только если пользователь еще не ответил на этот вопрос)
+          if (isCooperativeMode && participantsAnswers && participantsAnswers[currentUser.uid] && participantsAnswers[currentUser.uid].answered) {
+            console.log("Ответ уже отправлен и не может быть изменен");
+            return; // Пользователь уже ответил, не позволяем изменить ответ
+          }
+          
+          const index = parseInt(option.dataset.index);
+          
+          // Сохраняем ответ пользователя
+          userAnswers[currentQuestionIndex] = index;
+          
+          // Обновляем UI
+          answerOptionElements.forEach(opt => opt.classList.remove('selected'));
+          option.classList.add('selected');
+          
+          // В совместном режиме включаем кнопку подтверждения ответа
+          if (isCooperativeMode) {
+            if (currentQuestionIndex === currentTest.questions.length - 1) {
+              submitTestBtn.textContent = 'Подтвердить ответ';
+              submitTestBtn.disabled = false;
+            } else {
+              nextQuestionBtn.textContent = 'Подтвердить ответ';
+              nextQuestionBtn.disabled = false;
+            }
+          }
+        });
+      });
+      
+      // Если все ответили, отображаем аватары участников возле выбранных вариантов
+      if (isCooperativeMode && everyoneAnswered) {
+        displayParticipantAvatarsOnAnswers();
+      }
+      
+      // Обновляем видимость кнопок навигации
+      prevQuestionBtn.style.visibility = currentQuestionIndex > 0 ? 'visible' : 'hidden';
+      
+      if (currentQuestionIndex === currentTest.questionsCount - 1) {
+        nextQuestionBtn.style.display = 'none';
+        submitTestBtn.style.display = 'flex';
+      } else {
+        nextQuestionBtn.style.display = 'flex';
+        submitTestBtn.style.display = 'none';
+      }
+      
+      // В совместном режиме
+      if (isCooperativeMode) {
+        // Показываем блок для ответов участников (изначально скрытый)
+        document.getElementById('participants-answers').style.display = 'block';
+        
+        // Сбрасываем состояние
+        everyoneAnswered = false;
+        
+        // Очищаем список ответов
+        document.getElementById('answers-list').innerHTML = '';
+        
+        // Изначально отключаем кнопки навигации, пока все не ответят
+        nextQuestionBtn.disabled = true;
+        submitTestBtn.disabled = true;
+        
+        // Обновляем текст на кнопке
+        if (currentQuestionIndex === currentTest.questions.length - 1) {
+          submitTestBtn.textContent = 'Подтвердить ответ';
+          // Если есть уже выбранный ответ, разблокируем кнопку
+          if (userAnswers[currentQuestionIndex] !== null && (!participantsAnswers || !participantsAnswers[currentUser.uid] || !participantsAnswers[currentUser.uid].answered)) {
+            submitTestBtn.disabled = false;
+          }
+        } else {
+          nextQuestionBtn.textContent = 'Подтвердить ответ';
+          // Если есть уже выбранный ответ, разблокируем кнопку
+          if (userAnswers[currentQuestionIndex] !== null && (!participantsAnswers || !participantsAnswers[currentUser.uid] || !participantsAnswers[currentUser.uid].answered)) {
+            nextQuestionBtn.disabled = false;
+          }
+        }
+        
+        // Проверяем, является ли это соло-режимом (только хост)
+        get(ref(db, `test_lobbies/${lobbyCode}/soloMode`)).then((snapshot) => {
+          const isSoloMode = snapshot.exists() && snapshot.val() === true;
+          
+          if (isSoloMode && isHost) {
+            // Если хост один, показываем упрощенный интерфейс
+            document.getElementById('participants-answers').style.display = 'none';
+          } else {
+            // Обновляем список участников и их статусы
+            updateParticipantsAnswerStatus();
+          }
+        });
+        
+        // Создаем или обновляем ссылку на ответы в Firebase
+        const answersRef = ref(db, `test_lobbies/${lobbyCode}/answers/${currentQuestionIndex}`);
+        
+        // Слушаем изменения в ответах участников
+        onValue(answersRef, (snapshot) => {
+          if (snapshot.exists()) {
+            participantsAnswers = snapshot.val();
+            updateParticipantsAnswerStatus();
+            
+            // Если пользователь уже ответил, блокируем возможность выбора другого ответа
+            if (participantsAnswers[currentUser.uid] && participantsAnswers[currentUser.uid].answered) {
+              // Делаем все варианты ответов неактивными
+              const answerOptions = questionContainer.querySelectorAll('.answer-option');
+              answerOptions.forEach(option => {
+                option.classList.add('disabled');
+                option.style.cursor = 'not-allowed';
+                option.style.opacity = '0.7';
+                // Удаляем обработчики событий
+                option.replaceWith(option.cloneNode(true));
+              });
+            }
+            
+            // Проверяем, все ли ответили
+            checkIfAllAnswered();
+          }
+        });
+      }
+      
+      // Запускаем таймер для вопроса
+      startTimer();
+    }
+    
+    // Обновление статусов ответов участников
+    function updateParticipantsAnswerStatus() {
+      if (!isCooperativeMode) return;
+      
+      const answersList = document.getElementById('answers-list');
+      answersList.innerHTML = '';
+      
+      Object.values(participants).forEach(participant => {
+        const participantAnswer = document.createElement('div');
+        participantAnswer.className = 'participant-answer';
+        
+        // Получаем данные участника для аватарки
+        const avatarInitial = participant.name ? participant.name.charAt(0).toUpperCase() : 'U';
+        let avatarHtml = '';
+        
+        // Приоритет изображения: photoURL, затем avatarUrl
+        if (participant.photoURL) {
+          avatarHtml = `<img src="${participant.photoURL}" alt="${participant.name}">`;
+        } else if (participant.avatarUrl) {
+          avatarHtml = `<img src="${participant.avatarUrl}" alt="${participant.name}">`;
+        } else {
+          // Генерируем цвет фона на основе uid участника
+          const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+          const colorIndex = Math.abs(participant.uid.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+          avatarHtml = `<div style="background-color: ${colors[colorIndex]}; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${avatarInitial}</div>`;
+        }
+        
+        // Проверяем, ответил ли участник на текущий вопрос
+        const hasAnswered = participantsAnswers && 
+                            participantsAnswers[participant.uid] && 
+                            participantsAnswers[participant.uid].answered;
+        
+        // Формируем HTML для отображения статуса
+        let answerStatusHTML = '';
+        if (everyoneAnswered && hasAnswered) {
+          // Если все ответили, показываем ответ участника
+          const answerIndex = participantsAnswers[participant.uid].answerIndex;
+          const answerText = getAnswerTextByIndex(answerIndex);
+          
+          answerStatusHTML = `
+            <div class="participant-selected-answer">${answerText}</div>
+            <div class="answer-status status-answered">
+              <i class="fas fa-check"></i> Ответил
+            </div>
+          `;
+        } else if (hasAnswered) {
+          // Если только этот участник ответил, показываем статус
+          answerStatusHTML = `
+            <div class="answer-status status-answered">
+              <i class="fas fa-check"></i> Ответил
+            </div>
+          `;
+        } else {
+          // Если участник еще не ответил
+          answerStatusHTML = `
+            <div class="answer-status status-waiting">
+              <i class="fas fa-clock"></i> Ожидание
+            </div>
+          `;
+        }
+        
+        participantAnswer.innerHTML = `
+          <div class="participant-avatar">${avatarHtml}</div>
+          <div class="participant-name">${participant.name || 'Пользователь'} ${participant.isHost ? '<span class="host-badge">Хост</span>' : ''}</div>
+          ${answerStatusHTML}
+        `;
+        
+        answersList.appendChild(participantAnswer);
+      });
+    }
+    
+    // Проверка, все ли участники ответили
+    function checkIfAllAnswered() {
+      if (!isCooperativeMode || !participantsAnswers) return false;
+      
+      console.log("Проверяем, все ли ответили. Текущий индекс вопроса:", currentQuestionIndex);
+      console.log("Участники:", participants);
+      console.log("Ответы участников:", participantsAnswers);
+      console.log("Последний вопрос:", currentQuestionIndex === currentTest.questions.length - 1);
+      
+      // Если участник один (только хост), считаем что все ответили
+      if (Object.keys(participants).length === 1) {
+        everyoneAnswered = true;
+        
+        // Обновляем UI
+        updateParticipantsAnswerStatus();
+        
+        // Останавливаем таймер, когда все ответили
+        stopTimer();
+        
+        // Разблокируем кнопки навигации для хоста
+        if (isHost) {
+          if (currentQuestionIndex === currentTest.questions.length - 1) {
+            submitTestBtn.disabled = false;
+            submitTestBtn.textContent = 'Завершить тест';
+          } else {
+            nextQuestionBtn.disabled = false;
+            nextQuestionBtn.textContent = 'Следующий вопрос';
+          }
+        }
+        
+        return true;
+      }
+      
+      // Проверяем, все ли участники ответили
+      const allAnswered = Object.values(participants).every(participant => 
+        participantsAnswers[participant.uid] && 
+        participantsAnswers[participant.uid].answered
+      );
+      
+      console.log("Все ответили:", allAnswered);
+      
+      if (allAnswered) {
+        everyoneAnswered = true;
+        
+        // Обновляем UI
+        updateParticipantsAnswerStatus();
+        
+        // Останавливаем таймер, когда все ответили
+        stopTimer();
+        
+        // Разблокируем кнопки навигации для хоста
+        if (isHost) {
+          if (currentQuestionIndex === currentTest.questions.length - 1) {
+            submitTestBtn.disabled = false;
+            submitTestBtn.textContent = 'Завершить тест';
+          } else {
+            nextQuestionBtn.disabled = false;
+            nextQuestionBtn.textContent = 'Следующий вопрос';
+          }
+        }
+        
+        // Показываем аватары участников рядом с их выбранными вариантами
+        displayParticipantAvatarsOnAnswers();
+        
+        return true;
+      }
+      
+      return allAnswered;
+    }
+    
+    // Получение текста ответа по индексу
+    function getAnswerTextByIndex(index) {
+      if (!currentTest || !currentTest.questions || currentQuestionIndex >= currentTest.questions.length) {
+        return 'Неизвестный ответ';
+      }
+      
+      const question = currentTest.questions[currentQuestionIndex];
+      
+      if (question.options && question.options[index]) {
+        return question.options[index];
+      } else if (question.answers && question.answers[index]) {
+        return question.answers[index].text || 'Ответ ' + (index + 1);
+      } else {
+        return 'Ответ ' + (index + 1);
+      }
+    }
+    
+    // Функция для отображения аватаров участников рядом с их выбранными вариантами
+    function displayParticipantAvatarsOnAnswers() {
+      if (!isCooperativeMode || !participantsAnswers) return;
+      
+      console.log("Отображаем аватары участников рядом с их ответами");
+      
+      // Сбрасываем существующие аватары и стили ответов
+      const existingAvatarContainers = document.querySelectorAll('.answer-participants');
+      existingAvatarContainers.forEach(container => {
+        container.remove();
+      });
+      
+      // Сбрасываем предыдущие подсветки ответов
+      const answerOptions = document.querySelectorAll('.answer-option');
+      answerOptions.forEach(option => {
+        option.classList.remove('correct', 'incorrect');
+      });
+      
+      // Создаем объект для группировки участников по ответам
+      const answerParticipants = {};
+      
+      // Получаем актуальные данные о пользователях из Firebase
+      get(ref(db, `test_lobbies/${lobbyCode}/participants`)).then((snapshot) => {
+        if (!snapshot.exists()) {
+          console.log("Нет данных о пользователях в лобби");
+          return;
+        }
+        
+        const latestParticipants = snapshot.val();
+        console.log("Данные о пользователях:", latestParticipants);
+        
+        // Получаем текущий вопрос
+        const currentQuestion = currentTest.questions[currentQuestionIndex];
+        
+        // Определяем правильный ответ
+        let correctAnswerIndex = null;
+        if (currentQuestion.correctAnswer !== undefined) {
+          // Новый формат
+          correctAnswerIndex = currentQuestion.correctAnswer;
+        } else if (currentQuestion.answers && Array.isArray(currentQuestion.answers)) {
+          // Старый формат
+          correctAnswerIndex = currentQuestion.answers.findIndex(answer => answer.correct === true);
+        }
+        
+        console.log("Индекс правильного ответа:", correctAnswerIndex);
+        
+        // Подсвечиваем правильный ответ
+        if (correctAnswerIndex !== null && correctAnswerIndex !== -1) {
+          const correctOption = document.querySelector(`.answer-option[data-index="${correctAnswerIndex}"]`);
+          if (correctOption) {
+            correctOption.classList.add('correct');
+          }
+        }
+        
+        // Группируем участников по их ответам
+        Object.values(latestParticipants).forEach(participant => {
+          if (participantsAnswers[participant.uid] && participantsAnswers[participant.uid].answered) {
+            const answerIndex = participantsAnswers[participant.uid].answerIndex;
+            
+            // Пропускаем неотвеченные или пустые ответы (-1)
+            if (answerIndex === -1 || answerIndex === null) return;
+            
+            if (!answerParticipants[answerIndex]) {
+              answerParticipants[answerIndex] = [];
+            }
+            
+            answerParticipants[answerIndex].push(participant);
+            
+            // Если это текущий пользователь и ответ неверный, подсвечиваем его красным
+            if (participant.uid === currentUser.uid && answerIndex !== correctAnswerIndex) {
+              const userOption = document.querySelector(`.answer-option[data-index="${answerIndex}"]`);
+              if (userOption) {
+                userOption.classList.add('incorrect');
+              }
+            }
+          }
+        });
+        
+        console.log("Группировка участников по ответам:", answerParticipants);
+        
+        // Добавляем аватары к соответствующим вариантам ответов
+        Object.keys(answerParticipants).forEach(answerIndex => {
+          const answerOption = document.querySelector(`.answer-option[data-index="${answerIndex}"]`);
+          if (!answerOption) {
+            console.log(`Не найден вариант ответа с индексом ${answerIndex}`);
+            return;
+          }
+          
+          const avatarContainer = document.createElement('div');
+          avatarContainer.className = 'answer-participants';
+          
+          // Добавляем аватары участников
+          answerParticipants[answerIndex].forEach(participant => {
+            console.log("Добавляем аватар участника:", participant.name, participant);
+            
+            const avatarElement = document.createElement('div');
+            avatarElement.className = 'participant-mini-avatar';
+            
+            const avatarInitial = participant.name ? participant.name.charAt(0).toUpperCase() : 'U';
+            
+            // Добавляем подсказку с именем участника
+            avatarElement.title = participant.name || 'Участник';
+            
+            // Используем фото в следующем порядке приоритета: photoURL -> avatarUrl -> инициалы
+            if (participant.photoURL) {
+              console.log("Используем photoURL:", participant.photoURL);
+              avatarElement.innerHTML = `<img src="${participant.photoURL}" alt="${participant.name}">`;
+            } else if (participant.avatarUrl) {
+              console.log("Используем avatarUrl:", participant.avatarUrl);
+              avatarElement.innerHTML = `<img src="${participant.avatarUrl}" alt="${participant.name}">`;
+            } else {
+              console.log("Используем инициал:", avatarInitial);
+              avatarElement.textContent = avatarInitial;
+              
+              // Генерируем цвет фона на основе uid участника
+              const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+              const colorIndex = Math.abs(participant.uid.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+              avatarElement.style.backgroundColor = colors[colorIndex];
+            }
+            
+            // Добавляем визуальное обозначение для хоста
+            if (participant.isHost) {
+              avatarElement.classList.add('host-avatar');
+              avatarElement.title += ' (Хост)';
+            }
+            
+            avatarContainer.appendChild(avatarElement);
+          });
+          
+          answerOption.appendChild(avatarContainer);
+        });
+      }).catch(error => {
+        console.error("Ошибка при получении данных о пользователях:", error);
+      });
+    }
+    
+    // Отправка ответа в совместном режиме
+    function submitAnswer() {
+      if (!isCooperativeMode || !lobbyRef) return;
+      
+      console.log("Отправка ответа. Текущий индекс вопроса:", currentQuestionIndex);
+      console.log("Ответ пользователя:", userAnswers[currentQuestionIndex]);
+      console.log("Код лобби:", lobbyCode);
+      console.log("UID пользователя:", currentUser.uid);
+      console.log("Последний вопрос:", currentQuestionIndex === currentTest.questions.length - 1);
+      
+      // Если пользователь не выбрал ответ, отправляем пустой ответ вместо показа предупреждения
+      // Это позволит продолжить тест без выбора ответа
+      
+      // Формируем данные ответа
+      const answerData = {
+        answered: true,
+        answerIndex: userAnswers[currentQuestionIndex] !== null ? userAnswers[currentQuestionIndex] : -1, // -1 означает, что ответ не выбран или время истекло
+        answeredAt: Date.now(),
+        timeSpent: questionTimeSpent[currentQuestionIndex] || 0
+      };
+      
+      console.log("Данные ответа:", answerData);
+      
+      // Проверяем наличие структуры ответов для текущего вопроса
+      get(ref(db, `test_lobbies/${lobbyCode}/answers/${currentQuestionIndex}`)).then((snapshot) => {
+        let updatePromise;
+        
+        if (!snapshot.exists()) {
+          console.log("Структура ответов для вопроса не существует, создаем новую");
+          // Если структура ответов для текущего вопроса не существует, создаем ее
+          const allAnswers = {};
+          Object.values(participants).forEach(p => {
+            allAnswers[p.uid] = p.uid === currentUser.uid ? answerData : {
+              answered: false,
+              answerIndex: null,
+              answeredAt: null,
+              timeSpent: 0
+            };
+          });
+          
+          updatePromise = update(lobbyRef, {
+            [`answers/${currentQuestionIndex}`]: allAnswers
+          });
+        } else {
+          console.log("Структура ответов существует, обновляем только свой ответ");
+          // Если структура уже существует, просто обновляем свой ответ
+          const answerRef = ref(db, `test_lobbies/${lobbyCode}/answers/${currentQuestionIndex}/${currentUser.uid}`);
+          updatePromise = set(answerRef, answerData);
+        }
+        
+        updatePromise.then(() => {
+          console.log("Ответ успешно отправлен");
+          // Отключаем кнопку подтверждения ответа
+          nextQuestionBtn.disabled = true;
+          submitTestBtn.disabled = true;
+          
+          // Обновляем тексты кнопок в зависимости от номера вопроса
+          if (currentQuestionIndex === currentTest.questions.length - 1) {
+            submitTestBtn.textContent = 'Ожидание других участников...';
+          } else {
+            nextQuestionBtn.textContent = 'Ожидание других участников...';
+          }
+          
+          // Проверяем, все ли ответили после отправки нашего ответа
+          get(ref(db, `test_lobbies/${lobbyCode}/answers/${currentQuestionIndex}`)).then((latestSnapshot) => {
+            if (latestSnapshot.exists()) {
+              const latestAnswers = latestSnapshot.val();
+              participantsAnswers = latestAnswers;
+              
+              const allAnswered = Object.values(participants).every(participant => 
+                latestAnswers[participant.uid] && 
+                latestAnswers[participant.uid].answered
+              );
+              
+              console.log("Все ответили (проверка после отправки):", allAnswered);
+              console.log("Последний вопрос:", currentQuestionIndex === currentTest.questions.length - 1);
+              
+              if (allAnswered) {
+                everyoneAnswered = true;
+                updateParticipantsAnswerStatus();
+                
+                // Останавливаем таймер, когда все ответили
+                stopTimer();
+                
+                // Показываем аватары участников рядом с их выбранными вариантами
+                // и подсвечиваем правильные и неправильные ответы
+                displayParticipantAvatarsOnAnswers();
+                
+                // Разблокируем кнопки навигации для хоста
+                if (isHost) {
+                  if (currentQuestionIndex === currentTest.questions.length - 1) {
+                    submitTestBtn.disabled = false;
+                    submitTestBtn.textContent = 'Завершить тест';
+                  } else {
+                    nextQuestionBtn.disabled = false;
+                    nextQuestionBtn.textContent = 'Следующий вопрос';
+                  }
+                } else {
+                  // Для обычных участников меняем текст на "Ожидание хоста"
+                  if (currentQuestionIndex === currentTest.questions.length - 1) {
+                    submitTestBtn.textContent = 'Ожидание хоста...';
+                  } else {
+                    nextQuestionBtn.textContent = 'Ожидание хоста...';
+                  }
+                }
+              }
+            }
+          });
+        }).catch(error => {
+          console.error("Ошибка при отправке ответа:", error);
+          alert("Не удалось отправить ответ. Попробуйте еще раз.");
+          
+          // Разблокируем кнопки, чтобы пользователь мог попробовать еще раз
+          if (currentQuestionIndex === currentTest.questions.length - 1) {
+            submitTestBtn.disabled = false;
+            submitTestBtn.textContent = 'Подтвердить ответ';
+          } else {
+            nextQuestionBtn.disabled = false;
+            nextQuestionBtn.textContent = 'Подтвердить ответ';
+          }
+        });
+      });
+    }
+    
+    // Переход к следующему вопросу
+    function goToNextQuestion() {
+      // В совместном режиме работаем по-другому
+      if (isCooperativeMode) {
+        if (!everyoneAnswered) {
+          // Если еще не все ответили, отправляем текущий ответ
+          submitAnswer();
+          return;
+        } else if (!isHost) {
+          // Если пользователь не хост, он не может переходить к следующему вопросу
+        return;
+      }
+        
+        console.log("Переход к следующему вопросу. Текущий индекс:", currentQuestionIndex);
+        
+        // Хост может перейти к следующему вопросу, когда все ответили
+        // Останавливаем текущий таймер
+        stopTimer();
+      
+      // Сохраняем время, потраченное на вопрос
+      const endTime = Date.now();
+      questionTimeSpent[currentQuestionIndex] = endTime - questionStartTime;
+      questionStartTime = endTime;
+      
+        // Переходим к следующему вопросу
+      currentQuestionIndex++;
+        
+        console.log("Новый индекс вопроса:", currentQuestionIndex);
+        
+        // Сбрасываем флаг, что все ответили
+        everyoneAnswered = false;
+        
+        // Инициализируем ответы для следующего вопроса если в соло-режиме или если есть другие участники
+        get(ref(db, `test_lobbies/${lobbyCode}/soloMode`)).then((snapshot) => {
+          const isSoloMode = snapshot.exists() && snapshot.val() === true;
+          
+          const nextQuestionUpdates = { currentQuestion: currentQuestionIndex };
+          
+          // Если не в соло-режиме, инициализируем ответы для всех участников
+          if (!isSoloMode) {
+            const initialAnswers = {};
+            Object.values(participants).forEach(participant => {
+              initialAnswers[participant.uid] = {
+                answered: false,
+                answerIndex: null,
+                answeredAt: null,
+                timeSpent: 0
+              };
+            });
+            
+            nextQuestionUpdates[`answers/${currentQuestionIndex}`] = initialAnswers;
+          }
+          
+          console.log("Обновления для следующего вопроса:", nextQuestionUpdates);
+          
+          // Обновляем статус текущего вопроса в лобби
+          update(lobbyRef, nextQuestionUpdates).then(() => {
+            // Отображаем следующий вопрос
+            displayCurrentQuestion();
+          });
+        });
+        
+        return;
+      }
+      
+      // Обычный режим
+      // Убираем проверку на ответ пользователя, чтобы можно было пропускать вопросы без ответа
+      
+      // Останавливаем текущий таймер
+      stopTimer();
+      
+      // Сохраняем время, потраченное на вопрос
+      const endTime = Date.now();
+      questionTimeSpent[currentQuestionIndex] = endTime - questionStartTime;
+      questionStartTime = endTime;
+      
+      currentQuestionIndex++;
+      displayCurrentQuestion();
+    }
+    
+    // Переход к предыдущему вопросу
+    function goToPrevQuestion() {
+      // В совместном режиме нельзя возвращаться к предыдущим вопросам
+      if (isCooperativeMode) {
+        return;
+      }
+      
+      if (currentQuestionIndex > 0) {
+        // Останавливаем текущий таймер
+        stopTimer();
+        
+        // Сохраняем время, потраченное на текущий вопрос
+        const endTime = Date.now();
+        questionTimeSpent[currentQuestionIndex] = (questionTimeSpent[currentQuestionIndex] || 0) + (endTime - questionStartTime);
+        questionStartTime = endTime;
+        
+        currentQuestionIndex--;
+        displayCurrentQuestion();
+      }
+    }
+    
+    // Проверка результатов теста
+    function checkResults() {
+      let correctAnswers = 0;
+      let totalTime = 0;
+      const answers = [];
+      
+      // Останавливаем таймер
+      stopTimer();
+      
+      // Сохраняем время последнего вопроса
+      const endTime = Date.now();
+      questionTimeSpent[currentQuestionIndex] = (questionTimeSpent[currentQuestionIndex] || 0) + (endTime - questionStartTime);
+      
+      for (let i = 0; i < currentTest.questions.length; i++) {
+        const question = currentTest.questions[i];
+        const userAnswer = userAnswers[i];
+        
+        // Определяем правильный ответ в зависимости от формата данных
+        let isCorrect = false;
+        if (question.correctAnswer !== undefined) {
+          // Новый формат
+          isCorrect = userAnswer !== null && userAnswer === question.correctAnswer;
+        } else if (question.answers) {
+          // Старый формат
+          isCorrect = userAnswer !== null && question.answers[userAnswer] && question.answers[userAnswer].isCorrect;
+        }
+        
+        const timeSpent = questionTimeSpent[i] || 30000; // Если нет данных, предполагаем 30 секунд
+        
+        totalTime += timeSpent;
+        
+        // Сохраняем информацию по каждому вопросу для статистики
+        answers.push({
+          questionIndex: i,
+          questionText: question.text,
+          userAnswer: userAnswer,
+          isCorrect: isCorrect,
+          timeSpent: Math.round(timeSpent / 1000) // Переводим в секунды
+        });
+        
+        if (isCorrect) {
+          correctAnswers++;
+        }
+      }
+      
+      const score = Math.round((correctAnswers / currentTest.questionsCount) * 100);
+      
+      // Отображаем результаты
+      scoreValue.textContent = `${correctAnswers}/${currentTest.questionsCount}`;
+      scorePercentage.textContent = `${score}%`;
+      
+      // Проверяем, нужно ли показывать правильные ответы
+      if (currentTest.showCorrectAnswers) {
+        displayCorrectAnswers(answers);
+      }
+      
+      // Сохраняем результат в базу данных
+      saveTestResult(correctAnswers, score, Math.round(totalTime / 1000), answers);
+      
+      // В совместном режиме
+      if (isCooperativeMode) {
+        // Получаем photoURL из Firebase Auth
+        let userPhotoURL = null;
+        const auth = getAuth();
+        const currentFirebaseUser = auth.currentUser;
+        if (currentFirebaseUser) {
+          userPhotoURL = currentFirebaseUser.photoURL;
+        }
+        
+        // Сохраняем свой результат в результатах лобби
+        const resultData = {
+          userId: currentUser.uid,
+          name: currentUser.name || currentUser.email,
+          avatarUrl: currentUser.avatarUrl || null,
+          photoURL: userPhotoURL, // Добавляем photoURL для использования в рейтинге
+          correctAnswers: correctAnswers,
+          score: score,
+          totalTime: Math.round(totalTime / 1000)
+        };
+        
+        // Проверяем все поля на undefined перед отправкой
+        Object.keys(resultData).forEach(key => {
+          if (resultData[key] === undefined) {
+            console.warn(`Поле ${key} имеет значение undefined, заменяем на null`);
+            resultData[key] = null;
+          }
+        });
+        
+        console.log("Отправляем результаты в Firebase:", resultData);
+        
+        // Обновляем свой результат
+        update(ref(db, `test_lobbies/${lobbyCode}/results/${currentUser.uid}`), resultData).then(() => {
+          // Если хост, обновляем статус лобби на "finished"
+          if (isHost) {
+            console.log("Обновляем статус лобби на 'finished'");
+            update(lobbyRef, { status: 'finished' });
+          }
+          
+          // Показываем рейтинг участников
+          showParticipantsRanking();
+        }).catch(error => {
+          console.error("Ошибка при сохранении результатов:", error);
+          // Все равно пытаемся показать рейтинг участников
+          showParticipantsRanking();
+        });
+      }
+    }
+    
+    // Сохранение результата теста
+    async function saveTestResult(correctAnswers, score, totalTime, answers) {
+      try {
+        const resultData = {
+          testId: testId,
+          testTitle: currentTest.title,
+          correctAnswers: correctAnswers,
+          totalQuestions: currentTest.questionsCount,
+          score: score,
+          totalTime: totalTime,
+          answers: answers,
+          completedAt: Date.now(),
+          userId: currentUser.uid
+        };
+        
+        const newResultRef = push(ref(db, 'test_results'));
+        await set(newResultRef, resultData);
+        
+        console.log('Результат теста сохранен:', resultData);
+      } catch (error) {
+        console.error('Ошибка при сохранении результата:', error);
+      }
+    }
+    
+    // Начало теста
+    function startTest() {
+      testInfoContainer.style.display = 'none';
+      testTakingContainer.classList.add('active');
+      
+      currentQuestionIndex = 0;
+      userAnswers = new Array(currentTest.questions.length).fill(null);
+      
+      // Инициализируем массив для отслеживания времени
+      questionStartTime = Date.now();
+      questionTimeSpent = new Array(currentTest.questions.length).fill(0);
+      
+      displayCurrentQuestion();
+    }
+    
+    // Завершение теста
+    function finishTest() {
+      // В совместном режиме
+      if (isCooperativeMode) {
+        // Если пользователь не хост, просто отправляем ответ и ожидаем завершения от хоста
+        if (!isHost) {
+          if (!everyoneAnswered) {
+            submitAnswer();
+          }
+        return;
+      }
+      
+        // Хост может завершить тест
+        if (!everyoneAnswered) {
+          // Если не все ответили, сначала отправляем свой ответ
+          submitAnswer();
+          return;
+        }
+        
+        // Все ответили, завершаем тест
+        update(lobbyRef, { status: 'finished' }).then(() => {
+      testTakingContainer.classList.remove('active');
+      resultsContainer.classList.add('active');
+          resultTestTitle.textContent = currentTest.title || 'Тест';
+          checkResults();
+        });
+        
+        return;
+      }
+      
+      // Обычный режим - безусловно завершаем тест
+      testTakingContainer.classList.remove('active');
+      resultsContainer.classList.add('active');
+      resultTestTitle.textContent = currentTest.title || 'Тест';
+      
+      checkResults();
+    }
+    
+    // Функция для отображения рейтинга участников
+    function showParticipantsRanking() {
+      if (!isCooperativeMode) return;
+      
+      const rankingContainer = document.getElementById('participants-ranking');
+      const rankingList = document.getElementById('ranking-list');
+      
+      // Показываем контейнер с рейтингом
+      rankingContainer.style.display = 'block';
+      rankingList.innerHTML = '';
+      
+      console.log("Получаем результаты из Firebase для отображения рейтинга");
+      
+      // Сначала получаем актуальные данные о всех участниках (для фото профилей)
+      get(ref(db, `test_lobbies/${lobbyCode}/participants`)).then((participantsSnapshot) => {
+        const latestParticipants = participantsSnapshot.exists() ? participantsSnapshot.val() : {};
+        console.log("Актуальные данные о участниках:", latestParticipants);
+        
+        // Теперь получаем все результаты из лобби
+        get(ref(db, `test_lobbies/${lobbyCode}/results`)).then((snapshot) => {
+          if (snapshot.exists()) {
+            const results = snapshot.val();
+            console.log("Полученные результаты:", results);
+            
+            // Преобразуем в массив и сортируем по очкам (score) и времени в случае равенства
+            const sortedResults = Object.values(results).sort((a, b) => {
+              if (a.score !== b.score) {
+                return b.score - a.score; // По убыванию очков
+              } else {
+                return a.totalTime - b.totalTime; // При равенстве очков, по возрастанию времени
+              }
+            });
+            
+            console.log("Отсортированные результаты:", sortedResults);
+            
+            // Отображаем участников по их местам
+            sortedResults.forEach((result, index) => {
+              const rankingItem = document.createElement('div');
+              rankingItem.className = 'ranking-item';
+              
+              // Определяем, какую медаль показывать
+              let medalHTML = '';
+              if (index === 0) {
+                medalHTML = '<span class="rank-medal rank-gold">🥇</span>';
+              } else if (index === 1) {
+                medalHTML = '<span class="rank-medal rank-silver">🥈</span>';
+              } else if (index === 2) {
+                medalHTML = '<span class="rank-medal rank-bronze">🥉</span>';
+              }
+              
+              const avatarInitial = result.name ? result.name.charAt(0).toUpperCase() : 'U';
+              const isHost = participants[result.userId] && participants[result.userId].isHost;
+              const isCreator = result.userId === currentTest.createdBy;
+              
+              // Получаем данные о фото профиля из актуальных данных участника
+              let photoURL = null;
+              if (latestParticipants[result.userId]) {
+                photoURL = latestParticipants[result.userId].photoURL;
+              }
+              
+              // Создаем HTML для аватарки с приоритетом: photoURL -> avatarUrl -> инициалы
+              let avatarHtml = '';
+              if (photoURL) {
+                console.log(`Использую photoURL для участника ${result.name}:`, photoURL);
+                avatarHtml = `<img src="${photoURL}" alt="${result.name}">`;
+              } else if (result.avatarUrl) {
+                console.log(`Использую avatarUrl для участника ${result.name}:`, result.avatarUrl);
+                avatarHtml = `<img src="${result.avatarUrl}" alt="${result.name}">`;
+              } else {
+                console.log(`Использую инициал для участника ${result.name}:`, avatarInitial);
+                // Генерируем цвет фона на основе uid участника
+                const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+                const colorIndex = Math.abs(result.userId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
+                avatarHtml = `<div style="background-color: ${colors[colorIndex]}; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">${avatarInitial}</div>`;
+              }
+              
+              rankingItem.innerHTML = `
+                <div class="rank-position">${index + 1}</div>
+                ${medalHTML}
+                <div class="participant-details">
+                  <div class="rank-avatar">${avatarHtml}</div>
+                  <div class="rank-name">${result.name || 'Участник'} ${isCreator ? ' (Создатель)' : ''} ${isHost ? ' (Хост)' : ''}</div>
+                </div>
+                <div class="rank-score">${result.correctAnswers}/${currentTest.questionsCount} (${result.score}%)</div>
+              `;
+              
+              // Выделяем текущего пользователя
+              if (result.userId === currentUser.uid) {
+                rankingItem.style.border = '2px solid var(--primary-color)';
+              }
+              
+              rankingList.appendChild(rankingItem);
+            });
+          } else {
+            console.log("Результаты не найдены");
+            rankingList.innerHTML = '<div style="text-align: center; padding: 20px;">Результаты не найдены</div>';
+          }
+        }).catch(error => {
+          console.error("Ошибка при получении результатов:", error);
+          rankingList.innerHTML = '<div style="text-align: center; padding: 20px; color: #f44336;">Не удалось загрузить результаты</div>';
+        });
+      }).catch(error => {
+        console.error("Ошибка при получении данных о участниках:", error);
+      });
+    }
+    
+    // Функция для отображения правильных ответов
+    function displayCorrectAnswers(userAnswers) {
+      const correctAnswersContainer = document.getElementById('correct-answers-container');
+      const correctAnswersList = document.getElementById('correct-answers-list');
+      
+      // Показываем контейнер
+      correctAnswersContainer.style.display = 'block';
+      correctAnswersList.innerHTML = '';
+      
+      // Создаем элементы для каждого вопроса
+      currentTest.questions.forEach((question, index) => {
+        // Определяем правильный ответ
+        let correctAnswerIndex = null;
+        if (question.correctAnswer !== undefined) {
+          // Новый формат
+          correctAnswerIndex = question.correctAnswer;
+        } else if (question.answers) {
+          // Старый формат
+          correctAnswerIndex = question.answers.findIndex(answer => answer.isCorrect === true);
+        }
+        
+        // Если не удалось определить правильный ответ, пропускаем
+        if (correctAnswerIndex === null || correctAnswerIndex === -1) return;
+        
+        // Получаем ответ пользователя
+        const userAnswer = userAnswers[index];
+        let userAnswerIndex = -1;
+        
+        if (userAnswer && userAnswer.userAnswer !== null && userAnswer.userAnswer !== undefined) {
+          userAnswerIndex = userAnswer.userAnswer;
+        }
+        
+        // Создаем элемент вопроса
+        const questionElement = document.createElement('div');
+        questionElement.className = 'question-result';
+        
+        // Заголовок вопроса
+        questionElement.innerHTML = `
+          <div class="question-result-number">Вопрос ${index + 1}</div>
+          <div class="question-result-text">${question.text}</div>
+          <div class="answer-options">
+        `;
+        
+        // Получаем все варианты ответов
+        let answerOptions = [];
+        if (question.options) {
+          // Новый формат
+          answerOptions = question.options;
+        } else if (question.answers) {
+          // Старый формат
+          answerOptions = question.answers.map(answer => answer.text || answer);
+        }
+        
+        // Создаем элементы для каждого варианта ответа
+        const answerOptionsDiv = document.createElement('div');
+        answerOptionsDiv.className = 'answer-options';
+        
+        answerOptions.forEach((option, optIndex) => {
+          const answerOptionDiv = document.createElement('div');
+          answerOptionDiv.className = 'answer-option-result';
+          
+          // Определяем, является ли этот вариант выбранным пользователем
+          if (optIndex === userAnswerIndex) {
+            // Если это выбор пользователя, окрашиваем в зависимости от правильности
+            if (optIndex === correctAnswerIndex) {
+              answerOptionDiv.classList.add('user-correct');
+            } else {
+              answerOptionDiv.classList.add('user-incorrect');
+            }
+          }
+          
+          // Помечаем правильный ответ иконкой
+          if (optIndex === correctAnswerIndex) {
+            answerOptionDiv.innerHTML = `
+              <div class="answer-mark"><i class="fas fa-check"></i></div>
+              <div class="answer-text">${option}</div>
+            `;
+          } else if (optIndex === userAnswerIndex && optIndex !== correctAnswerIndex) {
+            answerOptionDiv.innerHTML = `
+              <div class="answer-mark"><i class="fas fa-times"></i></div>
+              <div class="answer-text">${option}</div>
+            `;
+          } else {
+            answerOptionDiv.innerHTML = `
+              <div class="answer-mark"></div>
+              <div class="answer-text">${option}</div>
+            `;
+          }
+          
+          answerOptionsDiv.appendChild(answerOptionDiv);
+        });
+        
+        questionElement.appendChild(answerOptionsDiv);
+        correctAnswersList.appendChild(questionElement);
+      });
+      
+      // Добавляем стили для блока правильных ответов
+      const styleElement = document.createElement('style');
+      styleElement.textContent = `
+        .question-result {
+          background-color: var(--card-background);
+          border-radius: 8px;
+          padding: 15px;
+          margin-bottom: 15px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .question-result-number {
+          font-weight: 600;
+          color: var(--primary-color);
+          margin-bottom: 5px;
+        }
+        
+        .question-result-text {
+          font-size: 16px;
+          margin-bottom: 15px;
+        }
+        
+        .answer-options {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        
+        .answer-option-result {
+          display: flex;
+          align-items: center;
+          padding: 10px 15px;
+          border-radius: 8px;
+          background-color: rgba(0, 0, 0, 0.05);
+          transition: background-color 0.2s;
+        }
+        
+        .answer-mark {
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 12px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        
+        .answer-text {
+          flex-grow: 1;
+        }
+        
+        .user-correct {
+          background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        .user-correct .answer-mark {
+          background-color: #4CAF50;
+          color: white;
+        }
+        
+        .user-incorrect {
+          background-color: rgba(244, 67, 54, 0.1);
+        }
+        
+        .user-incorrect .answer-mark {
+          background-color: #F44336;
+          color: white;
+        }
+        
+        .dark-mode .question-result {
+          background-color: rgba(48, 48, 48, 0.7);
+        }
+        
+        .dark-mode .answer-option-result {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .dark-mode .user-correct {
+          background-color: rgba(76, 175, 80, 0.2);
+        }
+        
+        .dark-mode .user-incorrect {
+          background-color: rgba(244, 67, 54, 0.2);
+        }
+      `;
+      
+      document.head.appendChild(styleElement);
+    }
+    
+    // Загрузка данных при загрузке страницы
+    window.addEventListener('DOMContentLoaded', () => {
+      loadTestData();
+      initializeSidebar();
+    });
+
+    // В секции JavaScript после инициализации Firebase
+    // Проверяем, является ли пользователь создателем теста
+    if (currentUser && currentUser.uid) {
+      const testRef = ref(db, `tests/${testId}`);
+      get(testRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          const test = snapshot.val();
+          if (test.createdBy === currentUser.uid) {
+            // Показываем кнопки редактирования и статистики только создателю теста
+            document.getElementById('edit-test-btn').style.display = 'flex';
+            document.getElementById('stats-test-btn').style.display = 'flex';
+          }
+        }
+      });
+    }
+
+    // Обработчики для кнопок совместного режима
+    document.getElementById('start-cooperative-btn').addEventListener('click', createLobby);
+    document.getElementById('join-cooperative-btn').addEventListener('click', function() {
+      document.getElementById('join-cooperative-container').style.display = 'block';
+    });
+    document.getElementById('join-by-code-btn').addEventListener('click', joinLobbyByCode);
+    document.getElementById('copy-code-btn').addEventListener('click', copyLobbyCode);
+    document.getElementById('leave-lobby-btn').addEventListener('click', leaveLobby);
+    
+    document.getElementById('start-cooperative-test-btn').addEventListener('click', startCooperativeTest);
+
+    // Обработчики для новых кнопок
+    document.getElementById('edit-test-btn').addEventListener('click', () => {
+      window.location.href = `edit-test.html?id=${testId}`;
+    });
+
+    document.getElementById('stats-test-btn').addEventListener('click', () => {
+      window.location.href = `test-stats.html?id=${testId}`;
+    });
+    
+    // Функции для совместного прохождения
+    
+    // Создание лобби для совместного прохождения
+    async function createLobby() {
+      try {
+        // Генерируем случайный код лобби (6 символов)
+        lobbyCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        // Создаем ссылку на лобби в Firebase
+        lobbyRef = ref(db, `test_lobbies/${lobbyCode}`);
+        
+        // Получаем актуальные данные пользователя из Firebase
+        const auth = getAuth();
+        const currentFirebaseUser = auth.currentUser;
+        let userPhotoURL = null;
+        let userName = currentUser.name || currentUser.email;
+        
+        if (currentFirebaseUser) {
+          userPhotoURL = currentFirebaseUser.photoURL;
+          
+          // Получаем актуальные данные пользователя из базы данных Firebase
+          try {
+            const userSnapshot = await get(ref(db, `users/${currentFirebaseUser.uid}`));
+            if (userSnapshot.exists()) {
+              const userData = userSnapshot.val();
+              userName = userData.name || userName;
+              console.log('Получены актуальные данные пользователя из Firebase:', userData);
+            }
+          } catch (e) {
+            console.error('Ошибка при получении данных пользователя:', e);
+          }
+        }
+        
+        // Добавляем хоста как первого участника
+        const lobbyData = {
+          testId: testId,
+          testTitle: currentTest.title,
+          hostId: currentUser.uid,
+          createdAt: Date.now(),
+          status: 'waiting', // waiting, started, finished
+          currentQuestion: 0, // Индекс текущего вопроса
+          participants: {
+            [currentUser.uid]: {
+              uid: currentUser.uid,
+              name: userName,
+              avatarUrl: currentUser.avatarUrl || null,
+              photoURL: userPhotoURL, // Добавляем photoURL
+              isHost: true,
+              joinedAt: Date.now()
+            }
+          }
+        };
+        
+        // Записываем данные лобби в Firebase
+        set(lobbyRef, lobbyData).then(() => {
+          // Устанавливаем флаг хоста
+          isHost = true;
+          
+          // Обновляем UI
+          document.getElementById('start-cooperative-btn').style.display = 'none';
+          document.getElementById('join-cooperative-btn').style.display = 'none';
+          document.getElementById('cooperative-lobby').style.display = 'block';
+          document.getElementById('lobby-code').textContent = lobbyCode;
+          
+          // Добавляем хоста в список участников
+          participants[currentUser.uid] = {
+            uid: currentUser.uid,
+            name: userName,
+            avatarUrl: currentUser.avatarUrl || null,
+            photoURL: userPhotoURL, // Добавляем photoURL
+            isHost: true
+          };
+          
+          updateParticipantsList();
+          
+          // Устанавливаем обработчик отключения
+          const userStatusRef = ref(db, `test_lobbies/${lobbyCode}/participants/${currentUser.uid}`);
+          onDisconnect(userStatusRef).remove();
+          
+          // Слушаем изменения в списке участников
+          const participantsRef = ref(db, `test_lobbies/${lobbyCode}/participants`);
+          onValue(participantsRef, (snapshot) => {
+            if (snapshot.exists()) {
+              participants = snapshot.val();
+              updateParticipantsList();
+            } else {
+              // Если участников больше нет, считаем лобби закрытым
+              if (isHost) {
+                // Если хост вышел, закрываем лобби
+                set(ref(db, `test_lobbies/${lobbyCode}`), null);
+              }
+            }
+          });
+          
+          // Слушаем изменения статуса лобби
+          const lobbyStatusRef = ref(db, `test_lobbies/${lobbyCode}/status`);
+          onValue(lobbyStatusRef, (snapshot) => {
+            if (snapshot.exists()) {
+              const status = snapshot.val();
+              if (status === 'started' && !isHost) {
+                // Если статус изменился на "started" и пользователь не хост, начинаем тест
+                startCooperativeTestAsParticipant();
+              } else if (status === 'finished' && !isHost) {
+                // Если статус изменился на "finished" и пользователь не хост, завершаем тест
+                console.log("Тест завершен хостом, показываем результаты");
+                testTakingContainer.classList.remove('active');
+                resultsContainer.classList.add('active');
+                checkResults();
+              }
+            }
+          });
+          
+          // Слушаем изменения текущего вопроса
+          const currentQuestionRef = ref(db, `test_lobbies/${lobbyCode}/currentQuestion`);
+          onValue(currentQuestionRef, (snapshot) => {
+            if (snapshot.exists() && !isHost) {
+              const question = parseInt(snapshot.val());
+              if (question !== currentQuestionIndex) {
+                // Получаем текущий статус лобби
+                get(ref(db, `test_lobbies/${lobbyCode}/status`)).then((statusSnapshot) => {
+                  if (statusSnapshot.exists() && statusSnapshot.val() === 'started') {
+                    currentQuestionIndex = question;
+                    displayCurrentQuestion();
+                  }
+                });
+              }
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Ошибка при создании лобби:', error);
+        alert('Произошла ошибка при создании лобби');
+      }
+    }
+    
+    // Присоединение к лобби по коду
+    async function joinLobbyByCode() {
+      const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+      
+      if (!code) {
+        alert('Введите код лобби');
+        return;
+      }
+      
+      try {
+        const lobbySnapshot = await get(ref(db, `test_lobbies/${code}`));
+        
+        if (!lobbySnapshot.exists()) {
+          alert('Лобби с таким кодом не найдено');
+          return;
+        }
+        
+        const lobbyData = lobbySnapshot.val();
+        
+        // Проверяем статус лобби
+        if (lobbyData.status !== 'waiting') {
+          alert('Это лобби уже начало тест или завершило его');
+          return;
+        }
+        
+        // Проверяем, соответствует ли тест
+        if (lobbyData.testId !== testId) {
+          alert('Код относится к другому тесту');
+          return;
+        }
+        
+        // Устанавливаем код лобби
+        lobbyCode = code;
+        lobbyRef = ref(db, `test_lobbies/${code}`);
+        
+        // Получаем актуальные данные пользователя из Firebase
+        const auth = getAuth();
+        const currentFirebaseUser = auth.currentUser;
+        let userPhotoURL = null;
+        let userName = currentUser.name || currentUser.email;
+        
+        if (currentFirebaseUser) {
+          userPhotoURL = currentFirebaseUser.photoURL;
+          
+          // Получаем актуальные данные пользователя из базы данных Firebase
+          try {
+            const userSnapshot = await get(ref(db, `users/${currentFirebaseUser.uid}`));
+            if (userSnapshot.exists()) {
+              const userData = userSnapshot.val();
+              userName = userData.name || userName;
+              console.log('Получены актуальные данные пользователя из Firebase:', userData);
+            }
+          } catch (e) {
+            console.error('Ошибка при получении данных пользователя:', e);
+          }
+        }
+        
+        // Добавляем пользователя в список участников
+        const participantData = {
+          uid: currentUser.uid,
+          name: userName,
+          avatarUrl: currentUser.avatarUrl || null,
+          photoURL: userPhotoURL, // Добавляем photoURL
+          isHost: false,
+          joinedAt: Date.now()
+        };
+        
+        await set(ref(db, `test_lobbies/${code}/participants/${currentUser.uid}`), participantData);
+        
+        // Обновляем UI
+        document.getElementById('start-cooperative-btn').style.display = 'none';
+        document.getElementById('join-cooperative-btn').style.display = 'none';
+        document.getElementById('join-cooperative-container').style.display = 'none';
+        document.getElementById('cooperative-lobby').style.display = 'block';
+        document.getElementById('lobby-code').textContent = code;
+        document.getElementById('start-cooperative-test-btn').style.display = 'none'; // Только хост может начать тест
+        
+        // Устанавливаем обработчик отключения
+        const userStatusRef = ref(db, `test_lobbies/${code}/participants/${currentUser.uid}`);
+        onDisconnect(userStatusRef).remove();
+        
+        // Слушаем изменения в списке участников
+        const participantsRef = ref(db, `test_lobbies/${code}/participants`);
+        onValue(participantsRef, (snapshot) => {
+          if (snapshot.exists()) {
+            participants = snapshot.val();
+            updateParticipantsList();
+          }
+        });
+        
+        // Слушаем изменения статуса лобби
+        const lobbyStatusRef = ref(db, `test_lobbies/${code}/status`);
+        onValue(lobbyStatusRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const status = snapshot.val();
+            if (status === 'started') {
+              // Если статус изменился на "started", начинаем тест
+              startCooperativeTestAsParticipant();
+            } else if (status === 'finished') {
+              // Если статус изменился на "finished", завершаем тест для участника
+              console.log("Тест завершен хостом, показываем результаты");
+              testTakingContainer.classList.remove('active');
+              resultsContainer.classList.add('active');
+              checkResults();
+            }
+          }
+        });
+        
+        // Слушаем изменения текущего вопроса
+        const currentQuestionRef = ref(db, `test_lobbies/${code}/currentQuestion`);
+        onValue(currentQuestionRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const question = parseInt(snapshot.val());
+            if (question !== currentQuestionIndex) {
+              // Получаем текущий статус лобби
+              get(ref(db, `test_lobbies/${code}/status`)).then((statusSnapshot) => {
+                if (statusSnapshot.exists() && statusSnapshot.val() === 'started') {
+                  // Сбрасываем все состояния предыдущего вопроса
+                  console.log("Переход к новому вопросу (для не-хоста):", question);
+                  
+                  // Сбрасываем флаг что все ответили и очищаем ответы для старого вопроса
+                  everyoneAnswered = false;
+                  participantsAnswers = {};
+                  
+                  // Удаляем все аватары участников и подсветки ответов
+                  const existingAvatarContainers = document.querySelectorAll('.answer-participants');
+                  existingAvatarContainers.forEach(container => {
+                    container.remove();
+                  });
+                  
+                  // Обновляем индекс текущего вопроса и отображаем его
+                  currentQuestionIndex = question;
+                  displayCurrentQuestion();
+                }
+              });
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Ошибка при присоединении к лобби:', error);
+        alert('Произошла ошибка при присоединении к лобби');
+      }
+    }
+    
+    // Обновление списка участников в UI
+    function updateParticipantsList() {
+      const participantsList = document.getElementById('participants-list');
+      const participantsCount = document.getElementById('participants-count');
+      participantsList.innerHTML = '';
+      
+      // Обновляем счетчик участников
+      const count = Object.keys(participants).length;
+      participantsCount.textContent = count;
+      
+      Object.values(participants).forEach((participant) => {
+        const participantItem = document.createElement('div');
+        participantItem.className = 'participant-item';
+        
+        // Используем аватарку из профиля пользователя (приоритет: photoURL -> avatarUrl -> инициалы)
+        const avatarInitial = participant.name ? participant.name.charAt(0).toUpperCase() : 'U';
+        
+        let avatarContent = avatarInitial;
+        if (participant.photoURL) {
+          avatarContent = `<img src="${participant.photoURL}" alt="${participant.name}">`;
+        } else if (participant.avatarUrl) {
+          avatarContent = `<img src="${participant.avatarUrl}" alt="${participant.name}">`;
+        }
+        
+        participantItem.innerHTML = `
+          <div class="participant-avatar ${participant.isHost ? 'host-avatar' : ''}">
+            ${avatarContent}
+          </div>
+          <div class="participant-name">${participant.name || 'Пользователь'} ${participant.isHost ? '<span class="host-badge">Хост</span>' : ''}</div>
+        `;
+        
+        participantsList.appendChild(participantItem);
+      });
+    }
+    
+    // Копирование кода лобби в буфер обмена
+    function copyLobbyCode() {
+      const code = document.getElementById('lobby-code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        // Визуальное подтверждение копирования
+        const copyBtn = document.getElementById('copy-code-btn');
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check"></i> Скопировано';
+        
+        setTimeout(() => {
+          copyBtn.innerHTML = originalText;
+        }, 2000);
+      });
+    }
+    
+    // Функция выхода из лобби
+    function leaveLobby() {
+      if (!lobbyCode) return;
+      
+      if (isHost) {
+        // Если хост выходит, удаляем все лобби
+        set(ref(db, `test_lobbies/${lobbyCode}`), null)
+          .then(() => {
+            console.log("Лобби удалено хостом");
+            resetLobbyState();
+          })
+          .catch(error => {
+            console.error("Ошибка при удалении лобби:", error);
+            alert("Произошла ошибка при выходе из лобби");
+          });
+      } else {
+        // Если участник выходит, только удаляем его запись
+        set(ref(db, `test_lobbies/${lobbyCode}/participants/${currentUser.uid}`), null)
+          .then(() => {
+            console.log("Участник вышел из лобби");
+            resetLobbyState();
+          })
+          .catch(error => {
+            console.error("Ошибка при выходе из лобби:", error);
+            alert("Произошла ошибка при выходе из лобби");
+          });
+      }
+    }
+    
+    // Сброс состояния лобби и UI
+    function resetLobbyState() {
+      // Сбрасываем переменные лобби
+      lobbyCode = null;
+      lobbyRef = null;
+      isHost = false;
+      participants = {};
+      participantsAnswers = {};
+      
+      // Сбрасываем UI
+      document.getElementById('start-cooperative-btn').style.display = 'flex';
+      document.getElementById('join-cooperative-btn').style.display = 'flex';
+      document.getElementById('cooperative-lobby').style.display = 'none';
+      document.getElementById('join-cooperative-container').style.display = 'none';
+    }
+    
+    // Начало совместного теста хостом
+    function startCooperativeTest() {
+      if (!isHost) return;
+      
+      // Проверяем количество участников в лобби
+      const participantsCount = Object.keys(participants).length;
+      if (participantsCount < 2) {
+        alert('Для начала совместного теста нужно минимум 2 участника (вы и еще кто-то)');
+        return;
+      }
+      
+      // Инициализируем структуру ответов для первого вопроса
+      const initialAnswers = {};
+      Object.values(participants).forEach(participant => {
+        initialAnswers[participant.uid] = {
+          answered: false,
+          answerIndex: null,
+          answeredAt: null,
+          timeSpent: 0
+        };
+      });
+      
+      // Обновляем статус лобби и инициализируем ответы для первого вопроса
+      const updates = {
+        status: 'started',
+        currentQuestion: 0,
+        [`answers/0`]: initialAnswers,
+        soloMode: false // Всегда false, поскольку теперь проверяем наличие 2+ участников
+      };
+      
+      update(lobbyRef, updates).then(() => {
+        // Скрываем лобби и показываем интерфейс теста
+        document.getElementById('test-info-container').style.display = 'none';
+        document.getElementById('test-taking-container').classList.add('active');
+        
+        // Начинаем отсчет времени
+        currentQuestionIndex = 0;
+        questionStartTime = Date.now();
+        questionTimeSpent = new Array(currentTest.questions.length).fill(0);
+        
+        // Отображаем первый вопрос
+        displayCurrentQuestion();
+      });
+    }
+    
+    // Начало совместного теста участником (не хостом)
+    function startCooperativeTestAsParticipant() {
+      console.log("Начинаем совместное прохождение теста как участник");
+      
+      // Скрываем лобби и показываем интерфейс теста
+      document.getElementById('test-info-container').style.display = 'none';
+      document.getElementById('test-taking-container').classList.add('active');
+      
+      // Сбрасываем флаг everyoneAnswered и очищаем ответы участников
+      everyoneAnswered = false;
+      participantsAnswers = {};
+      
+      // Получаем текущий вопрос из Firebase
+      get(ref(db, `test_lobbies/${lobbyCode}/currentQuestion`)).then((snapshot) => {
+        if (snapshot.exists()) {
+          currentQuestionIndex = parseInt(snapshot.val());
+        } else {
+          currentQuestionIndex = 0;
+        }
+        
+        // Начинаем отсчет времени
+        questionStartTime = Date.now();
+        questionTimeSpent = new Array(currentTest.questions.length).fill(0);
+        
+        // Отображаем текущий вопрос
+        displayCurrentQuestion();
+      });
+    }
+
+    // Обработчики событий
+    startTestBtn.addEventListener('click', startTest);
+    nextQuestionBtn.addEventListener('click', function() {
+      if (isCooperativeMode && !everyoneAnswered) {
+        submitAnswer();
+      } else {
+        goToNextQuestion();
+      }
+    });
+    prevQuestionBtn.addEventListener('click', goToPrevQuestion);
+    submitTestBtn.addEventListener('click', function() {
+      console.log("Нажата кнопка завершения теста");
+      console.log("Текущий индекс:", currentQuestionIndex, "Всего вопросов:", currentTest.questionsCount);
+      console.log("Флаг everyoneAnswered:", everyoneAnswered);
+      console.log("Текст кнопки:", submitTestBtn.textContent);
+      
+      // В совместном режиме если не все ответили или это кнопка подтверждения ответа, сначала отправляем свой ответ
+      if (isCooperativeMode && (!everyoneAnswered || submitTestBtn.textContent === 'Подтвердить ответ')) {
+        console.log("Отправляем ответ на последнем вопросе");
+        submitAnswer();
+        return;
+      }
+      
+      // Сохраняем время последнего вопроса
+      const endTime = Date.now();
+      questionTimeSpent[currentQuestionIndex] = (questionTimeSpent[currentQuestionIndex] || 0) + (endTime - questionStartTime);
+      
+      // Останавливаем таймер
+      stopTimer();
+      
+      // Безусловно завершаем тест, минуя все проверки
+      testTakingContainer.classList.remove('active');
+      resultsContainer.classList.add('active');
+      
+      // Обновляем статус лобби в совместном режиме
+      if (isCooperativeMode && isHost) {
+        console.log("Обновляем статус лобби на 'finished'");
+        update(lobbyRef, { status: 'finished' });
+      }
+      
+      checkResults();
+    });
+  </script>
+</body>
+
+</html> 

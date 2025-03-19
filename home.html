@@ -1,123 +1,632 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Главная страница</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+	<link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script" crossorigin="anonymous">
+  
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      // Обновляем логику установки темы
+      if (savedTheme === 'system') {
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.style.visibility = 'visible';
+        });
+      } else {
+        const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(theme);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(theme);
+          document.documentElement.classList.remove(theme);
+          document.documentElement.style.visibility = 'visible';
+        });
+      }
+
+      // Добавляем слушатель изменения системной темы
+      if (savedTheme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          document.body.classList.remove('dark-mode', 'light-mode');
+          document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+        });
+      }
+    })();
+  </script>
+
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
-    import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import {
+      getAuth,
+      signOut,
+      onAuthStateChanged,
+      setPersistence,
+      browserLocalPersistence
+    } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getDatabase, ref, get, update, connectDatabaseEmulator, query, orderByChild, equalTo, limitToLast } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { initializeSidebar } from './sidebar.js';
 
-    // Инициализация Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
-      authDomain: "tpoproject-35957.firebaseapp.com",
-      databaseURL: "https://tpoproject-35957-default-rtdb.firebaseio.com",
-      projectId: "tpoproject-35957",
-      storageBucket: "tpoproject-35957.appspot.com",
-      messagingSenderId: "683982725892",
-      appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
-    };
+    // Добавляем глобальную переменную для отслеживания состояния загрузки
+    let isLoading = true;
 
-    const app = initializeApp(firebaseConfig);  
-    const auth = getAuth(app);  
+    // Инициализируем Firebase и устанавливаем persistence
+    async function initializeFirebase() {
+      const firebaseConfig = {
+        apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+        authDomain: "tpoproject-35957.firebaseapp.com",
+        databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "tpoproject-35957",
+        storageBucket: "tpoproject-35957.appspot.com",
+        messagingSenderId: "683982725892",
+        appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+      };
 
-    // Проверяем состояние пользователя с помощью onAuthStateChanged
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // Показываем email в поле user-name
-        document.getElementById('user-name').innerText = user.email;
-        
-        // Если у пользователя есть фото (например, при авторизации через Google)
-        if (user.photoURL) {
-          const avatarDiv = document.getElementById('user-avatar');
-          // Очищаем текст, если был
-          avatarDiv.innerText = '';
-          // Убираем фон по умолчанию
-          avatarDiv.style.backgroundColor = 'transparent';
-          // Ставим фоновое изображение
-          avatarDiv.style.backgroundImage = `url(${user.photoURL})`;
-          avatarDiv.style.backgroundSize = 'cover';
-          avatarDiv.style.backgroundPosition = 'center';
-        } else {
-          // Если фото нет, показываем первую букву email
-          const firstLetter = user.email.charAt(0).toUpperCase();
-          document.getElementById('user-avatar').innerText = firstLetter;
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+
+      try {
+        // Проверяем наличие сохраненных данных пользователя
+        const savedUserData = localStorage.getItem('userData');
+        const isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+
+        console.log('Saved user data:', savedUserData);
+        console.log('Is authenticated:', isAuthenticated);
+
+        if (!isAuthenticated || !savedUserData) {
+          console.log('No authentication data found');
+          
+          // Проверяем состояние аутентификации Firebase
+          return new Promise((resolve) => {
+            onAuthStateChanged(auth, (user) => {
+              if (user) {
+                console.log('User is authenticated in Firebase');
+                // Обновляем sessionStorage и localStorage
+                sessionStorage.setItem('isAuthenticated', 'true');
+                const userData = {
+                  uid: user.uid,
+                  email: user.email,
+                  displayName: user.displayName,
+                  photoURL: user.photoURL
+                };
+                localStorage.setItem('userData', JSON.stringify(userData));
+                
+                // Обновляем UI на основе данных пользователя
+                document.getElementById('user-name').innerText = user.email;
+                
+                // Обновляем отображение аватарки
+                if (user.photoURL) {
+                  document.getElementById('user-avatar').innerHTML = `<img src="${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                  document.getElementById('mini-user-avatar').innerHTML = `<img src="${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                } else {
+                  const firstLetter = user.email.charAt(0).toUpperCase();
+                  document.getElementById('user-avatar').innerText = firstLetter;
+                  document.getElementById('mini-user-avatar').innerText = firstLetter;
+                }
+                
+                resolve({ auth, db, userData });
+              } else {
+                console.log('No authenticated user found in Firebase');
+                window.location.href = 'index.html';
+                resolve({ auth, db });
+              }
+            });
+          });
         }
-      } else {
-        // Если нет авторизованного пользователя, перенаправляем на страницу авторизации
-        window.location.href = 'index.html';
+
+        // Устанавливаем persistence
+        await setPersistence(auth, browserLocalPersistence);
+        console.log('Firebase initialized and persistence set');
+
+        // Парсим сохраненные данные пользователя
+        const userData = JSON.parse(savedUserData);
+
+        // Обновляем UI на основе сохраненных данных
+        document.getElementById('user-name').innerText = userData.email;
+        
+        // Обновляем отображение аватарки
+        if (userData.photoURL) {
+          // Если есть URL аватарки, отображаем изображение
+          document.getElementById('user-avatar').innerHTML = `<img src="${userData.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+          document.getElementById('mini-user-avatar').innerHTML = `<img src="${userData.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        } else {
+          // Если нет URL, используем первую букву email
+          const firstLetter = userData.email.charAt(0).toUpperCase();
+          document.getElementById('user-avatar').innerText = firstLetter;
+          document.getElementById('mini-user-avatar').innerText = firstLetter;
+        }
+
+        return { auth, db, userData };
+      } catch (error) {
+        console.error('Error initializing Firebase:', error);
+        throw error;
       }
+    }
+
+    // Инициализируем Firebase и настраиваем слушатели
+    initializeFirebase().then(({ auth, db, userData }) => {
+      console.log('Firebase setup complete');
+
+      // Добавляем слушатель события storage для синхронизации выхода между вкладками
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'logout' && event.newValue === 'true') {
+          console.log('Logout detected from another tab');
+          // Очищаем localStorage и sessionStorage
+          localStorage.removeItem('userData');
+          sessionStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('logout');
+          // Перенаправляем на страницу входа
+          window.location.href = 'index.html';
+        } else if (event.key === 'login' && event.newValue === 'true') {
+          console.log('Login detected from another tab');
+          // Обновляем страницу для отображения данных пользователя
+          window.location.reload();
+          // Удаляем флаг login
+          localStorage.removeItem('login');
+        }
+      });
+
+      // Основной слушатель изменения состояния аутентификации
+      onAuthStateChanged(auth, async (user) => {
+        console.log('Auth state changed:', user);
+
+        if (user) {
+          console.log('User authenticated:', user.email);
+          // Обновляем время последнего входа
+          const userRef = ref(db, `users/${user.uid}`);
+          await update(userRef, {
+            lastLogin: new Date().toISOString()
+          });
+          setupSearch(db);
+        } else {
+          console.log('No authenticated user found');
+          if (!isLoading) {
+            localStorage.removeItem('userData');
+            sessionStorage.removeItem('isAuthenticated');
+            window.location.href = 'index.html';
+          }
+        }
+        isLoading = false;
+      });
+
+      // Кнопка выхода
+      document.getElementById('logout').addEventListener('click', async function () {
+        try {
+          await signOut(auth);
+          localStorage.removeItem('userData');
+          sessionStorage.removeItem('isAuthenticated');
+          // Устанавливаем флаг logout для синхронизации с другими вкладками
+          localStorage.setItem('logout', 'true');
+          console.log('User signed out successfully');
+          window.location.href = 'index.html';
+        } catch (error) {
+          console.error('Error signing out:', error);
+          alert('Ошибка при выходе из аккаунта: ' + error.message);
+        }
+      });
+    }).catch(error => {
+      console.error('Failed to initialize Firebase:', error);
+      localStorage.removeItem('userData');
+      sessionStorage.removeItem('isAuthenticated');
+      window.location.href = 'index.html';
     });
 
-    // Кнопка выхода из аккаунта
-    document.getElementById('logout').addEventListener('click', function () {
-      signOut(auth).then(() => {
-        window.location.href = 'index.html'; 
-      }).catch((error) => {
-        alert('Ошибка при выходе из аккаунта: ' + error.message);
+    // Функция настройки поиска
+    function setupSearch(db) {
+      const searchInput = document.getElementById('search-input');
+      const searchResults = document.getElementById('search-results');
+      const clearSearch = document.getElementById('clear-search');
+      let searchTimeout;
+      let lastSearchResults = []; // Добавляем переменную для хранения последних результатов
+
+      // Функция поиска пользователей
+      async function searchUsers(query) {
+        try {
+          console.log('Searching for:', query);
+          const usersRef = ref(db, 'users');
+          const snapshot = await get(usersRef);
+          const users = [];
+
+          snapshot.forEach((userSnapshot) => {
+            const user = userSnapshot.val();
+            console.log('Checking user:', user);
+
+            const searchQuery = query.toLowerCase();
+            const userName = (user.name || '').toLowerCase();
+            const userEmail = (user.email || '').toLowerCase();
+
+            if (userName.includes(searchQuery) || userEmail.includes(searchQuery)) {
+              users.push(user);
+            }
+          });
+
+          console.log('Found users:', users);
+          return users;
+        } catch (error) {
+          console.error('Error searching users:', error);
+          return [];
+        }
+      }
+
+      // Функция для создания элемента результата поиска
+      function createSearchResultItem(user) {
+        const div = document.createElement('div');
+        div.className = 'search-result-item';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'search-result-avatar';
+        if (user.photoURL) {
+          avatar.innerHTML = `<img src="${user.photoURL}" alt="${user.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        } else {
+          avatar.textContent = user.name.charAt(0).toUpperCase();
+        }
+
+        const info = document.createElement('div');
+        info.className = 'search-result-info';
+
+        const name = document.createElement('div');
+        name.className = 'search-result-name';
+        name.textContent = user.name;
+
+        const email = document.createElement('div');
+        email.className = 'search-result-email';
+        email.textContent = user.email;
+
+        info.appendChild(name);
+        info.appendChild(email);
+        div.appendChild(avatar);
+        div.appendChild(info);
+
+        div.addEventListener('click', () => {
+          window.location.href = `profile.html?id=${user.numericId}`;
+        });
+
+        return div;
+      }
+
+      // Показ результатов поиска
+      function showSearchResults(users) {
+        searchResults.innerHTML = '';
+        lastSearchResults = users; // Сохраняем результаты
+
+        if (users.length === 0) {
+          searchResults.innerHTML = '<div class="no-results">Пользователи не найдены</div>';
+        } else {
+          users.forEach(user => {
+            searchResults.appendChild(createSearchResultItem(user));
+          });
+        }
+
+        searchResults.classList.add('active');
+      }
+
+      // Обработчик фокуса
+      if (searchInput) {
+        searchInput.addEventListener('focus', () => {
+          const query = searchInput.value.trim();
+          if (query.length > 0) {
+            // Показываем последние результаты, если они есть
+            if (lastSearchResults.length > 0) {
+              showSearchResults(lastSearchResults);
+            } else {
+              // Если результатов нет, выполняем новый поиск
+              searchResults.innerHTML = `
+                <div class="search-loading">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              `;
+              searchResults.classList.add('active');
+              
+              clearTimeout(searchTimeout);
+              searchTimeout = setTimeout(async () => {
+                const users = await searchUsers(query);
+                showSearchResults(users);
+              }, 300);
+            }
+          }
+        });
+
+        // Обработчик ввода (модифицируем существующий)
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.trim();
+          
+          if (clearSearch) {
+            if (query.length > 0) {
+              clearSearch.classList.add('visible');
+            } else {
+              clearSearch.classList.remove('visible');
+            }
+          }
+
+          if (query.length === 0) {
+            searchResults.classList.remove('active');
+            lastSearchResults = []; // Очищаем сохраненные результаты
+            return;
+          }
+
+          searchResults.innerHTML = `
+            <div class="search-loading">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          `;
+          searchResults.classList.add('active');
+
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(async () => {
+            const users = await searchUsers(query);
+            showSearchResults(users);
+          }, 300);
+        });
+      }
+
+      // Очистка поиска (модифицируем)
+      if (clearSearch) {
+        clearSearch.addEventListener('click', () => {
+          if (searchInput) {
+            searchInput.value = '';
+            searchResults.classList.remove('active');
+            clearSearch.classList.remove('visible');
+            lastSearchResults = []; // Очищаем сохраненные результаты
+          }
+        });
+      }
+
+      // Закрытие результатов при клике вне (модифицируем)
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+          searchResults.classList.remove('active');
+        }
       });
+    }
+
+    window.addEventListener('load', () => {
+      initializeSidebar();
     });
   </script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f4f4f9;
-    }
-    h1 {
-      text-align: center;
-    }
-    #user-info {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 20px 0;
-    }
-    /* Блок с аватаркой */
-    #user-avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: #ff5722; /* будет видно, если нет картинки */
-      color: white;
-      font-size: 20px;
-      text-align: center;
-      line-height: 50px;
-      margin-right: 10px;
-      display: inline-block;
-      vertical-align: middle;
-      /* Для фоновой картинки */
-      background-repeat: no-repeat;
-    }
-    #user-name {
-      font-size: 18px;
-      margin-right: 15px;
-    }
-    #logout {
-      padding: 10px 20px;
-      background-color: #ff5722;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #logout:hover {
-      background-color: #e64a19;
-    }
-  </style>
 </head>
-<body>
 
+<body>
   <h1>Добро пожаловать!</h1>
 
-  <div id="user-info">
-    <div id="user-avatar"></div> <!-- Здесь будет аватарка или первая буква -->
-    <p id="user-name"></p>
-    <button id="logout">Выйти</button>
+  <!-- Добавьте после header -->
+  <div class="search-container">
+    <div class="search-box">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" id="search-input" placeholder="Поиск пользователей...">
+      <i class="fas fa-times clear-icon" id="clear-search"></i>
+    </div>
+    <div class="search-results" id="search-results"></div>
   </div>
 
+  <!-- Контейнер для тестов -->
+  <div class="tests-container">
+    <button id="new-test-btn" class="new-test-btn">+ Новый тест</button>
+    
+    <!-- Раздел "Мои тесты" -->
+    <div class="tests-list-container">
+      <h2>Мои тесты:</h2>
+      <div id="my-tests-list" class="tests-list">
+        <!-- Тесты будут загружены здесь -->
+        <div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>
+      </div>
+    </div>
+    
+    <!-- Раздел "Популярные тесты" -->
+    <div class="tests-list-container">
+      <h2>Популярные тесты:</h2>
+      <div id="popular-tests-list" class="tests-list">
+        <!-- Тесты будут загружены здесь -->
+        <div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>
+      </div>
+    </div>
+    
+    <!-- Раздел "Новые тесты" -->
+    <div class="tests-list-container">
+      <h2>Новые тесты:</h2>
+      <div id="new-tests-list" class="tests-list">
+        <!-- Тесты будут загружены здесь -->
+        <div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Скрипт для управления тестами -->
+  <script type="module">
+    import { getDatabase, ref, onValue, query, orderByChild, equalTo, limitToLast, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    
+    // Функция для создания карточки теста
+    function createTestCard(test, testId) {
+      const testCard = document.createElement('div');
+      testCard.className = 'test-card';
+      
+      // Создаем содержимое карточки теста
+      let coverHtml = '';
+      if (test.coverURL) {
+        coverHtml = `<div class="test-cover"><img src="${test.coverURL}" alt="${test.title}"></div>`;
+      }
+      
+      testCard.innerHTML = `
+        ${coverHtml}
+        <div class="test-info">
+          <h3>${test.title}</h3>
+          ${test.description ? `<p>${test.description}</p>` : ''}
+          <div class="test-meta">
+            <span><i class="fas fa-question-circle"></i> ${test.questionsCount} вопр.</span>
+            <span><i class="fas fa-calendar-alt"></i> ${new Date(test.createdAt).toLocaleDateString()}</span>
+            ${test.completionsCount ? `<span><i class="fas fa-users"></i> ${test.completionsCount}</span>` : ''}
+          </div>
+        </div>
+      `;
+      
+      // Обработчик клика по карточке теста
+      testCard.addEventListener('click', () => {
+        window.location.href = `view-test.html?id=${testId}`;
+      });
+      
+      return testCard;
+    }
+    
+    // Функция для загрузки моих тестов
+    function loadMyTests(db, userId) {
+      const testsRef = query(ref(db, 'tests'), orderByChild('createdBy'), equalTo(userId));
+      const testsList = document.getElementById('my-tests-list');
+      
+      onValue(testsRef, (snapshot) => {
+        testsList.innerHTML = '';
+        
+        let hasTests = false;
+        
+        snapshot.forEach((testSnapshot) => {
+          hasTests = true;
+          const test = testSnapshot.val();
+          const testId = testSnapshot.key;
+          
+          const testCard = createTestCard(test, testId);
+          testsList.appendChild(testCard);
+        });
+        
+        if (!hasTests) {
+          testsList.innerHTML = '<div class="no-tests-message">У вас пока нет созданных тестов</div>';
+        }
+      });
+    }
+    
+    // Функция для загрузки популярных тестов
+    async function loadPopularTests(db) {
+      try {
+        const testsList = document.getElementById('popular-tests-list');
+        
+        // Получаем все результаты тестов
+        const resultsRef = ref(db, 'test_results');
+        const resultsSnapshot = await get(resultsRef);
+        
+        // Подсчитываем количество прохождений для каждого теста
+        const testCompletions = {};
+        resultsSnapshot.forEach((resultSnapshot) => {
+          const result = resultSnapshot.val();
+          if (result.testId) {
+            if (!testCompletions[result.testId]) {
+              testCompletions[result.testId] = 0;
+            }
+            testCompletions[result.testId]++;
+          }
+        });
+        
+        // Сортируем тесты по количеству прохождений
+        const sortedTests = Object.keys(testCompletions).sort((a, b) => {
+          return testCompletions[b] - testCompletions[a];
+        });
+        
+        // Берем топ-10 тестов
+        const topTests = sortedTests.slice(0, 10);
+        
+        if (topTests.length === 0) {
+          testsList.innerHTML = '<div class="no-tests-message">Пока нет популярных тестов</div>';
+          return;
+        }
+        
+        testsList.innerHTML = '';
+        
+        // Загружаем данные для каждого теста
+        for (const testId of topTests) {
+          const testRef = ref(db, `tests/${testId}`);
+          const testSnapshot = await get(testRef);
+          
+          if (testSnapshot.exists()) {
+            const test = testSnapshot.val();
+            // Добавляем количество прохождений
+            test.completionsCount = testCompletions[testId];
+            
+            const testCard = createTestCard(test, testId);
+            testsList.appendChild(testCard);
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке популярных тестов:', error);
+        document.getElementById('popular-tests-list').innerHTML = 
+          '<div class="error-message">Ошибка при загрузке популярных тестов</div>';
+      }
+    }
+    
+    // Функция для загрузки новых тестов
+    async function loadNewTests(db) {
+      try {
+        const testsList = document.getElementById('new-tests-list');
+        
+        // Получаем все тесты (без индексации по createdAt)
+        const testsRef = ref(db, 'tests');
+        const testsSnapshot = await get(testsRef);
+        
+        if (!testsSnapshot.exists()) {
+          testsList.innerHTML = '<div class="no-tests-message">Пока нет новых тестов</div>';
+          return;
+        }
+        
+        testsList.innerHTML = '';
+        
+        // Создаем массив тестов для сортировки
+        const tests = [];
+        testsSnapshot.forEach((testSnapshot) => {
+          tests.push({
+            id: testSnapshot.key,
+            data: testSnapshot.val()
+          });
+        });
+        
+        // Сортируем тесты по дате создания (от новых к старым)
+        tests.sort((a, b) => b.data.createdAt - a.data.createdAt);
+        
+        // Берем только 10 последних тестов
+        const latestTests = tests.slice(0, 10);
+        
+        // Добавляем тесты на страницу
+        latestTests.forEach((test) => {
+          const testCard = createTestCard(test.data, test.id);
+          testsList.appendChild(testCard);
+        });
+      } catch (error) {
+        console.error('Ошибка при загрузке новых тестов:', error);
+        document.getElementById('new-tests-list').innerHTML = 
+          '<div class="error-message">Ошибка при загрузке новых тестов</div>';
+      }
+    }
+    
+    // Обработчик нажатия на кнопку "Новый тест"
+    document.getElementById('new-test-btn').addEventListener('click', () => {
+      window.location.href = 'create-test.html';
+    });
+    
+    // Загружаем тесты после инициализации Firebase
+    window.addEventListener('DOMContentLoaded', () => {
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (userData && userData.uid) {
+        const db = getDatabase();
+        loadMyTests(db, userData.uid);
+        loadPopularTests(db);
+        loadNewTests(db);
+      }
+    });
+  </script>
 </body>
+
 </html>
