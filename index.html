@@ -476,11 +476,9 @@
 
         snapshot.forEach((userSnapshot) => {
           const userData = userSnapshot.val();
-          if (userData.name && userData.name.startsWith('user')) {
-            const numberStr = userData.name.replace('user', '');
-            const number = parseInt(numberStr);
-            if (!isNaN(number) && number > maxNumber) {
-              maxNumber = number;
+          if (userData.numericId && typeof userData.numericId === 'number') {
+            if (userData.numericId > maxNumber) {
+              maxNumber = userData.numericId;
             }
           }
         });
@@ -490,11 +488,6 @@
         console.error('Error getting next user number:', error);
         return 1; // Возвращаем 1 в случае ошибки
       }
-    }
-
-    // Функция для получения числового ID из имени пользователя
-    function getUserIdFromName(name) {
-      return name.replace('user', '');
     }
 
     // Функция для получения случайной аватарки из Firebase Storage
@@ -759,8 +752,7 @@
         sessionStorage.setItem('isAuthenticated', 'true');
 
         console.log('Login successful, redirecting...');
-        const numericId = getUserIdFromName(userData.name);
-        window.location.href = `profile.html?id=${numericId}`;
+        window.location.href = `profile.html?id=${userData.numericId}`;
       } catch (error) {
         console.error('Login error:', error);
         let errorMessage;

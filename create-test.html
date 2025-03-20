@@ -13,6 +13,10 @@
   <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script" crossorigin="anonymous">
   <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js" as="script" crossorigin="anonymous">
   
+  <!-- Cropper.js для кадрирования изображения -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  
   <!-- Добавляем синхронную инициализацию темы -->
   <script>
     (function() {
@@ -138,6 +142,133 @@
     .tooltip:hover .tooltip-text {
       visibility: visible;
       opacity: 1;
+    }
+    
+    /* Стили для модального окна кадрирования */
+    .crop-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      overflow: hidden;
+    }
+    
+    .crop-modal.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .crop-container {
+      width: 90%;
+      max-width: 800px;
+      background-color: var(--card-background);
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .crop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .crop-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--text-color);
+    }
+    
+    .crop-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+    
+    .crop-area {
+      width: 100%;
+      height: 50vh;
+      max-height: 500px;
+      margin-bottom: 1rem;
+      background-color: #333;
+      overflow: hidden;
+    }
+    
+    .crop-img {
+      display: block;
+      max-width: 100%;
+    }
+    
+    .crop-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .crop-zoom {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .zoom-slider {
+      width: 150px;
+      margin: 0 10px;
+    }
+    
+    .crop-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .crop-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .crop-btn.cancel {
+      background: transparent;
+      border: 1px solid var(--border-color);
+    }
+    
+    .crop-btn.cancel:hover {
+      background: var(--hover-bg);
+    }
+    
+    .crop-btn.apply {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .crop-btn.apply:hover {
+      opacity: 0.9;
+    }
+    
+    /* Стиль для прогресс-бара при загрузке */
+    .upload-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 5px;
+      width: 0;
+      background-color: var(--primary-color);
+      transition: width 0.3s ease;
     }
   </style>
 </head>
@@ -301,14 +432,125 @@
     
     testCoverInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) {
+      if (!file) return;
+      
+      // Проверяем, является ли файл изображением
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
+      
+      // Если это GIF, загружаем без кадрирования
+      if (file.type === 'image/gif') {
         selectedFile = file;
         const reader = new FileReader();
         reader.onload = (event) => {
           coverPreview.innerHTML = `<img src="${event.target.result}" alt="Обложка теста">`;
         };
         reader.readAsDataURL(file);
+        return;
       }
+      
+      // Инициализируем модальное окно для кадрирования
+      const modal = document.getElementById('crop-modal');
+      const cropImg = document.getElementById('crop-img');
+      const zoomSlider = document.getElementById('zoom-slider');
+      const closeBtn = document.getElementById('crop-close');
+      const cancelBtn = document.getElementById('crop-cancel');
+      const applyBtn = document.getElementById('crop-apply');
+      
+      let cropper;
+      
+      // Показываем изображение в модальном окне
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        cropImg.src = e.target.result;
+        modal.classList.add('active');
+        
+        // Инициализируем Cropper.js после загрузки изображения
+        setTimeout(() => {
+          cropper = new Cropper(cropImg, {
+            aspectRatio: 16 / 9, // Соотношение сторон для обложки теста
+            viewMode: 1, // Обрезаем по размеру области просмотра
+            guides: true, // Показываем направляющие линии
+            center: true, // Показываем индикатор центра
+            minContainerWidth: 300,
+            minContainerHeight: 150,
+            dragMode: 'move', // Режим перемещения изображения
+            autoCropArea: 0.8, // Размер области кадрирования (0-1)
+            responsive: true,
+            restore: false,
+            checkOrientation: false, // Отключаем автоматическое исправление ориентации
+            background: false, // Отключаем фон области кадрирования
+            ready() {
+              // Настраиваем слайдер масштабирования
+              zoomSlider.value = 0;
+            }
+          });
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+      
+      // Функция для закрытия модального окна
+      function closeModal() {
+        if (cropper) {
+          cropper.destroy();
+          cropper = null;
+        }
+        modal.classList.remove('active');
+        cropImg.src = '';
+        testCoverInput.value = ''; // Сбрасываем значение input, чтобы можно было выбрать тот же файл снова
+      }
+      
+      // Настраиваем слайдер масштабирования
+      zoomSlider.addEventListener('input', function() {
+        if (cropper) {
+          // Преобразуем значение слайдера (0-100) в масштаб (0.5-2)
+          const zoom = 0.5 + (this.value / 100) * 1.5;
+          cropper.zoomTo(zoom);
+        }
+      });
+      
+      // Обработчики событий для кнопок
+      closeBtn.onclick = closeModal;
+      cancelBtn.onclick = closeModal;
+      
+      // Обработчик события для кнопки "Применить"
+      applyBtn.onclick = function() {
+        if (!cropper) {
+          alert('Ошибка: кадрирование не инициализировано');
+          closeModal();
+          return;
+        }
+        
+        // Получаем кадрированное изображение в формате canvas
+        const canvas = cropper.getCroppedCanvas({
+          width: 1280, // Максимальная ширина
+          height: 720, // Максимальная высота
+          minWidth: 640, // Минимальная ширина
+          minHeight: 360, // Минимальная высота
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+        });
+        
+        if (!canvas) {
+          alert('Ошибка: не удалось создать кадрированное изображение');
+          closeModal();
+          return;
+        }
+        
+        // Преобразуем canvas в DataURL для предпросмотра
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        coverPreview.innerHTML = `<img src="${dataUrl}" alt="Обложка теста">`;
+        
+        // Преобразуем canvas в Blob для сохранения
+        canvas.toBlob((blob) => {
+          selectedFile = new File([blob], "cropped-cover.jpg", { type: "image/jpeg" });
+        }, 'image/jpeg', 0.9);
+        
+        // Закрываем модальное окно
+        closeModal();
+      };
     });
     
     // Обработчик для чекбокса совместного режима
@@ -632,6 +874,14 @@
           const fileRef = storageRef(storage, `test-covers/${currentUser.uid}/${Date.now()}_${selectedFile.name}`);
           const snapshot = await uploadBytes(fileRef, selectedFile);
           coverURL = await getDownloadURL(snapshot.ref);
+        } else {
+          // Если изображение не выбрано, используем изображение по умолчанию
+          const defaultImageRef = storageRef(storage, 'test-covers/test-cover-default.png');
+          try {
+            coverURL = await getDownloadURL(defaultImageRef);
+          } catch (error) {
+            console.error('Ошибка при получении изображения по умолчанию:', error);
+          }
         }
         
         // Создаем новый тест в базе данных
@@ -666,5 +916,29 @@
     });
   </script>
 </body>
+
+<!-- Модальное окно для кадрирования изображения -->
+<div class="crop-modal" id="crop-modal">
+  <div class="crop-container">
+    <div class="crop-header">
+      <div class="crop-title">Настройка обложки теста</div>
+      <button class="crop-close" id="crop-close">&times;</button>
+    </div>
+    <div class="crop-area">
+      <img src="" alt="Изображение для обложки" id="crop-img" class="crop-img">
+    </div>
+    <div class="crop-controls">
+      <div class="crop-zoom">
+        <i class="fas fa-search-minus"></i>
+        <input type="range" id="zoom-slider" class="zoom-slider" min="0" max="100" value="0">
+        <i class="fas fa-search-plus"></i>
+      </div>
+      <div class="crop-actions">
+        <button class="crop-btn cancel" id="crop-cancel">Отмена</button>
+        <button class="crop-btn apply" id="crop-apply">Применить</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </html> 
