@@ -39,12 +39,14 @@
   <div class="form-container">
     <!-- Секция восстановления пароля -->
     <section id="reset-section" class="form-section" style="display: none;">
-      <button class="back-button" id="back-to-login">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-        </svg>
-      </button>
-      <h2>Восстановление пароля</h2>
+      <div class="reset-header">
+        <button class="back-button" id="back-to-login">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+        </button>
+        <h2>Восстановление пароля</h2>
+      </div>
       <form id="reset-form">
         <div class="form-field">
           <label for="reset-email">Email</label>
@@ -138,7 +140,7 @@
           <div class="error-text">Заполните обязательное поле</div>
           <a href="#" id="forgot-password" class="forgot-password">Забыли пароль?</a>
         </div>
-        <button type="submit" class="primary">Войти</button>
+        <button type="submit" class="primary" style="margin-top: 15px;">Войти</button>
       </form>
 
       <div class="separator"><span>ИЛИ</span></div>
@@ -240,7 +242,7 @@
           </div>
         </div>
 
-        <button type="submit" class="primary">Зарегистрироваться</button>
+        <button type="submit" class="primary" style="margin-top: 15px;">Зарегистрироваться</button>
       </form>
 
       <div class="separator"><span>ИЛИ</span></div>

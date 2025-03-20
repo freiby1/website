@@ -98,20 +98,17 @@ body {
 	font-size: 20px;
 }
 .back-button {
-	position: fixed;
-	top: 20px;
-	left: 20px;
-	background: var(--primary-color);
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	background: none;
 	border: none;
-	border-radius: 50%;
-	width: 50px;
-	height: 50px;
 	cursor: pointer;
+	padding: 8px;
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	color: white;
-	font-size: 20px;
+	gap: 4px;
+	color: var(--primary-color);
 }
 
 
@@ -499,8 +496,6 @@ color: var(--primary-color);
 text-decoration: none;
 font-size: 14px;
 transition: opacity var(--transition-speed);
-margin-top: 8px;
-padding: 2px 4px;
 }
 .forgot-password:hover {
 text-decoration: underline;
@@ -508,6 +503,7 @@ opacity: 0.9;
 background: none;
 }
 .back-button {
+position: absolute;
 top: 1rem;
 left: 1rem;
 background: none;
@@ -557,7 +553,6 @@ transition: width 0.3s ease;
 }
 #password-strength-text {
 position: absolute;
-top: 12px;
 left: 0;
 font-size: 14px;
 font-weight: bold;
@@ -891,10 +886,6 @@ transform: scale(1);
 .sidebar-toggle.collapsed:hover .fa-chevron-right {
 opacity: 1;
 transform: scale(1);
-}
-.sidebar-toggle.collapsed:hover .fa-chevron-left {
-opacity: 0;
-transform: scale(0.5);
 }
 .sidebar-toggle:not(.collapsed):hover .fa-chevron-left {
 opacity: 1;
@@ -2071,7 +2062,6 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   color: rgba(33, 33, 33, 0.7);
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2494,8 +2484,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   grid-column: 1 / -1;
   text-align: center;
   padding: 20px;
-  color: #f44336;
-  font-style: italic;
+  color: white;
 }
 
 .dark-mode .loading-tests {
@@ -2503,5 +2492,26 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 }
 
 .dark-mode .error-message {
-  color: #e57373;
+  color: white;
+}
+
+/* Стили для заголовка восстановления пароля */
+.reset-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.reset-header h2 {
+  margin: 0;
+  margin-left: 15px;
+}
+
+.reset-header .back-button {
+  position: static;
+  top: auto;
+  left: auto;
+  margin: 0;
+  padding: 0;
 }
