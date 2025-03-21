@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Создание теста</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js" as="script" crossorigin="anonymous">
+  
+  <!-- Cropper.js для кадрирования изображения -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedTheme === 'system') {
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.style.visibility = 'visible';
+        });
+      } else {
+        const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(theme);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(theme);
+          document.documentElement.classList.remove(theme);
+          document.documentElement.style.visibility = 'visible';
+        });
+      }
+
+      // Добавляем слушатель изменения системной темы
+      if (savedTheme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          document.body.classList.remove('dark-mode', 'light-mode');
+          document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+        });
+      }
+    })();
+  </script>
+
+  <style>
+    /* Стили кнопки добавления вопроса */
+    .add-question-btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      margin: 20px 0;
+      background-color: var(--card-background);
+      border: 2px dashed var(--primary-color);
+      border-radius: 8px;
+      color: var(--primary-color);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .add-question-btn:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    /* Стиль для кнопки удаления вопроса */
+    .delete-question-btn {
+      border: none;
+      background: transparent;
+      color: #dc3545;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .delete-question-btn:hover {
+      background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    /* Выравнивание заголовка вопроса */
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    /* Стили для всплывающей подсказки */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      margin-left: 5px;
+      color: var(--primary-color);
+      cursor: pointer;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 300px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 10px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 14px;
+      font-weight: normal;
+    }
+    
+    .tooltip .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Стили для модального окна кадрирования */
+    .crop-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      overflow: hidden;
+    }
+    
+    .crop-modal.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .crop-container {
+      width: 90%;
+      max-width: 800px;
+      background-color: var(--card-background);
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .crop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .crop-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--text-color);
+    }
+    
+    .crop-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+    
+    .crop-area {
+      width: 100%;
+      height: 50vh;
+      max-height: 500px;
+      margin-bottom: 1rem;
+      background-color: #333;
+      overflow: hidden;
+    }
+    
+    .crop-img {
+      display: block;
+      max-width: 100%;
+    }
+    
+    .crop-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .crop-zoom {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .zoom-slider {
+      width: 150px;
+      margin: 0 10px;
+    }
+    
+    .crop-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .crop-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .crop-btn.cancel {
+      background: transparent;
+      border: 1px solid var(--border-color);
+    }
+    
+    .crop-btn.cancel:hover {
+      background: var(--hover-bg);
+    }
+    
+    .crop-btn.apply {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .crop-btn.apply:hover {
+      opacity: 0.9;
+    }
+    
+    /* Стиль для прогресс-бара при загрузке */
+    .upload-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 5px;
+      width: 0;
+      background-color: var(--primary-color);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="back-button" onclick="window.location.href='home.html'">
+    <i class="fas fa-arrow-left"></i>
+  </div>
+
+  <div class="create-test-container">
+    <div class="create-test-form">
+      <!-- Шаг 1: Основная информация о тесте -->
+      <div id="step1" class="step-container active">
+        <h2 class="form-title">Создание нового теста</h2>
+        
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-bar-inner" style="width: 50%"></div>
+          </div>
+          <div class="progress-text">Шаг 1 из 2</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-cover">Обложка теста (по желанию)</label>
+          <div class="cover-preview" id="cover-preview">
+            <i class="fas fa-image" style="font-size: 48px; color: #bdbdbd;"></i>
+          </div>
+          <label class="cover-upload-label">
+            <i class="fas fa-upload"></i>
+            Загрузить изображение
+            <input type="file" id="test-cover" accept="image/*" style="display: none;">
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-title">Название теста *</label>
+          <input type="text" id="test-title" class="form-control" placeholder="Введите название теста" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-description">Описание теста (по желанию)</label>
+          <textarea id="test-description" class="form-control" rows="4" placeholder="Краткое описание теста"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="questions-count">Количество вопросов *</label>
+          <input type="number" id="questions-count" class="form-control" min="1" max="50" value="5" required>
+          <div class="form-text">Максимальное количество вопросов: 50</div>
+        </div>
+        
+        <div class="form-group">
+          <div class="checkbox-container">
+            <input type="checkbox" id="cooperative-mode" class="form-checkbox">
+            <label for="cooperative-mode">Совместное прохождение</label>
+            <div class="tooltip">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-text">
+                Позволяет пользователям проходить тест вместе. Первый пользователь становится хостом, другие могут присоединиться. 
+                Каждый участник будет видеть ответы других после того, как все ответят на вопрос. Хост контролирует начало теста.
+              </span>
+            </div>
+          </div>
+          <div class="form-text">Позволяет пользователям проходить тест вместе и видеть ответы друг друга</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="time-limit">Ограничение времени на вопрос (в секундах)</label>
+          <input type="number" id="time-limit" class="form-control" min="0" value="0" placeholder="0 - без ограничения">
+          <div class="form-text">Укажите 0, если не хотите устанавливать ограничение времени</div>
+        </div>
+        
+        <div class="btn-container">
+          <button class="btn btn-secondary" onclick="window.location.href='home.html'">Отмена</button>
+          <button class="btn btn-primary" id="next-step-btn">Перейти к созданию теста</button>
+        </div>
+      </div>
+      
+      <!-- Шаг 2: Создание вопросов -->
+      <div id="step2" class="step-container">
+        <h2 class="form-title">Создание вопросов</h2>
+        
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-bar-inner" style="width: 100%"></div>
+          </div>
+          <div class="progress-text" id="questions-progress">Вопрос 1 из 5</div>
+        </div>
+        
+        <div id="questions-container">
+          <!-- Здесь будут динамически создаваться вопросы -->
+        </div>
+        
+        <button type="button" class="add-question-btn" id="add-new-question">
+          <i class="fas fa-plus"></i> Добавить новый вопрос
+        </button>
+        
+        <div class="btn-container">
+          <button class="btn btn-secondary" id="prev-step-btn">Назад</button>
+          <button class="btn btn-primary" id="save-test-btn">Сохранить тест</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getDatabase, ref, push, set } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+    import { initializeSidebar } from './sidebar.js';
+
+    // Инициализация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+      authDomain: "tpoproject-35957.firebaseapp.com",
+      databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tpoproject-35957",
+      storageBucket: "tpoproject-35957.appspot.com",
+      messagingSenderId: "683982725892",
+      appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+    
+    // Проверка авторизации
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+      }
+    });
+
+    let currentUser = null;
+    let selectedFile = null;
+    let questionsCount = 5;
+    let cooperativeMode = false;
+    let timeLimit = 0;
+    
+    // Получаем данные пользователя из localStorage
+    const savedUserData = localStorage.getItem('userData');
+    if (savedUserData) {
+      currentUser = JSON.parse(savedUserData);
+    } else {
+      window.location.href = 'index.html';
+    }
+
+    // Элементы шагов
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    
+    // Кнопки навигации
+    const nextStepBtn = document.getElementById('next-step-btn');
+    const prevStepBtn = document.getElementById('prev-step-btn');
+    const saveTestBtn = document.getElementById('save-test-btn');
+    
+    // Обработчик загрузки обложки
+    const testCoverInput = document.getElementById('test-cover');
+    const coverPreview = document.getElementById('cover-preview');
+    
+    testCoverInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      // Проверяем, является ли файл изображением
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
+      
+      // Если это GIF, загружаем без кадрирования
+      if (file.type === 'image/gif') {
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          coverPreview.innerHTML = `<img src="${event.target.result}" alt="Обложка теста">`;
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+      
+      // Инициализируем модальное окно для кадрирования
+      const modal = document.getElementById('crop-modal');
+      const cropImg = document.getElementById('crop-img');
+      const zoomSlider = document.getElementById('zoom-slider');
+      const closeBtn = document.getElementById('crop-close');
+      const cancelBtn = document.getElementById('crop-cancel');
+      const applyBtn = document.getElementById('crop-apply');
+      
+      let cropper;
+      
+      // Показываем изображение в модальном окне
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        cropImg.src = e.target.result;
+        modal.classList.add('active');
+        
+        // Инициализируем Cropper.js после загрузки изображения
+        setTimeout(() => {
+          cropper = new Cropper(cropImg, {
+            aspectRatio: 16 / 9, // Соотношение сторон для обложки теста
+            viewMode: 1, // Обрезаем по размеру области просмотра
+            guides: true, // Показываем направляющие линии
+            center: true, // Показываем индикатор центра
+            minContainerWidth: 300,
+            minContainerHeight: 150,
+            dragMode: 'move', // Режим перемещения изображения
+            autoCropArea: 0.8, // Размер области кадрирования (0-1)
+            responsive: true,
+            restore: false,
+            checkOrientation: false, // Отключаем автоматическое исправление ориентации
+            background: false, // Отключаем фон области кадрирования
+            ready() {
+              // Настраиваем слайдер масштабирования
+              zoomSlider.value = 0;
+            }
+          });
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+      
+      // Функция для закрытия модального окна
+      function closeModal() {
+        if (cropper) {
+          cropper.destroy();
+          cropper = null;
+        }
+        modal.classList.remove('active');
+        cropImg.src = '';
+        testCoverInput.value = ''; // Сбрасываем значение input, чтобы можно было выбрать тот же файл снова
+      }
+      
+      // Настраиваем слайдер масштабирования
+      zoomSlider.addEventListener('input', function() {
+        if (cropper) {
+          // Преобразуем значение слайдера (0-100) в масштаб (0.5-2)
+          const zoom = 0.5 + (this.value / 100) * 1.5;
+          cropper.zoomTo(zoom);
+        }
+      });
+      
+      // Обработчики событий для кнопок
+      closeBtn.onclick = closeModal;
+      cancelBtn.onclick = closeModal;
+      
+      // Обработчик события для кнопки "Применить"
+      applyBtn.onclick = function() {
+        if (!cropper) {
+          alert('Ошибка: кадрирование не инициализировано');
+          closeModal();
+          return;
+        }
+        
+        // Получаем кадрированное изображение в формате canvas
+        const canvas = cropper.getCroppedCanvas({
+          width: 1280, // Максимальная ширина
+          height: 720, // Максимальная высота
+          minWidth: 640, // Минимальная ширина
+          minHeight: 360, // Минимальная высота
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+        });
+        
+        if (!canvas) {
+          alert('Ошибка: не удалось создать кадрированное изображение');
+          closeModal();
+          return;
+        }
+        
+        // Преобразуем canvas в DataURL для предпросмотра
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        coverPreview.innerHTML = `<img src="${dataUrl}" alt="Обложка теста">`;
+        
+        // Преобразуем canvas в Blob для сохранения
+        canvas.toBlob((blob) => {
+          selectedFile = new File([blob], "cropped-cover.jpg", { type: "image/jpeg" });
+        }, 'image/jpeg', 0.9);
+        
+        // Закрываем модальное окно
+        closeModal();
+      };
+    });
+    
+    // Обработчик для чекбокса совместного режима
+    const cooperativeModeCheckbox = document.getElementById('cooperative-mode');
+    cooperativeModeCheckbox.addEventListener('change', (e) => {
+      cooperativeMode = e.target.checked;
+    });
+    
+    // Обработчик для поля ограничения времени
+    const timeLimitInput = document.getElementById('time-limit');
+    timeLimitInput.addEventListener('change', (e) => {
+      timeLimit = parseInt(e.target.value) || 0;
+    });
+    
+    // Переход к следующему шагу
+    nextStepBtn.addEventListener('click', () => {
+      const titleInput = document.getElementById('test-title');
+      const questionsCountInput = document.getElementById('questions-count');
+      
+      // Валидация
+      if (!titleInput.value.trim()) {
+        alert('Пожалуйста, введите название теста');
+        titleInput.focus();
+        return;
+      }
+      
+      if (!questionsCountInput.value || questionsCountInput.value < 1 || questionsCountInput.value > 50) {
+        alert('Пожалуйста, введите корректное количество вопросов (от 1 до 50)');
+        questionsCountInput.focus();
+        return;
+      }
+      
+      // Сохраняем количество вопросов
+      questionsCount = parseInt(questionsCountInput.value);
+      
+      // Генерируем формы для вопросов
+      generateQuestionForms(questionsCount);
+      
+      // Показываем шаг 2
+      step1.classList.remove('active');
+      step2.classList.add('active');
+    });
+    
+    // Возврат к предыдущему шагу
+    prevStepBtn.addEventListener('click', () => {
+      step2.classList.remove('active');
+      step1.classList.add('active');
+    });
+    
+    // Генерация форм для вопросов
+    function generateQuestionForms(count) {
+      const questionsContainer = document.getElementById('questions-container');
+      questionsContainer.innerHTML = '';
+      
+      for (let i = 0; i < count; i++) {
+        createQuestionForm(i, questionsContainer);
+      }
+      
+      // Обновляем текст прогресса
+      updateQuestionsProgress();
+    }
+    
+    // Создание формы для одного вопроса
+    function createQuestionForm(index, container) {
+      const questionDiv = document.createElement('div');
+      questionDiv.className = 'question-builder';
+      questionDiv.dataset.questionIndex = index;
+      
+      questionDiv.innerHTML = `
+        <div class="question-header">
+          <div class="question-number">Вопрос ${index + 1}</div>
+          ${index > 0 ? '<button type="button" class="delete-question-btn" title="Удалить вопрос"><i class="fas fa-trash"></i></button>' : ''}
+        </div>
+        
+        <div class="form-group">
+          <label for="question-text-${index}">Текст вопроса *</label>
+          <input type="text" id="question-text-${index}" class="form-control question-text" placeholder="Введите текст вопроса" required>
+        </div>
+        
+        <div class="answers-list" id="answers-list-${index}">
+          <div class="answer-item">
+            <div class="answer-checkbox">
+              <input type="checkbox" id="answer-correct-${index}-0" class="answer-correct">
+            </div>
+            <div class="answer-text">
+              <input type="text" class="form-control answer-text-input" placeholder="Вариант ответа" required>
+            </div>
+            <div class="answer-actions">
+              <button type="button" class="delete-answer-btn" title="Удалить ответ"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+          
+          <div class="answer-item">
+            <div class="answer-checkbox">
+              <input type="checkbox" id="answer-correct-${index}-1" class="answer-correct">
+            </div>
+            <div class="answer-text">
+              <input type="text" class="form-control answer-text-input" placeholder="Вариант ответа" required>
+            </div>
+            <div class="answer-actions">
+              <button type="button" class="delete-answer-btn" title="Удалить ответ"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        </div>
+        
+        <button type="button" class="add-answer-btn" data-question="${index}">
+          <i class="fas fa-plus"></i> Добавить вариант ответа
+        </button>
+      `;
+      
+      container.appendChild(questionDiv);
+      
+      // Добавляем обработчики для кнопок
+      addQuestionEventListeners(questionDiv, index);
+    }
+    
+    // Добавление обработчиков событий для вопроса
+    function addQuestionEventListeners(questionDiv, questionIndex) {
+      // Обработчик для кнопки "Добавить вариант ответа"
+      const addAnswerBtn = questionDiv.querySelector('.add-answer-btn');
+      addAnswerBtn.addEventListener('click', () => {
+        addAnswerToQuestion(questionIndex);
+      });
+      
+      // Обработчики для кнопок "Удалить вариант ответа"
+      const deleteAnswerBtns = questionDiv.querySelectorAll('.delete-answer-btn');
+      deleteAnswerBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          deleteAnswerFromQuestion(e, questionIndex);
+        });
+      });
+      
+      // Обработчик для кнопки "Удалить вопрос"
+      const deleteQuestionBtn = questionDiv.querySelector('.delete-question-btn');
+      if (deleteQuestionBtn) {
+        deleteQuestionBtn.addEventListener('click', () => {
+          deleteQuestion(questionIndex);
+        });
+      }
+    }
+    
+    // Добавление варианта ответа к вопросу
+    function addAnswerToQuestion(questionIndex) {
+      const answersList = document.getElementById(`answers-list-${questionIndex}`);
+      const answersCount = answersList.querySelectorAll('.answer-item').length;
+      
+      const answerItem = document.createElement('div');
+      answerItem.className = 'answer-item';
+      answerItem.innerHTML = `
+        <div class="answer-checkbox">
+          <input type="checkbox" id="answer-correct-${questionIndex}-${answersCount}" class="answer-correct">
+        </div>
+        <div class="answer-text">
+          <input type="text" class="form-control answer-text-input" placeholder="Вариант ответа" required>
+        </div>
+        <div class="answer-actions">
+          <button type="button" class="delete-answer-btn" title="Удалить ответ"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+      
+      answersList.appendChild(answerItem);
+      
+      // Добавляем обработчик для новой кнопки удаления
+      const deleteBtn = answerItem.querySelector('.delete-answer-btn');
+      deleteBtn.addEventListener('click', (e) => {
+        deleteAnswerFromQuestion(e, questionIndex);
+      });
+    }
+    
+    // Удаление варианта ответа из вопроса
+    function deleteAnswerFromQuestion(e, questionIndex) {
+      const answersList = e.currentTarget.closest('.answers-list');
+      if (answersList.querySelectorAll('.answer-item').length > 2) {
+        e.currentTarget.closest('.answer-item').remove();
+      } else {
+        alert('Должно быть минимум 2 варианта ответа');
+      }
+    }
+    
+    // Удаление вопроса
+    function deleteQuestion(questionIndex) {
+      const questionsContainer = document.getElementById('questions-container');
+      const questions = questionsContainer.querySelectorAll('.question-builder');
+      
+      if (questions.length <= 1) {
+        alert('Должен быть минимум 1 вопрос');
+        return;
+      }
+      
+      // Удаляем вопрос
+      questions[questionIndex].remove();
+      
+      // Обновляем индексы оставшихся вопросов
+      const remainingQuestions = questionsContainer.querySelectorAll('.question-builder');
+      
+      remainingQuestions.forEach((question, index) => {
+        // Обновляем атрибут data-question-index
+        question.dataset.questionIndex = index;
+        
+        // Обновляем номер вопроса
+        question.querySelector('.question-number').textContent = `Вопрос ${index + 1}`;
+        
+        // Обновляем ID и атрибуты полей
+        question.querySelector('.question-text').id = `question-text-${index}`;
+        
+        // Обновляем атрибут data-question у кнопки добавления ответа
+        question.querySelector('.add-answer-btn').dataset.question = index;
+        
+        // Обновляем ID списка ответов
+        const answersList = question.querySelector('.answers-list');
+        answersList.id = `answers-list-${index}`;
+        
+        // Обновляем ID и name чекбоксов
+        const checkboxes = answersList.querySelectorAll('.answer-correct');
+        checkboxes.forEach((checkbox, answerIndex) => {
+          checkbox.id = `answer-correct-${index}-${answerIndex}`;
+        });
+      });
+      
+      // Обновляем количество вопросов
+      questionsCount = remainingQuestions.length;
+      
+      // Обновляем текст прогресса
+      updateQuestionsProgress();
+    }
+    
+    // Обновление текста прогресса
+    function updateQuestionsProgress() {
+      const questionsContainer = document.getElementById('questions-container');
+      const count = questionsContainer.querySelectorAll('.question-builder').length;
+      document.getElementById('questions-progress').textContent = `Вопросы 1-${count} из ${count}`;
+    }
+    
+    // Обработчик для кнопки добавления нового вопроса
+    document.getElementById('add-new-question').addEventListener('click', () => {
+      const questionsContainer = document.getElementById('questions-container');
+      const currentCount = questionsContainer.querySelectorAll('.question-builder').length;
+      
+      // Добавляем новый вопрос
+      createQuestionForm(currentCount, questionsContainer);
+      
+      // Обновляем количество вопросов
+      questionsCount = currentCount + 1;
+      
+      // Обновляем текст прогресса
+      updateQuestionsProgress();
+    });
+    
+    // Сохранение теста
+    saveTestBtn.addEventListener('click', async () => {
+      try {
+        // Проверяем данные теста
+        const testTitle = document.getElementById('test-title').value.trim();
+        const testDescription = document.getElementById('test-description').value.trim();
+        
+        if (!testTitle) {
+          alert('Пожалуйста, введите название теста');
+          return;
+        }
+        
+        // Собираем данные вопросов
+        const questions = [];
+        const questionForms = document.querySelectorAll('.question-builder');
+        
+        if (questionForms.length === 0) {
+          alert('Пожалуйста, добавьте хотя бы один вопрос');
+          return;
+        }
+        
+        for (let i = 0; i < questionForms.length; i++) {
+          const questionForm = questionForms[i];
+          const questionText = questionForm.querySelector('.question-text').value.trim();
+          
+          if (!questionText) {
+            alert(`Пожалуйста, введите текст вопроса ${i + 1}`);
+            return;
+          }
+          
+          const answerItems = questionForm.querySelectorAll('.answer-item');
+          const answers = [];
+          let hasCorrectAnswer = false;
+          
+          for (let j = 0; j < answerItems.length; j++) {
+            const answerItem = answerItems[j];
+            const answerText = answerItem.querySelector('.answer-text-input').value.trim();
+            const isCorrect = answerItem.querySelector('.answer-correct').checked;
+            
+            if (!answerText) {
+              alert(`Пожалуйста, введите текст ответа ${j + 1} для вопроса ${i + 1}`);
+              return;
+            }
+            
+            if (isCorrect) {
+              hasCorrectAnswer = true;
+            }
+            
+            answers.push({
+              text: answerText,
+              isCorrect: isCorrect
+            });
+          }
+          
+          if (!hasCorrectAnswer) {
+            alert(`Пожалуйста, выберите хотя бы один правильный ответ для вопроса ${i + 1}`);
+            return;
+          }
+          
+          questions.push({
+            text: questionText,
+            answers: answers
+          });
+        }
+        
+        // Показываем индикатор загрузки
+        saveTestBtn.disabled = true;
+        saveTestBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+        
+        // Загрузка обложки (если выбрана)
+        let coverURL = null;
+        if (selectedFile) {
+          const fileRef = storageRef(storage, `test-covers/${currentUser.uid}/${Date.now()}_${selectedFile.name}`);
+          const snapshot = await uploadBytes(fileRef, selectedFile);
+          coverURL = await getDownloadURL(snapshot.ref);
+        } else {
+          // Если изображение не выбрано, используем изображение по умолчанию
+          const defaultImageRef = storageRef(storage, 'test-covers/test-cover-default.png');
+          try {
+            coverURL = await getDownloadURL(defaultImageRef);
+          } catch (error) {
+            console.error('Ошибка при получении изображения по умолчанию:', error);
+          }
+        }
+        
+        // Создаем новый тест в базе данных
+        const newTestRef = push(ref(db, 'tests'));
+        const testData = {
+          title: testTitle,
+          description: testDescription,
+          coverURL: coverURL,
+          questionsCount: questions.length,
+          questions: questions,
+          createdBy: currentUser.uid,
+          createdAt: Date.now(),
+          cooperativeMode: cooperativeMode,
+          timeLimit: timeLimit
+        };
+        
+        await set(newTestRef, testData);
+        
+        // Перенаправляем на домашнюю страницу
+        window.location.href = 'home.html';
+      } catch (error) {
+        console.error('Ошибка при сохранении теста:', error);
+        alert('Произошла ошибка при сохранении теста. Пожалуйста, попробуйте еще раз.');
+        saveTestBtn.disabled = false;
+        saveTestBtn.innerHTML = 'Сохранить тест';
+      }
+    });
+    
+    // Инициализация сайдбара
+    window.addEventListener('load', () => {
+      initializeSidebar();
+    });
+  </script>
+</body>
+
+<!-- Модальное окно для кадрирования изображения -->
+<div class="crop-modal" id="crop-modal">
+  <div class="crop-container">
+    <div class="crop-header">
+      <div class="crop-title">Настройка обложки теста</div>
+      <button class="crop-close" id="crop-close">&times;</button>
+    </div>
+    <div class="crop-area">
+      <img src="" alt="Изображение для обложки" id="crop-img" class="crop-img">
+    </div>
+    <div class="crop-controls">
+      <div class="crop-zoom">
+        <i class="fas fa-search-minus"></i>
+        <input type="range" id="zoom-slider" class="zoom-slider" min="0" max="100" value="0">
+        <i class="fas fa-search-plus"></i>
+      </div>
+      <div class="crop-actions">
+        <button class="crop-btn cancel" id="crop-cancel">Отмена</button>
+        <button class="crop-btn apply" id="crop-apply">Применить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</html> 

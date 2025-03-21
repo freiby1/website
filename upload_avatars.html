@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Загрузка аватарок</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .upload-container {
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: var(--card-background);
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .upload-title {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .upload-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .file-input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    
+    .upload-button {
+      padding: 12px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .upload-button:hover {
+      opacity: 0.9;
+    }
+    
+    .upload-status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="upload-container">
+    <h2 class="upload-title">Загрузка аватарок по умолчанию</h2>
+    <div class="upload-form">
+      <p>Выберите 4 файла изображений для аватарок по умолчанию:</p>
+      <input type="file" id="avatar-files" class="file-input" accept="image/*" multiple>
+      <button id="upload-button" class="upload-button">Загрузить аватарки</button>
+      <div id="upload-status" class="upload-status"></div>
+    </div>
+  </div>
+  
+  <script type="module" src="upload_avatars.js"></script>
+</body>
+</html> 

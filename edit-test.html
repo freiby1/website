@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Редактирование теста</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js" as="script" crossorigin="anonymous">
+  
+  <!-- Cropper.js для кадрирования изображения -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedTheme === 'system') {
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.style.visibility = 'visible';
+        });
+      } else {
+        const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(theme);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(theme);
+          document.documentElement.classList.remove(theme);
+          document.documentElement.style.visibility = 'visible';
+        });
+      }
+
+      // Добавляем слушатель изменения системной темы
+      if (savedTheme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          document.body.classList.remove('dark-mode', 'light-mode');
+          document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+        });
+      }
+    })();
+  </script>
+  
+  <style>
+    /* Стили кнопки добавления вопроса */
+    .add-question-btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      margin: 20px 0;
+      background-color: var(--card-background);
+      border: 2px dashed var(--primary-color);
+      border-radius: 8px;
+      color: var(--primary-color);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .add-question-btn:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    /* Стиль для кнопки удаления вопроса */
+    .delete-question-btn {
+      border: none;
+      background: transparent;
+      color: #dc3545;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .delete-question-btn:hover {
+      background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    /* Выравнивание заголовка вопроса */
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    /* Стили для контейнера с чекбоксом */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .form-checkbox {
+      margin-right: 10px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    /* Стили для всплывающей подсказки */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      margin-left: 5px;
+      color: var(--primary-color);
+      cursor: pointer;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 300px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 10px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 14px;
+      font-weight: normal;
+    }
+    
+    .tooltip .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Стили для пояснительного текста в форме */
+    .form-text {
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.6);
+      margin-top: 5px;
+    }
+    
+    /* Стили для темного режима */
+    .dark-mode .form-text {
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    /* Стили для модального окна кадрирования */
+    .crop-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      overflow: hidden;
+    }
+    
+    .crop-modal.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .crop-container {
+      width: 90%;
+      max-width: 800px;
+      background-color: var(--card-background);
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .crop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .crop-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--text-color);
+    }
+    
+    .crop-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+    
+    .crop-area {
+      width: 100%;
+      height: 50vh;
+      max-height: 500px;
+      margin-bottom: 1rem;
+      background-color: #333;
+      overflow: hidden;
+    }
+    
+    .crop-img {
+      display: block;
+      max-width: 100%;
+    }
+    
+    .crop-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .crop-zoom {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .zoom-slider {
+      width: 150px;
+      margin: 0 10px;
+    }
+    
+    .crop-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .crop-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .crop-btn.cancel {
+      background: transparent;
+      border: 1px solid var(--border-color);
+    }
+    
+    .crop-btn.cancel:hover {
+      background: var(--hover-bg);
+    }
+    
+    .crop-btn.apply {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .crop-btn.apply:hover {
+      opacity: 0.9;
+    }
+    
+    /* Стиль для прогресс-бара при загрузке */
+    .upload-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 5px;
+      width: 0;
+      background-color: var(--primary-color);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="back-button" onclick="window.location.href='view-test.html?id=' + new URLSearchParams(window.location.search).get('id')">
+    <i class="fas fa-arrow-left"></i>
+  </div>
+
+  <div class="create-test-container">
+    <div class="create-test-form">
+      <!-- Форма редактирования теста -->
+      <div id="edit-form" class="step-container active">
+        <h2 class="form-title">Редактирование теста</h2>
+        
+        <div class="form-group">
+          <label for="test-cover">Обложка теста (по желанию)</label>
+          <div class="cover-preview" id="cover-preview">
+            <i class="fas fa-image" style="font-size: 48px; color: #bdbdbd;"></i>
+          </div>
+          <label class="cover-upload-label">
+            <i class="fas fa-upload"></i>
+            Загрузить изображение
+            <input type="file" id="test-cover" accept="image/*" style="display: none;">
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-title">Название теста *</label>
+          <input type="text" id="test-title" class="form-control" placeholder="Введите название теста" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-description">Описание теста (по желанию)</label>
+          <textarea id="test-description" class="form-control" rows="4" placeholder="Краткое описание теста"></textarea>
+        </div>
+        
+        <!-- Добавляем опцию "Совместное прохождение" -->
+        <div class="form-group">
+          <div class="checkbox-container">
+            <input type="checkbox" id="cooperative-mode" class="form-checkbox">
+            <label for="cooperative-mode">Совместное прохождение</label>
+            <div class="tooltip">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-text">
+                Позволяет пользователям проходить тест вместе. Первый пользователь становится хостом, другие могут присоединиться. 
+                Каждый участник будет видеть ответы других после того, как все ответят на вопрос. Хост контролирует начало теста.
+              </span>
+            </div>
+          </div>
+          <div class="form-text">Позволяет пользователям проходить тест вместе и видеть ответы друг друга</div>
+        </div>
+        
+        <!-- Добавляем опцию "Показать правильные ответы после прохождения" -->
+        <div class="form-group">
+          <div class="checkbox-container">
+            <input type="checkbox" id="show-correct-answers" class="form-checkbox">
+            <label for="show-correct-answers">Показать правильные ответы после прохождения</label>
+            <div class="tooltip">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-text">
+                При включении этой опции после завершения теста пользователи увидят список вопросов, свои выбранные ответы и правильные ответы.
+                Работает как в одиночном, так и в совместном режиме прохождения.
+              </span>
+            </div>
+          </div>
+          <div class="form-text">Отображает полный список вопросов и правильных ответов после прохождения теста</div>
+        </div>
+        
+        <!-- Добавляем ограничение времени на вопрос -->
+        <div class="form-group">
+          <label for="time-limit">Ограничение времени на вопрос (в секундах)</label>
+          <input type="number" id="time-limit" class="form-control" min="0" value="0" placeholder="0 - без ограничения">
+          <div class="form-text">Укажите 0, если не хотите устанавливать ограничение времени</div>
+        </div>
+        
+        <h3 class="questions-header">Вопросы теста</h3>
+        
+        <div id="questions-container">
+          <!-- Вопросы будут добавляться здесь -->
+        </div>
+        
+        <button class="add-question-btn" id="add-question">
+          <i class="fas fa-plus"></i>
+          Добавить вопрос
+        </button>
+        
+        <div class="btn-container">
+          <button class="btn btn-secondary" id="cancel-edit">Отмена</button>
+          <button class="btn btn-primary" id="save-test">Сохранить изменения</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getDatabase, ref, get, update } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+    import { initializeSidebar } from './sidebar.js';
+
+    // Инициализация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+      authDomain: "tpoproject-35957.firebaseapp.com",
+      databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tpoproject-35957",
+      storageBucket: "tpoproject-35957.appspot.com",
+      messagingSenderId: "683982725892",
+      appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+
+    let currentTest = null;
+    const testId = new URLSearchParams(window.location.search).get('id');
+    let selectedFile = null;
+
+    // Проверка авторизации и прав доступа
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (!userData || userData.uid !== user.uid) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Загрузка данных теста
+      const testRef = ref(db, `tests/${testId}`);
+      const snapshot = await get(testRef);
+      
+      if (!snapshot.exists()) {
+        alert('Тест не найден');
+        window.location.href = 'home.html';
+        return;
+      }
+
+      currentTest = snapshot.val();
+      if (currentTest.createdBy !== user.uid) {
+        alert('У вас нет прав на редактирование этого теста');
+        window.location.href = 'home.html';
+        return;
+      }
+
+      // Заполнение формы данными теста
+      document.getElementById('test-title').value = currentTest.title;
+      document.getElementById('test-description').value = currentTest.description || '';
+      
+      // Заполняем поля для совместного прохождения и ограничения времени
+      document.getElementById('cooperative-mode').checked = currentTest.cooperativeMode || false;
+      document.getElementById('time-limit').value = currentTest.timeLimit || 0;
+      
+      // Заполняем поле для показа правильных ответов
+      document.getElementById('show-correct-answers').checked = currentTest.showCorrectAnswers || false;
+      
+      // Отображаем обложку, если она есть
+      if (currentTest.coverURL) {
+        const coverPreview = document.getElementById('cover-preview');
+        coverPreview.innerHTML = `<img src="${currentTest.coverURL}" alt="Обложка теста">`;
+      }
+
+      // Загрузка вопросов
+      loadQuestions();
+    });
+
+    // Обработчик загрузки обложки
+    const testCoverInput = document.getElementById('test-cover');
+    const coverPreview = document.getElementById('cover-preview');
+    
+    testCoverInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      // Проверяем, является ли файл изображением
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
+      
+      // Если это GIF, загружаем без кадрирования
+      if (file.type === 'image/gif') {
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          coverPreview.innerHTML = `<img src="${event.target.result}" alt="Обложка теста">`;
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+      
+      // Инициализируем модальное окно для кадрирования
+      const modal = document.getElementById('crop-modal');
+      const cropImg = document.getElementById('crop-img');
+      const zoomSlider = document.getElementById('zoom-slider');
+      const closeBtn = document.getElementById('crop-close');
+      const cancelBtn = document.getElementById('crop-cancel');
+      const applyBtn = document.getElementById('crop-apply');
+      
+      let cropper;
+      
+      // Показываем изображение в модальном окне
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        cropImg.src = e.target.result;
+        modal.classList.add('active');
+        
+        // Инициализируем Cropper.js после загрузки изображения
+        setTimeout(() => {
+          cropper = new Cropper(cropImg, {
+            aspectRatio: 16 / 9, // Соотношение сторон для обложки теста
+            viewMode: 1, // Обрезаем по размеру области просмотра
+            guides: true, // Показываем направляющие линии
+            center: true, // Показываем индикатор центра
+            minContainerWidth: 300,
+            minContainerHeight: 150,
+            dragMode: 'move', // Режим перемещения изображения
+            autoCropArea: 0.8, // Размер области кадрирования (0-1)
+            responsive: true,
+            restore: false,
+            checkOrientation: false, // Отключаем автоматическое исправление ориентации
+            background: false, // Отключаем фон области кадрирования
+            ready() {
+              // Настраиваем слайдер масштабирования
+              zoomSlider.value = 0;
+            }
+          });
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+      
+      // Функция для закрытия модального окна
+      function closeModal() {
+        if (cropper) {
+          cropper.destroy();
+          cropper = null;
+        }
+        modal.classList.remove('active');
+        cropImg.src = '';
+        testCoverInput.value = ''; // Сбрасываем значение input, чтобы можно было выбрать тот же файл снова
+      }
+      
+      // Настраиваем слайдер масштабирования
+      zoomSlider.addEventListener('input', function() {
+        if (cropper) {
+          // Преобразуем значение слайдера (0-100) в масштаб (0.5-2)
+          const zoom = 0.5 + (this.value / 100) * 1.5;
+          cropper.zoomTo(zoom);
+        }
+      });
+      
+      // Обработчики событий для кнопок
+      closeBtn.onclick = closeModal;
+      cancelBtn.onclick = closeModal;
+      
+      // Обработчик события для кнопки "Применить"
+      applyBtn.onclick = function() {
+        if (!cropper) {
+          alert('Ошибка: кадрирование не инициализировано');
+          closeModal();
+          return;
+        }
+        
+        // Получаем кадрированное изображение в формате canvas
+        const canvas = cropper.getCroppedCanvas({
+          width: 1280, // Максимальная ширина
+          height: 720, // Максимальная высота
+          minWidth: 640, // Минимальная ширина
+          minHeight: 360, // Минимальная высота
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+        });
+        
+        if (!canvas) {
+          alert('Ошибка: не удалось создать кадрированное изображение');
+          closeModal();
+          return;
+        }
+        
+        // Преобразуем canvas в DataURL для предпросмотра
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        coverPreview.innerHTML = `<img src="${dataUrl}" alt="Обложка теста">`;
+        
+        // Преобразуем canvas в Blob для сохранения
+        canvas.toBlob((blob) => {
+          selectedFile = new File([blob], "cropped-cover.jpg", { type: "image/jpeg" });
+        }, 'image/jpeg', 0.9);
+        
+        // Закрываем модальное окно
+        closeModal();
+      };
+    });
+
+    // Функция загрузки вопросов
+    function loadQuestions() {
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+
+      if (!currentTest.questions || !Array.isArray(currentTest.questions)) {
+        currentTest.questions = [];
+        return;
+      }
+
+      currentTest.questions.forEach((question, index) => {
+        // Убедимся, что вопрос имеет все необходимые свойства
+        if (!question.options) {
+          // Если используется старый формат с answers
+          if (question.answers) {
+            question.options = question.answers.map(answer => answer.text || answer);
+            if (!question.correctAnswer) {
+              // Найдем правильный ответ
+              question.correctAnswer = question.answers.findIndex(answer => answer.isCorrect);
+              if (question.correctAnswer === -1) question.correctAnswer = 0;
+            }
+          } else {
+            // Если нет ни options, ни answers, создаем пустой массив
+            question.options = [''];
+            question.correctAnswer = 0;
+          }
+        }
+        
+        // Создаем элемент вопроса
+        createQuestionElement(question, index, container);
+      });
+    }
+
+    // Функция создания элемента вопроса
+    function createQuestionElement(question, index, container) {
+      const questionDiv = document.createElement('div');
+      questionDiv.className = 'question-builder';
+      questionDiv.dataset.questionIndex = index;
+      
+      questionDiv.innerHTML = `
+        <div class="question-header">
+          <div class="question-number">Вопрос ${index + 1}</div>
+          <button type="button" class="delete-question-btn" title="Удалить вопрос"><i class="fas fa-trash"></i></button>
+        </div>
+        
+        <div class="form-group">
+          <label for="question-text-${index}">Текст вопроса *</label>
+          <input type="text" id="question-text-${index}" class="form-control question-text" value="${question.text || ''}" placeholder="Введите текст вопроса" required>
+        </div>
+        
+        <div class="answers-list" id="answers-list-${index}">
+          ${createAnswerItems(question.options, index, question.correctAnswer)}
+        </div>
+        
+        <button type="button" class="add-answer-btn" data-question="${index}">
+          <i class="fas fa-plus"></i> Добавить вариант ответа
+        </button>
+      `;
+      
+      container.appendChild(questionDiv);
+      
+      // Добавляем обработчики событий
+      addEventListeners(questionDiv, index);
+    }
+
+    // Функция создания элементов ответов
+    function createAnswerItems(options, questionIndex, correctAnswerIndex) {
+      let html = '';
+      
+      options.forEach((option, optionIndex) => {
+        html += `
+          <div class="answer-item">
+            <div class="answer-checkbox">
+              <input type="radio" name="answer-correct-${questionIndex}" value="${optionIndex}" class="answer-correct" ${optionIndex === correctAnswerIndex ? 'checked' : ''}>
+            </div>
+            <div class="answer-text">
+              <input type="text" class="form-control answer-text-input" value="${option}" placeholder="Вариант ответа" required>
+            </div>
+            <div class="answer-actions">
+              <button type="button" class="delete-answer-btn" title="Удалить ответ"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      });
+      
+      return html;
+    }
+
+    // Функция добавления обработчиков событий
+    function addEventListeners(questionDiv, questionIndex) {
+      // Обработчик кнопки "Удалить вопрос"
+      const deleteQuestionBtn = questionDiv.querySelector('.delete-question-btn');
+      deleteQuestionBtn.addEventListener('click', () => {
+        currentTest.questions.splice(questionIndex, 1);
+        loadQuestions();
+      });
+      
+      // Обработчик кнопки "Добавить вариант ответа"
+      const addAnswerBtn = questionDiv.querySelector('.add-answer-btn');
+      addAnswerBtn.addEventListener('click', () => {
+        addNewAnswerItem(questionIndex);
+      });
+      
+      // Обработчики кнопок "Удалить вариант ответа"
+      const deleteAnswerBtns = questionDiv.querySelectorAll('.delete-answer-btn');
+      deleteAnswerBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          deleteAnswerItem(e, questionIndex);
+        });
+      });
+    }
+
+    // Функция добавления нового варианта ответа
+    function addNewAnswerItem(questionIndex) {
+      const answersList = document.getElementById(`answers-list-${questionIndex}`);
+      const answersCount = answersList.querySelectorAll('.answer-item').length;
+      
+      const answerItem = document.createElement('div');
+      answerItem.className = 'answer-item';
+      answerItem.innerHTML = `
+        <div class="answer-checkbox">
+          <input type="radio" name="answer-correct-${questionIndex}" value="${answersCount}" class="answer-correct">
+        </div>
+        <div class="answer-text">
+          <input type="text" class="form-control answer-text-input" placeholder="Вариант ответа" required>
+        </div>
+        <div class="answer-actions">
+          <button type="button" class="delete-answer-btn" title="Удалить ответ"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+      
+      answersList.appendChild(answerItem);
+      
+      // Добавляем обработчик для новой кнопки удаления
+      const deleteBtn = answerItem.querySelector('.delete-answer-btn');
+      deleteBtn.addEventListener('click', (e) => {
+        deleteAnswerItem(e, questionIndex);
+      });
+      
+      // Обновляем options в объекте вопроса
+      if (!currentTest.questions[questionIndex].options) {
+        currentTest.questions[questionIndex].options = [];
+      }
+      currentTest.questions[questionIndex].options.push('');
+    }
+
+    // Функция удаления варианта ответа
+    function deleteAnswerItem(event, questionIndex) {
+      const answersList = event.currentTarget.closest('.answers-list');
+      const answerItems = answersList.querySelectorAll('.answer-item');
+      
+      if (answerItems.length > 2) {
+        // Находим индекс удаляемого элемента
+        const answerItem = event.currentTarget.closest('.answer-item');
+        const answerIndex = Array.from(answerItems).indexOf(answerItem);
+        
+        // Удаляем из DOM
+        answerItem.remove();
+        
+        // Удаляем из массива options
+        currentTest.questions[questionIndex].options.splice(answerIndex, 1);
+        
+        // Обновляем индексы радиокнопок
+        const radioButtons = answersList.querySelectorAll('input[type="radio"]');
+        radioButtons.forEach((radio, index) => {
+          radio.value = index;
+        });
+        
+        // Проверяем, если удаляемый ответ был отмечен как правильный
+        if (currentTest.questions[questionIndex].correctAnswer === answerIndex) {
+          currentTest.questions[questionIndex].correctAnswer = 0;
+          if (radioButtons.length > 0) {
+            radioButtons[0].checked = true;
+          }
+        } else if (currentTest.questions[questionIndex].correctAnswer > answerIndex) {
+          currentTest.questions[questionIndex].correctAnswer--;
+        }
+      } else {
+        alert('Должно быть минимум 2 варианта ответа');
+      }
+    }
+
+    // Добавление нового вопроса
+    document.getElementById('add-question').addEventListener('click', () => {
+      // Создаем новый вопрос
+      const newQuestion = {
+        text: '',
+        options: ['', ''],
+        correctAnswer: 0
+      };
+      
+      // Добавляем в массив вопросов
+      if (!currentTest.questions) {
+        currentTest.questions = [];
+      }
+      
+      currentTest.questions.push(newQuestion);
+      
+      // Создаем элемент в DOM
+      const container = document.getElementById('questions-container');
+      createQuestionElement(newQuestion, currentTest.questions.length - 1, container);
+    });
+
+    // Сохранение изменений
+    document.getElementById('save-test').addEventListener('click', async () => {
+      try {
+        // Показываем индикатор загрузки
+        const saveBtn = document.getElementById('save-test');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+        
+        // Собираем данные формы
+        currentTest.title = document.getElementById('test-title').value;
+        currentTest.description = document.getElementById('test-description').value;
+        
+        // Получаем значения для совместного прохождения и ограничения времени
+        currentTest.cooperativeMode = document.getElementById('cooperative-mode').checked;
+        currentTest.timeLimit = parseInt(document.getElementById('time-limit').value) || 0;
+        
+        // Получаем значение для показа правильных ответов
+        currentTest.showCorrectAnswers = document.getElementById('show-correct-answers').checked;
+        
+        if (!currentTest.title) {
+          alert('Пожалуйста, введите название теста');
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = 'Сохранить изменения';
+          return;
+        }
+        
+        // Загрузка новой обложки, если выбрана
+        if (selectedFile) {
+          const coverRef = storageRef(storage, `test-covers/${testId}/${selectedFile.name}`);
+          await uploadBytes(coverRef, selectedFile);
+          const coverURL = await getDownloadURL(coverRef);
+          currentTest.coverURL = coverURL;
+        } else if (!currentTest.coverURL) {
+          // Если обложка не выбрана и у теста нет обложки, используем изображение по умолчанию
+          const defaultImageRef = storageRef(storage, 'test-covers/test-cover-default.png');
+          try {
+            currentTest.coverURL = await getDownloadURL(defaultImageRef);
+          } catch (error) {
+            console.error('Ошибка при получении изображения по умолчанию:', error);
+          }
+        }
+        
+        // Собираем данные вопросов из DOM
+        const questionBuilders = document.querySelectorAll('.question-builder');
+        questionBuilders.forEach((builder, index) => {
+          // Проверяем, что у нас есть вопрос с таким индексом
+          if (!currentTest.questions[index]) {
+            currentTest.questions[index] = {};
+          }
+          
+          const questionText = builder.querySelector('.question-text').value;
+          if (!questionText) {
+            throw new Error(`Пожалуйста, введите текст вопроса ${index + 1}`);
+          }
+          
+          // Обновляем текст вопроса
+          currentTest.questions[index].text = questionText;
+          
+          // Собираем варианты ответов
+          const answerItems = builder.querySelectorAll('.answer-item');
+          const options = [];
+          let correctAnswer = null;
+          
+          answerItems.forEach((item, answerIndex) => {
+            const answerText = item.querySelector('.answer-text-input').value;
+            if (!answerText) {
+              throw new Error(`Пожалуйста, введите текст ответа ${answerIndex + 1} для вопроса ${index + 1}`);
+            }
+            
+            options.push(answerText);
+            
+            // Проверяем, отмечен ли этот ответ как правильный
+            const isCorrect = item.querySelector('input[type="radio"]').checked;
+            if (isCorrect) {
+              correctAnswer = answerIndex;
+            }
+          });
+          
+          if (correctAnswer === null) {
+            throw new Error(`Пожалуйста, выберите правильный ответ для вопроса ${index + 1}`);
+          }
+          
+          // Обновляем варианты ответов и правильный ответ
+          currentTest.questions[index].options = options;
+          currentTest.questions[index].correctAnswer = correctAnswer;
+          
+          // Удаляем старую структуру ответов, если она есть
+          if (currentTest.questions[index].answers) {
+            delete currentTest.questions[index].answers;
+          }
+        });
+        
+        // Обновляем количество вопросов
+        currentTest.questionsCount = currentTest.questions.length;
+        
+        // Сохраняем в базу данных
+        const testRef = ref(db, `tests/${testId}`);
+        await update(testRef, currentTest);
+        
+        alert('Тест успешно сохранен');
+        window.location.href = `view-test.html?id=${testId}`;
+      } catch (error) {
+        console.error('Ошибка при сохранении теста:', error);
+        alert(error.message || 'Произошла ошибка при сохранении теста');
+        
+        const saveBtn = document.getElementById('save-test');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = 'Сохранить изменения';
+      }
+    });
+
+    // Отмена редактирования
+    document.getElementById('cancel-edit').addEventListener('click', () => {
+      if (confirm('Вы уверены, что хотите отменить редактирование? Все несохраненные изменения будут потеряны.')) {
+        window.location.href = `view-test.html?id=${testId}`;
+      }
+    });
+
+    // Инициализация сайдбара
+    window.addEventListener('load', () => {
+      initializeSidebar();
+    });
+  </script>
+</body>
+
+<!-- Модальное окно для кадрирования изображения -->
+<div class="crop-modal" id="crop-modal">
+  <div class="crop-container">
+    <div class="crop-header">
+      <div class="crop-title">Настройка обложки теста</div>
+      <button class="crop-close" id="crop-close">&times;</button>
+    </div>
+    <div class="crop-area">
+      <img src="" alt="Изображение для обложки" id="crop-img" class="crop-img">
+    </div>
+    <div class="crop-controls">
+      <div class="crop-zoom">
+        <i class="fas fa-search-minus"></i>
+        <input type="range" id="zoom-slider" class="zoom-slider" min="0" max="100" value="0">
+        <i class="fas fa-search-plus"></i>
+      </div>
+      <div class="crop-actions">
+        <button class="crop-btn cancel" id="crop-cancel">Отмена</button>
+        <button class="crop-btn apply" id="crop-apply">Применить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</html> 
