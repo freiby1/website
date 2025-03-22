@@ -128,6 +128,15 @@
       font-weight: normal;
     }
     
+    /* Стили для textarea - запрет расширения по ширине */
+    textarea.form-control {
+      resize: vertical;
+      max-width: 100%;
+      min-width: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    
     .tooltip .tooltip-text::after {
       content: "";
       position: absolute;
@@ -347,7 +356,7 @@
         </div>
         
         <div class="btn-container">
-          <button class="btn btn-secondary" onclick="window.location.href='home.html'">Отмена</button>
+          <button class="btn btn-secondary" id="cancel-btn">Отмена</button>
           <button class="btn btn-primary" id="save-test-btn">Сохранить тест</button>
         </div>
       </div>
@@ -859,6 +868,65 @@
     window.addEventListener('DOMContentLoaded', () => {
       // Генерируем начальные вопросы
       generateQuestionForms(questionsCount);
+    });
+    
+    // Флаг для отслеживания изменений
+    let hasUnsavedChanges = false;
+    
+    // Функция для отметки о наличии несохраненных изменений
+    function markUnsavedChanges() {
+      hasUnsavedChanges = true;
+    }
+    
+    // Добавляем обработчики изменений для полей формы
+    document.getElementById('test-title').addEventListener('input', markUnsavedChanges);
+    document.getElementById('test-description').addEventListener('input', markUnsavedChanges);
+    document.getElementById('questions-count').addEventListener('change', markUnsavedChanges);
+    document.getElementById('cooperative-mode').addEventListener('change', markUnsavedChanges);
+    document.getElementById('time-limit').addEventListener('input', markUnsavedChanges);
+    document.getElementById('test-cover').addEventListener('change', markUnsavedChanges);
+    
+    // Добавляем слушатель на изменения в контейнере вопросов
+    document.getElementById('questions-container').addEventListener('input', markUnsavedChanges);
+    document.getElementById('questions-container').addEventListener('change', markUnsavedChanges);
+    
+    // Добавляем обработчик для кнопки добавления вопроса
+    document.getElementById('add-new-question').addEventListener('click', markUnsavedChanges);
+    
+    // Сбрасываем флаг при сохранении
+    saveTestBtn.addEventListener('click', () => {
+      hasUnsavedChanges = false;
+    });
+    
+    // Предупреждение при попытке покинуть страницу с несохраненными изменениями
+    window.addEventListener('beforeunload', (event) => {
+      if (hasUnsavedChanges) {
+        event.preventDefault();
+        event.returnValue = 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?';
+        return event.returnValue;
+      }
+    });
+    
+    // Обработчик для кнопки "Назад"
+    document.querySelector('.back-button').addEventListener('click', (event) => {
+      if (hasUnsavedChanges) {
+        if (!confirm('У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?')) {
+          event.preventDefault();
+          event.stopPropagation();
+          return false;
+        }
+      }
+    });
+    
+    // Обработчик для кнопки "Отмена"
+    document.getElementById('cancel-btn').addEventListener('click', (event) => {
+      if (hasUnsavedChanges) {
+        if (confirm('У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?')) {
+          window.location.href = 'home.html';
+        }
+      } else {
+        window.location.href = 'home.html';
+      }
     });
   </script>
 </body>

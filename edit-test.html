@@ -158,6 +158,15 @@
       opacity: 1;
     }
     
+    /* Стили для textarea - запрет расширения по ширине */
+    textarea.form-control {
+      resize: vertical;
+      max-width: 100%;
+      min-width: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    
     /* Стили для пояснительного текста в форме */
     .form-text {
       font-size: 12px;
@@ -296,11 +305,33 @@
       background-color: var(--primary-color);
       transition: width 0.3s ease;
     }
+    
+    /* Стиль для кнопки удаления теста */
+    .delete-test-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-top: 30px;
+      background-color: transparent;
+      border: 2px solid #dc3545;
+      border-radius: 8px;
+      color: #dc3545;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+    
+    .delete-test-btn:hover {
+      background-color: #dc3545;
+      color: white;
+    }
   </style>
 </head>
 
 <body>
-  <div class="back-button" onclick="window.location.href='view-test.html?id=' + new URLSearchParams(window.location.search).get('id')">
+  <div class="back-button">
     <i class="fas fa-arrow-left"></i>
   </div>
 
@@ -386,6 +417,10 @@
           <button class="btn btn-secondary" id="cancel-edit">Отмена</button>
           <button class="btn btn-primary" id="save-test">Сохранить изменения</button>
         </div>
+        
+        <button class="delete-test-btn" id="delete-test">
+          <i class="fas fa-trash"></i> Удалить тест
+        </button>
       </div>
     </div>
   </div>
@@ -393,8 +428,8 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
     import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
-    import { getDatabase, ref, get, update } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+    import { getDatabase, ref, get, update, remove } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject, listAll } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
     import { initializeSidebar } from './sidebar.js';
 
     // Инициализация Firebase
@@ -915,8 +950,12 @@
     });
 
     // Отмена редактирования
-    document.getElementById('cancel-edit').addEventListener('click', () => {
-      if (confirm('Вы уверены, что хотите отменить редактирование? Все несохраненные изменения будут потеряны.')) {
+    document.getElementById('cancel-edit').addEventListener('click', (event) => {
+      if (hasUnsavedChanges) {
+        if (confirm('У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?')) {
+          window.location.href = `view-test.html?id=${testId}`;
+        }
+      } else {
         window.location.href = `view-test.html?id=${testId}`;
       }
     });
@@ -924,6 +963,108 @@
     // Инициализация сайдбара
     window.addEventListener('load', () => {
       initializeSidebar();
+    });
+    
+    // Флаг для отслеживания изменений
+    let hasUnsavedChanges = false;
+    
+    // Функция для отметки о наличии несохраненных изменений
+    function markUnsavedChanges() {
+      hasUnsavedChanges = true;
+    }
+    
+    // Добавляем обработчики изменений для полей формы
+    document.getElementById('test-title').addEventListener('input', markUnsavedChanges);
+    document.getElementById('test-description').addEventListener('input', markUnsavedChanges);
+    document.getElementById('cooperative-mode').addEventListener('change', markUnsavedChanges);
+    document.getElementById('show-correct-answers').addEventListener('change', markUnsavedChanges);
+    document.getElementById('time-limit').addEventListener('input', markUnsavedChanges);
+    document.getElementById('test-cover').addEventListener('change', markUnsavedChanges);
+    
+    // Добавляем слушатель на изменения в контейнере вопросов
+    document.getElementById('questions-container').addEventListener('input', markUnsavedChanges);
+    document.getElementById('questions-container').addEventListener('change', markUnsavedChanges);
+    
+    // Добавляем обработчик для кнопки добавления вопроса
+    document.getElementById('add-question').addEventListener('click', markUnsavedChanges);
+    
+    // Сбрасываем флаг при сохранении
+    document.getElementById('save-test').addEventListener('click', () => {
+      hasUnsavedChanges = false;
+    });
+    
+    // Предупреждение при попытке покинуть страницу с несохраненными изменениями
+    window.addEventListener('beforeunload', (event) => {
+      if (hasUnsavedChanges) {
+        event.preventDefault();
+        event.returnValue = 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?';
+        return event.returnValue;
+      }
+    });
+    
+    // Обработчик для кнопки "Назад"
+    document.querySelector('.back-button').addEventListener('click', (event) => {
+      if (hasUnsavedChanges) {
+        if (!confirm('У вас есть несохраненные изменений. Вы уверены, что хотите покинуть страницу?')) {
+          event.preventDefault();
+          event.stopPropagation();
+          return false;
+        }
+      }
+      window.location.href = `view-test.html?id=${testId}`;
+    });
+    
+    // Обработчик для кнопки удаления теста
+    document.getElementById('delete-test').addEventListener('click', async () => {
+      // Спрашиваем подтверждение перед удалением
+      if (!confirm('Вы уверены, что хотите удалить этот тест? Это действие нельзя отменить.')) {
+        return;
+      }
+      
+      // Дополнительная защита: просим ввести название теста для подтверждения
+      const testTitle = currentTest.title;
+      const confirmInput = prompt(`Для подтверждения удаления введите название теста: "${testTitle}"`);
+      
+      if (confirmInput !== testTitle) {
+        alert('Название теста введено неверно. Тест не был удален.');
+        return;
+      }
+      
+      try {
+        // Отключаем кнопку для предотвращения повторных нажатий
+        const deleteBtn = document.getElementById('delete-test');
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Удаление...';
+        
+        // Удаляем тест из базы данных
+        const testRef = ref(db, `tests/${testId}`);
+        await remove(testRef);
+        
+        // Удаляем файлы обложки из хранилища
+        try {
+          // Получаем список всех файлов в директории теста
+          const folderRef = storageRef(storage, `test-covers/${testId}`);
+          const dir = await listAll(folderRef);
+          
+          // Удаляем все файлы
+          const deletePromises = dir.items.map(item => deleteObject(item));
+          await Promise.all(deletePromises);
+        } catch (error) {
+          console.error('Ошибка при удалении файлов обложки:', error);
+          // Продолжаем выполнение, даже если не удалось удалить файлы
+        }
+        
+        alert('Тест успешно удален');
+        window.location.href = 'home.html';
+      } catch (error) {
+        console.error('Ошибка при удалении теста:', error);
+        alert('Произошла ошибка при удалении теста. Пожалуйста, попробуйте еще раз.');
+        
+        // Восстанавливаем состояние кнопки
+        const deleteBtn = document.getElementById('delete-test');
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Удалить тест';
+      }
     });
   </script>
 </body>

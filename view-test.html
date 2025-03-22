@@ -10,6 +10,13 @@
   <link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
   
   <style>
+    /* Скрываем кнопки до полной загрузки теста */
+    .test-actions .start-test-btn,
+    .test-actions #start-cooperative-btn,
+    .test-actions #join-cooperative-btn {
+      display: none;
+    }
+    
     .test-header {
       position: relative;
       border-radius: 12px;
@@ -1690,13 +1697,15 @@
           // Показываем значок совместного режима
           document.getElementById('cooperative-badge').style.display = 'inline-flex';
           
-          // Скрываем обычную кнопку начала теста и показываем кнопки для совместного режима
-          document.getElementById('start-test-btn').style.display = 'none';
+          // Показываем кнопки для совместного режима
           document.getElementById('start-cooperative-btn').style.display = 'flex';
           document.getElementById('join-cooperative-btn').style.display = 'flex';
           
           // Отображаем активные лобби для данного теста
           loadActiveLobbies(testId);
+        } else {
+          // Если режим не совместный, показываем обычную кнопку старта
+          document.getElementById('start-test-btn').style.display = 'flex';
         }
         
       } catch (error) {
@@ -3228,6 +3237,12 @@
     
     // Загрузка данных при загрузке страницы
     window.addEventListener('DOMContentLoaded', () => {
+      // Сначала скрываем все кнопки старта теста
+      document.getElementById('start-test-btn').style.display = 'none';
+      document.getElementById('start-cooperative-btn').style.display = 'none';
+      document.getElementById('join-cooperative-btn').style.display = 'none';
+      
+      // Загружаем данные теста (кнопки будут показаны в loadTestData)
       loadTestData();
       initializeSidebar();
     });
