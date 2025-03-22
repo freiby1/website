@@ -284,13 +284,6 @@
       <div id="step1" class="step-container active">
         <h2 class="form-title">Создание нового теста</h2>
         
-        <div class="progress-bar-container">
-          <div class="progress-bar">
-            <div class="progress-bar-inner" style="width: 50%"></div>
-          </div>
-          <div class="progress-text">Шаг 1 из 2</div>
-        </div>
-        
         <div class="form-group">
           <label for="test-cover">Обложка теста (по желанию)</label>
           <div class="cover-preview" id="cover-preview">
@@ -340,33 +333,21 @@
           <div class="form-text">Укажите 0, если не хотите устанавливать ограничение времени</div>
         </div>
         
+        <!-- Секция создания вопросов -->
+        <div class="questions-section">
+          <h2>Создание вопросов</h2>
+          
+          <div id="questions-container">
+            <!-- Здесь будут динамически создаваться вопросы -->
+          </div>
+          
+          <button type="button" class="add-question-btn" id="add-new-question">
+            <i class="fas fa-plus"></i> Добавить новый вопрос
+          </button>
+        </div>
+        
         <div class="btn-container">
           <button class="btn btn-secondary" onclick="window.location.href='home.html'">Отмена</button>
-          <button class="btn btn-primary" id="next-step-btn">Перейти к созданию теста</button>
-        </div>
-      </div>
-      
-      <!-- Шаг 2: Создание вопросов -->
-      <div id="step2" class="step-container">
-        <h2 class="form-title">Создание вопросов</h2>
-        
-        <div class="progress-bar-container">
-          <div class="progress-bar">
-            <div class="progress-bar-inner" style="width: 100%"></div>
-          </div>
-          <div class="progress-text" id="questions-progress">Вопрос 1 из 5</div>
-        </div>
-        
-        <div id="questions-container">
-          <!-- Здесь будут динамически создаваться вопросы -->
-        </div>
-        
-        <button type="button" class="add-question-btn" id="add-new-question">
-          <i class="fas fa-plus"></i> Добавить новый вопрос
-        </button>
-        
-        <div class="btn-container">
-          <button class="btn btn-secondary" id="prev-step-btn">Назад</button>
           <button class="btn btn-primary" id="save-test-btn">Сохранить тест</button>
         </div>
       </div>
@@ -419,11 +400,8 @@
 
     // Элементы шагов
     const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
     
     // Кнопки навигации
-    const nextStepBtn = document.getElementById('next-step-btn');
-    const prevStepBtn = document.getElementById('prev-step-btn');
     const saveTestBtn = document.getElementById('save-test-btn');
     
     // Обработчик загрузки обложки
@@ -565,39 +543,14 @@
       timeLimit = parseInt(e.target.value) || 0;
     });
     
-    // Переход к следующему шагу
-    nextStepBtn.addEventListener('click', () => {
-      const titleInput = document.getElementById('test-title');
-      const questionsCountInput = document.getElementById('questions-count');
-      
-      // Валидация
-      if (!titleInput.value.trim()) {
-        alert('Пожалуйста, введите название теста');
-        titleInput.focus();
-        return;
+    // Реагируем на изменение количества вопросов
+    const questionsCountInput = document.getElementById('questions-count');
+    questionsCountInput.addEventListener('change', (e) => {
+      const count = parseInt(e.target.value) || 5;
+      if (count >= 1 && count <= 50) {
+        questionsCount = count;
+        generateQuestionForms(count);
       }
-      
-      if (!questionsCountInput.value || questionsCountInput.value < 1 || questionsCountInput.value > 50) {
-        alert('Пожалуйста, введите корректное количество вопросов (от 1 до 50)');
-        questionsCountInput.focus();
-        return;
-      }
-      
-      // Сохраняем количество вопросов
-      questionsCount = parseInt(questionsCountInput.value);
-      
-      // Генерируем формы для вопросов
-      generateQuestionForms(questionsCount);
-      
-      // Показываем шаг 2
-      step1.classList.remove('active');
-      step2.classList.add('active');
-    });
-    
-    // Возврат к предыдущему шагу
-    prevStepBtn.addEventListener('click', () => {
-      step2.classList.remove('active');
-      step1.classList.add('active');
     });
     
     // Генерация форм для вопросов
@@ -608,9 +561,6 @@
       for (let i = 0; i < count; i++) {
         createQuestionForm(i, questionsContainer);
       }
-      
-      // Обновляем текст прогресса
-      updateQuestionsProgress();
     }
     
     // Создание формы для одного вопроса
@@ -772,16 +722,6 @@
       
       // Обновляем количество вопросов
       questionsCount = remainingQuestions.length;
-      
-      // Обновляем текст прогресса
-      updateQuestionsProgress();
-    }
-    
-    // Обновление текста прогресса
-    function updateQuestionsProgress() {
-      const questionsContainer = document.getElementById('questions-container');
-      const count = questionsContainer.querySelectorAll('.question-builder').length;
-      document.getElementById('questions-progress').textContent = `Вопросы 1-${count} из ${count}`;
     }
     
     // Обработчик для кнопки добавления нового вопроса
@@ -795,8 +735,8 @@
       // Обновляем количество вопросов
       questionsCount = currentCount + 1;
       
-      // Обновляем текст прогресса
-      updateQuestionsProgress();
+      // Обновляем значение поля с количеством вопросов
+      document.getElementById('questions-count').value = questionsCount;
     });
     
     // Сохранение теста
@@ -913,6 +853,12 @@
     // Инициализация сайдбара
     window.addEventListener('load', () => {
       initializeSidebar();
+    });
+
+    // Инициализация при загрузке страницы
+    window.addEventListener('DOMContentLoaded', () => {
+      // Генерируем начальные вопросы
+      generateQuestionForms(questionsCount);
     });
   </script>
 </body>

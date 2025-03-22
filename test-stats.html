@@ -363,8 +363,15 @@
         try {
           let userData = { email: 'Неизвестный пользователь' };
           
-          // Проверяем, есть ли данные пользователя в кеше
-          if (userCache[result.userId]) {
+          // Сначала проверяем, есть ли имя пользователя в самом результате теста
+          if (result.userName || result.userEmail) {
+            userData = {
+              name: result.userName,
+              email: result.userEmail
+            };
+          }
+          // Если нет данных в результате, используем кэш или запрашиваем из базы
+          else if (userCache[result.userId]) {
             userData = userCache[result.userId];
           } else if (result.userId) {
             // Если нет в кеше, запрашиваем из базы данных
@@ -379,7 +386,7 @@
           }
           
           // Определяем и форматируем данные о результате теста
-          const userEmail = userData.email || userData.name || 'Неизвестный пользователь';
+          const userEmail = userData.name || userData.email || 'Неизвестный пользователь';
           const completedDate = result.completedAt ? new Date(result.completedAt).toLocaleString() : 'Неизвестно';
           const scoreDisplay = result.percentage ? `${result.percentage}%` : 
                                 result.score ? `${result.score}%` : 

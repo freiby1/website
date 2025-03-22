@@ -401,6 +401,10 @@
 
     window.addEventListener('load', () => {
       initializeSidebar();
+      // Вызываем функцию инициализации фильтров
+      if (typeof window.initFilters === 'function') {
+        window.initFilters();
+      }
     });
   </script>
 </head>
@@ -422,8 +426,38 @@
   <div class="tests-container">
     <button id="new-test-btn" class="new-test-btn">+ Новый тест</button>
     
+    <div class="filters-container">
+      <div class="filters-header">
+        <h3>Фильтры</h3>
+      </div>
+      <div class="filters-options">
+        <label class="filter-option">
+          <input type="checkbox" id="filter-my-tests" checked>
+          <span class="checkmark"></span>
+          <span class="filter-label">Мои тесты</span>
+        </label>
+        <label class="filter-option">
+          <input type="checkbox" id="filter-popular-tests" checked>
+          <span class="checkmark"></span>
+          <span class="filter-label">Популярные тесты</span>
+        </label>
+        <label class="filter-option">
+          <input type="checkbox" id="filter-new-tests" checked>
+          <span class="checkmark"></span>
+          <span class="filter-label">Новые тесты</span>
+        </label>
+      </div>
+      
+      <div class="filter-search">
+        <div class="filter-search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="filter-search-input" placeholder="Поиск по названию, автору или дате...">
+        </div>
+      </div>
+    </div>
+    
     <!-- Раздел "Мои тесты" -->
-    <div class="tests-list-container">
+    <div class="tests-list-container" id="my-tests-container">
       <h2>Мои тесты:</h2>
       <div id="my-tests-list" class="tests-list">
         <!-- Тесты будут загружены здесь -->
@@ -432,7 +466,7 @@
     </div>
     
     <!-- Раздел "Популярные тесты" -->
-    <div class="tests-list-container">
+    <div class="tests-list-container" id="popular-tests-container">
       <h2>Популярные тесты:</h2>
       <div id="popular-tests-list" class="tests-list">
         <!-- Тесты будут загружены здесь -->
@@ -441,7 +475,7 @@
     </div>
     
     <!-- Раздел "Новые тесты" -->
-    <div class="tests-list-container">
+    <div class="tests-list-container" id="new-tests-container">
       <h2>Новые тесты:</h2>
       <div id="new-tests-list" class="tests-list">
         <!-- Тесты будут загружены здесь -->
@@ -453,6 +487,125 @@
   <!-- Скрипт для управления тестами -->
   <script type="module">
     import { getDatabase, ref, onValue, query, orderByChild, equalTo, limitToLast, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    
+    // Глобальная функция для применения фильтров
+    window.applyFilters = function() {
+      const showMyTests = document.getElementById('filter-my-tests').checked;
+      const showPopularTests = document.getElementById('filter-popular-tests').checked;
+      const showNewTests = document.getElementById('filter-new-tests').checked;
+      const searchQuery = document.getElementById('filter-search-input')?.value.toLowerCase().trim() || '';
+      
+      const myTestsContainer = document.getElementById('my-tests-container');
+      const popularTestsContainer = document.getElementById('popular-tests-container');
+      const newTestsContainer = document.getElementById('new-tests-container');
+      
+      // Подробное логирование для отладки
+      console.log('Состояние фильтров:', { 
+        showMyTests, 
+        showPopularTests, 
+        showNewTests, 
+        searchQuery 
+      });
+      
+      // Применяем фильтры видимости категорий
+      if (myTestsContainer) {
+        myTestsContainer.style.display = showMyTests ? 'block' : 'none';
+      }
+      
+      if (popularTestsContainer) {
+        popularTestsContainer.style.display = showPopularTests ? 'block' : 'none';
+      }
+      
+      if (newTestsContainer) {
+        newTestsContainer.style.display = showNewTests ? 'block' : 'none';
+      }
+      
+      // Применяем фильтр поиска к тестам в видимых контейнерах
+      if (searchQuery) {
+        filterTestsByQuery(searchQuery);
+      } else {
+        // Если поиск пустой, показываем все тесты в видимых категориях
+        resetTestFilters();
+      }
+      
+      // Сохраняем настройки в localStorage
+      localStorage.setItem('test-filters', JSON.stringify({
+        myTests: showMyTests,
+        popularTests: showPopularTests,
+        newTests: showNewTests,
+        lastSearchQuery: searchQuery
+      }));
+    };
+    
+    // Функция для фильтрации тестов по поисковому запросу
+    function filterTestsByQuery(query) {
+      console.log('Фильтрация тестов по запросу:', query);
+      
+      const testCards = document.querySelectorAll('.test-card');
+      testCards.forEach(card => {
+        const testTitle = card.querySelector('h3')?.textContent?.toLowerCase() || '';
+        const testDescription = card.querySelector('.test-info p')?.textContent?.toLowerCase() || '';
+        const testMeta = card.querySelector('.test-meta')?.textContent?.toLowerCase() || '';
+        
+        // Проверяем, соответствует ли тест поисковому запросу
+        const matchesSearch = 
+          testTitle.includes(query) || 
+          testDescription.includes(query) || 
+          testMeta.includes(query);
+        
+        // Отображаем только подходящие тесты
+        card.style.display = matchesSearch ? 'block' : 'none';
+      });
+    }
+    
+    // Функция для сброса фильтрации тестов (показывает все тесты)
+    function resetTestFilters() {
+      const testCards = document.querySelectorAll('.test-card');
+      testCards.forEach(card => {
+        card.style.display = 'block';
+      });
+    }
+    
+    // Инициализация обработчиков фильтров
+    window.initFilters = function() {
+      // Получаем сохраненные настройки
+      const savedFilters = localStorage.getItem('test-filters');
+      
+      if (savedFilters) {
+        const filters = JSON.parse(savedFilters);
+        
+        // Устанавливаем состояние чекбоксов
+        document.getElementById('filter-my-tests').checked = filters.myTests;
+        document.getElementById('filter-popular-tests').checked = filters.popularTests;
+        document.getElementById('filter-new-tests').checked = filters.newTests;
+        
+        // Устанавливаем последний поисковый запрос
+        if (filters.lastSearchQuery) {
+          document.getElementById('filter-search-input').value = filters.lastSearchQuery;
+        }
+      }
+      
+      // Добавляем обработчики событий для чекбоксов
+      document.getElementById('filter-my-tests').addEventListener('change', window.applyFilters);
+      document.getElementById('filter-popular-tests').addEventListener('change', window.applyFilters);
+      document.getElementById('filter-new-tests').addEventListener('change', window.applyFilters);
+      
+      // Добавляем обработчик для поля поиска
+      const searchInput = document.getElementById('filter-search-input');
+      let searchTimeout;
+      
+      searchInput.addEventListener('input', () => {
+        // Применяем фильтрацию с небольшой задержкой, чтобы не вызывать
+        // функцию фильтрации при каждом нажатии клавиши
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          window.applyFilters();
+        }, 300);
+      });
+      
+      // Применяем фильтры сразу
+      window.applyFilters();
+    };
     
     // Функция для создания карточки теста
     function createTestCard(test, testId) {
@@ -624,6 +777,22 @@
         loadMyTests(db, userData.uid);
         loadPopularTests(db);
         loadNewTests(db);
+        
+        // Применяем фильтры после небольшой задержки, чтобы все элементы успели загрузиться
+        setTimeout(() => {
+          if (typeof window.applyFilters === 'function') {
+            console.log('Применение фильтров после загрузки данных...');
+            window.applyFilters();
+          }
+        }, 1000);
+      }
+    });
+    
+    // Также применяем фильтры при полной загрузке страницы
+    window.addEventListener('load', () => {
+      if (typeof window.applyFilters === 'function') {
+        console.log('Применение фильтров после полной загрузки страницы...');
+        window.applyFilters();
       }
     });
   </script>

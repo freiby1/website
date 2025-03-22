@@ -664,11 +664,14 @@
     function createAnswerItems(options, questionIndex, correctAnswerIndex) {
       let html = '';
       
+      // Проверяем, является ли correctAnswerIndex массивом для множественного выбора
+      let correctAnswers = Array.isArray(correctAnswerIndex) ? correctAnswerIndex : [correctAnswerIndex];
+      
       options.forEach((option, optionIndex) => {
         html += `
           <div class="answer-item">
             <div class="answer-checkbox">
-              <input type="radio" name="answer-correct-${questionIndex}" value="${optionIndex}" class="answer-correct" ${optionIndex === correctAnswerIndex ? 'checked' : ''}>
+              <input type="checkbox" name="answer-correct-${questionIndex}" value="${optionIndex}" class="answer-correct" ${correctAnswers.includes(optionIndex) ? 'checked' : ''}>
             </div>
             <div class="answer-text">
               <input type="text" class="form-control answer-text-input" value="${option}" placeholder="Вариант ответа" required>
@@ -716,7 +719,7 @@
       answerItem.className = 'answer-item';
       answerItem.innerHTML = `
         <div class="answer-checkbox">
-          <input type="radio" name="answer-correct-${questionIndex}" value="${answersCount}" class="answer-correct">
+          <input type="checkbox" name="answer-correct-${questionIndex}" value="${answersCount}" class="answer-correct">
         </div>
         <div class="answer-text">
           <input type="text" class="form-control answer-text-input" placeholder="Вариант ответа" required>
@@ -758,16 +761,16 @@
         currentTest.questions[questionIndex].options.splice(answerIndex, 1);
         
         // Обновляем индексы радиокнопок
-        const radioButtons = answersList.querySelectorAll('input[type="radio"]');
-        radioButtons.forEach((radio, index) => {
-          radio.value = index;
+        const checkboxes = answersList.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach((checkbox, index) => {
+          checkbox.value = index;
         });
         
         // Проверяем, если удаляемый ответ был отмечен как правильный
         if (currentTest.questions[questionIndex].correctAnswer === answerIndex) {
           currentTest.questions[questionIndex].correctAnswer = 0;
-          if (radioButtons.length > 0) {
-            radioButtons[0].checked = true;
+          if (checkboxes.length > 0) {
+            checkboxes[0].checked = true;
           }
         } else if (currentTest.questions[questionIndex].correctAnswer > answerIndex) {
           currentTest.questions[questionIndex].correctAnswer--;
@@ -859,7 +862,7 @@
           // Собираем варианты ответов
           const answerItems = builder.querySelectorAll('.answer-item');
           const options = [];
-          let correctAnswer = null;
+          let correctAnswers = [];
           
           answerItems.forEach((item, answerIndex) => {
             const answerText = item.querySelector('.answer-text-input').value;
@@ -870,19 +873,21 @@
             options.push(answerText);
             
             // Проверяем, отмечен ли этот ответ как правильный
-            const isCorrect = item.querySelector('input[type="radio"]').checked;
+            const isCorrect = item.querySelector('input[type="checkbox"]').checked;
             if (isCorrect) {
-              correctAnswer = answerIndex;
+              correctAnswers.push(answerIndex);
             }
           });
           
-          if (correctAnswer === null) {
-            throw new Error(`Пожалуйста, выберите правильный ответ для вопроса ${index + 1}`);
+          if (correctAnswers.length === 0) {
+            throw new Error(`Пожалуйста, выберите правильные ответы для вопроса ${index + 1}`);
           }
           
-          // Обновляем варианты ответов и правильный ответ
+          // Обновляем варианты ответов и правильные ответы
           currentTest.questions[index].options = options;
-          currentTest.questions[index].correctAnswer = correctAnswer;
+          currentTest.questions[index].correctAnswer = correctAnswers.length === 1 ? correctAnswers[0] : correctAnswers;
+          // Добавляем флаг множественного выбора, если выбрано несколько ответов
+          currentTest.questions[index].isMultipleChoice = correctAnswers.length > 1;
           
           // Удаляем старую структуру ответов, если она есть
           if (currentTest.questions[index].answers) {

@@ -1961,7 +1961,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 /* =================== */
 
 .tests-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 30px auto;
   padding: 0 20px;
 }
@@ -2015,8 +2015,10 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 
 .tests-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 20px;
+  justify-content: start;
+  align-items: stretch;
 }
 
 .test-card {
@@ -2026,6 +2028,9 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   transition: transform 0.3s, box-shadow 0.3s;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .test-card:hover {
@@ -2047,6 +2052,9 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 
 .test-info {
   padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .test-info h3 {
@@ -2064,6 +2072,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex-grow: 1;
 }
 
 .test-meta {
@@ -2116,71 +2125,319 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   background-color: #2c2c2c;
 }
 
+/* Адаптивные стили для тестов */
+@media (max-width: 1200px) {
+  .tests-container {
+    max-width: 95%;
+  }
+  
+  .tests-list {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .tests-list {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+  }
+  
+  .test-cover {
+    height: 120px;
+  }
+  
+  .test-info h3 {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tests-list {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  
+  .test-cover {
+    height: 100px;
+  }
+  
+  .test-info {
+    padding: 10px;
+  }
+  
+  .test-info h3 {
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+  
+  .test-info p {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  
+  .test-meta {
+    font-size: 11px;
+  }
+}
+
 /* Стили для страницы создания теста */
 .create-test-container {
   max-width: 800px;
-  margin: 30px auto;
+  margin: 30px auto 60px auto; /* Увеличен нижний отступ для мобильной навигации */
+  padding: 0 20px;
+}
+
+/* Стили для заголовка восстановления пароля */
+.reset-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+/* Стили для блока фильтров */
+.filters-container {
+  background-color: var(--card-background);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 20px;
+}
+
+.filters-header {
+  margin-bottom: 15px;
+}
+
+.filters-header h3 {
+  color: var(--text-color);
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.filters-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-left: 30px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-option input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  left: 0;
+  height: 20px;
+  width: 20px;
+  background-color: #fff;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.filter-option:hover .checkmark {
+  border-color: var(--primary-color);
+}
+
+.filter-option input:checked ~ .checkmark {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.filter-option input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.filter-option .checkmark:after {
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.filter-label {
+  color: var(--text-color);
+  font-size: 16px;
+}
+
+/* Стили для поиска в фильтрах */
+.filter-search {
+  margin-top: 15px;
+}
+
+.filter-search-box {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.filter-search-box input {
+  width: 100%;
+  padding: 10px 15px 10px 40px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  background-color: var(--input-bg-light);
+  color: var(--input-text-light);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.filter-search-box input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+}
+
+.filter-search-box .search-icon {
+  position: absolute;
+  left: 15px;
+  color: #888;
+  font-size: 14px;
+}
+
+/* Стили для темной темы */
+.dark-mode .filter-search-box input {
+  background-color: #333;
+  border-color: #555;
+  color: #fff;
+}
+
+.dark-mode .filter-search-box .search-icon {
+  color: #aaa;
+}
+
+.dark-mode .checkmark {
+  background-color: #333;
+  border-color: #555;
+}
+
+/* Адаптивные стили для фильтров */
+@media (max-width: 768px) {
+  .filters-options {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Стили для страницы создания теста */
+.create-test-container {
+  max-width: 800px;
+  margin: 30px auto 60px auto; /* Увеличен нижний отступ для мобильной навигации */
   padding: 0 20px;
 }
 
 .create-test-form {
   background-color: var(--card-background);
   border-radius: 12px;
-  padding: 30px;
   box-shadow: var(--card-shadow);
+  padding: 25px;
+  margin-bottom: 30px;
+  transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.step-container {
+  display: none;
+}
+
+.step-container.active {
+  display: block;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .form-title {
-  margin-top: 0;
-  margin-bottom: 30px;
+  color: var(--text-color);
+  margin-bottom: 20px;
   font-size: 24px;
   font-weight: 600;
-  color: var(--text-color);
   text-align: center;
+  transition: color var(--transition-speed);
+}
+
+.progress-bar-container {
+  margin-bottom: 25px;
+}
+
+.progress-bar {
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.dark-mode .progress-bar {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar-inner {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  text-align: right;
+  font-size: 14px;
+  color: var(--text-color);
+  opacity: 0.7;
+  transition: color var(--transition-speed);
 }
 
 .form-group {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-size: 16px;
   font-weight: 500;
   color: var(--text-color);
-}
-
-.checkbox-container {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.checkbox-container label {
-  margin-bottom: 0;
-  margin-left: 10px;
-  font-weight: 500;
-  color: var(--text-color);
-  cursor: pointer;
-}
-
-.form-checkbox {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary-color);
-  cursor: pointer;
+  transition: color var(--transition-speed);
 }
 
 .form-control {
   width: 100%;
   padding: 12px 15px;
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 8px;
-  background-color: var(--input-bg-light);
   font-size: 16px;
-  color: var(--input-text-light);
-  transition: border-color 0.3s, box-shadow 0.3s;
+  background-color: transparent;
+  color: var(--text-color);
+  transition: border-color 0.3s, box-shadow 0.3s, background-color var(--transition-speed), color var(--transition-speed);
+}
+
+.dark-mode .form-control {
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .form-control:focus {
@@ -2190,75 +2447,40 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 }
 
 .form-text {
-  margin-top: 5px;
   font-size: 13px;
-  color: rgba(33, 33, 33, 0.6);
+  color: var(--text-color);
+  opacity: 0.7;
+  margin-top: 5px;
+  transition: color var(--transition-speed);
 }
 
-.btn-container {
+/* Стили для checkbox */
+.checkbox-container {
   display: flex;
-  justify-content: space-between;
-  margin-top: 30px;
+  align-items: center;
+  margin-bottom: 5px;
 }
 
-.btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
+.form-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
 }
 
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #1976D2;
-  transform: translateY(-2px);
-}
-
-.btn-secondary {
-  background-color: #e0e0e0;
-  color: #424242;
-}
-
-.btn-secondary:hover {
-  background-color: #d5d5d5;
-  transform: translateY(-2px);
-}
-
-.dark-mode .form-control {
-  background-color: var(--input-bg-dark);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.dark-mode .form-text {
-  color: rgba(236, 240, 241, 0.6);
-}
-
-.dark-mode .btn-secondary {
-  background-color: #424242;
-  color: #e0e0e0;
-}
-
-.dark-mode .btn-secondary:hover {
-  background-color: #525252;
-}
-
+/* Стили для загрузки обложки */
 .cover-preview {
   width: 100%;
   height: 200px;
-  margin-bottom: 15px;
   border-radius: 8px;
-  overflow: hidden;
-  background-color: #e9e9e9;
+  border: 2px dashed rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 10px;
+  background-size: cover;
+  background-position: center;
+  transition: border-color var(--transition-speed);
+  overflow: hidden;
 }
 
 .cover-preview img {
@@ -2271,89 +2493,319 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #f5f5f5;
-  color: #424242;
-  padding: 10px 16px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 14px;
+  transition: background-color 0.3s, transform 0.2s;
 }
 
 .cover-upload-label:hover {
-  background-color: #eeeeee;
+  background-color: #1976D2;
+  transform: translateY(-2px);
 }
 
-.dark-mode .cover-preview {
-  background-color: #2c2c2c;
+/* Стили для кнопок */
+.btn-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 30px;
 }
 
-.dark-mode .cover-upload-label {
-  background-color: #3a3a3a;
-  color: #e0e0e0;
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  flex: 1;
 }
 
-.dark-mode .cover-upload-label:hover {
-  background-color: #444444;
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
 }
 
-.step-container {
-  display: none;
+.btn-primary:hover {
+  background-color: #1976D2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.step-container.active {
-  display: block;
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-/* Стили для конструктора вопросов */
-.question-builder {
-  margin-bottom: 40px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid var(--border-color);
+.dark-mode .btn-secondary {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-.question-builder:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
+.btn-secondary:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.dark-mode .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Стили для блока вопросов */
+.question-block {
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.dark-mode .question-block {
+  background-color: rgba(48, 48, 48, 0.7);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .question-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
-.question-number {
+.question-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--text-color);
+  transition: color var(--transition-speed);
 }
 
-.question-actions {
+.question-type-select {
+  margin-bottom: 15px;
+}
+
+.options-container {
+  margin-top: 15px;
+}
+
+.option-item {
   display: flex;
+  align-items: center;
   gap: 10px;
+  margin-bottom: 10px;
 }
 
-.question-actions button {
+.option-correct {
+  width: 24px;
+  height: 24px;
+}
+
+.option-text {
+  flex-grow: 1;
+}
+
+.add-option-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 15px;
+  border: none;
+  background-color: transparent;
+  color: var(--primary-color);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.add-option-btn:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.delete-option-btn {
   background: none;
   border: none;
-  color: rgba(33, 33, 33, 0.6);
-  font-size: 16px;
+  color: #dc3545;
   cursor: pointer;
-  transition: color 0.3s;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s;
 }
 
-.question-actions button:hover {
+.delete-option-btn:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.delete-question-btn {
+  border: none;
+  background: transparent;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.delete-question-btn:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.add-question-btn {
+  display: block;
+  width: 100%;
+  padding: 15px;
+  margin: 20px 0;
+  background-color: var(--card-background);
+  border: 2px dashed var(--primary-color);
+  border-radius: 8px;
   color: var(--primary-color);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
 }
 
-.dark-mode .question-actions button {
-  color: rgba(236, 240, 241, 0.6);
+.add-question-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
 }
 
-.dark-mode .question-actions button:hover {
+/* Стили для секции создания вопросов */
+.questions-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .questions-section {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.questions-section h2 {
+  color: var(--text-color);
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+  transition: color var(--transition-speed);
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+  .create-test-container {
+    margin: 20px auto 80px auto;
+    padding: 0 15px;
+  }
+
+  .create-test-form {
+    padding: 20px 15px;
+  }
+
+  .form-title {
+    font-size: 20px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+  
+  .cover-preview {
+    height: 150px;
+  }
+  
+  .question-block {
+    padding: 15px;
+  }
+  
+  .question-title {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-test-container {
+    margin: 15px auto 80px auto;
+  }
+  
+  .create-test-form {
+    padding: 15px 12px;
+  }
+  
+  .form-title {
+    font-size: 18px;
+  }
+  
+  .btn-container {
+    flex-direction: column;
+  }
+  
+  .cover-preview {
+    height: 120px;
+  }
+  
+  .question-title {
+    font-size: 15px;
+  }
+}
+
+/* Стили для тултипов */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  margin-left: 5px;
   color: var(--primary-color);
+  cursor: pointer;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  width: 300px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.dark-mode .tooltip .tooltip-text {
+  background-color: rgba(50, 50, 50, 0.9);
+}
+
+.tooltip .tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+.dark-mode .tooltip .tooltip-text::after {
+  border-color: rgba(50, 50, 50, 0.9) transparent transparent transparent;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }
 
 .answers-list {
@@ -2363,155 +2815,178 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 .answer-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 15px;
+  position: relative;
   padding: 10px;
-  background-color: rgba(255, 255, 255, 0.5);
   border-radius: 8px;
-  transition: background-color 0.3s;
+  transition: background-color 0.2s;
 }
 
 .answer-item:hover {
-  background-color: rgba(255, 255, 255, 0.8);
-}
-
-.dark-mode .answer-item {
-  background-color: rgba(48, 48, 48, 0.5);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .dark-mode .answer-item:hover {
-  background-color: rgba(48, 48, 48, 0.8);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .answer-checkbox {
-  min-width: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  margin-right: 10px;
+  position: relative;
+}
+
+.answer-item.selected .answer-checkbox {
+  border-color: var(--primary-color);
+  background-color: var(--primary-color);
+}
+
+.answer-item.selected .answer-checkbox::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  left: 50%;
+  top: 40%;
+  margin-left: -3px;
+  margin-top: -6px;
+}
+
+.answer-correct {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
 }
 
 .answer-text {
   flex-grow: 1;
+  margin-right: 10px;
 }
 
 .answer-actions {
+  flex-shrink: 0;
   display: flex;
-  gap: 5px;
+  align-items: center;
 }
 
-.answer-actions button {
+.delete-answer-btn {
   background: none;
   border: none;
-  color: rgba(33, 33, 33, 0.6);
+  color: #dc3545;
   cursor: pointer;
-  transition: color 0.3s;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.answer-actions button:hover {
-  color: var(--primary-color);
+.delete-answer-btn:hover {
+  background-color: rgba(220, 53, 69, 0.1);
 }
 
-.dark-mode .answer-actions button {
-  color: rgba(236, 240, 241, 0.6);
+.cover-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.dark-mode .answer-actions button:hover {
-  color: var(--primary-color);
+.dark-mode .cover-preview {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.question-builder {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.dark-mode .question-builder {
+  background-color: rgba(48, 48, 48, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .add-answer-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background-color: rgba(33, 150, 243, 0.1);
-  color: var(--primary-color);
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 15px;
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
+  background-color: transparent;
+  color: var(--primary-color);
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
-  margin-top: 10px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  width: auto;
+  text-align: left;
 }
 
 .add-answer-btn:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+  transform: translateY(-2px);
+}
+
+.add-answer-btn i {
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.add-answer-btn:hover i {
+  transform: rotate(90deg);
+}
+
+.dark-mode .add-answer-btn:hover {
   background-color: rgba(33, 150, 243, 0.2);
 }
 
-.progress-bar-container {
-  margin-bottom: 30px;
+/* Стили для множественного выбора ответов */
+.multiple-choice .answer-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
 }
 
-.progress-bar {
-  height: 8px;
-  background-color: #e0e0e0;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 10px;
+.multiple-choice .answer-item {
+  border-left: 3px solid transparent;
+  transition: border-color 0.2s, background-color 0.2s;
 }
 
-.progress-bar-inner {
-  height: 100%;
-  background-color: var(--primary-color);
-  width: 0%;
-  transition: width 0.3s ease;
+.multiple-choice .answer-item.selected {
+  border-left-color: var(--primary-color);
+  background-color: rgba(33, 150, 243, 0.05);
 }
 
-.progress-text {
+.dark-mode .multiple-choice .answer-item.selected {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.multiple-choice-info {
+  display: block;
+  padding: 10px;
+  background-color: rgba(33, 150, 243, 0.05);
+  color: var(--text-color);
+  border-radius: 6px;
+  margin-bottom: 15px;
   font-size: 14px;
-  color: rgba(33, 33, 33, 0.6);
-  text-align: right;
 }
 
-.dark-mode .progress-bar {
-  background-color: #3a3a3a;
-}
-
-.dark-mode .progress-text {
-  color: rgba(236, 240, 241, 0.6);
-}
-
-.loading-tests {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 20px;
-  color: rgba(33, 33, 33, 0.6);
-  font-style: italic;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.error-message {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 20px;
-  color: white;
-}
-
-.dark-mode .loading-tests {
-  color: rgba(236, 240, 241, 0.6);
-}
-
-.dark-mode .error-message {
-  color: white;
-}
-
-/* Стили для заголовка восстановления пароля */
-.reset-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  position: relative;
-}
-
-.reset-header h2 {
-  margin: 0;
-  margin-left: 15px;
-}
-
-.reset-header .back-button {
-  position: static;
-  top: auto;
-  left: auto;
-  margin: 0;
-  padding: 0;
+.dark-mode .multiple-choice-info {
+  background-color: rgba(33, 150, 243, 0.1);
 }
