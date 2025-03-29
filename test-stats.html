@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Статистика теста</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script" crossorigin="anonymous">
+  
+  <style>
+    .stats-container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .stats-header {
+      background-color: var(--card-background);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .stats-title {
+      margin: 0 0 15px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background-color: var(--card-background);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: var(--card-shadow);
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+
+    .stats-section {
+      background-color: var(--card-background);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .section-title {
+      margin: 0 0 20px 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(33, 33, 33, 0.1);
+    }
+
+    .results-table th {
+      font-weight: 600;
+      color: var(--text-color);
+      background-color: rgba(33, 33, 33, 0.05);
+    }
+
+    .results-table tr:hover {
+      background-color: rgba(33, 33, 33, 0.05);
+    }
+
+    .question-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .question-stat-card {
+      background-color: var(--card-background);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .question-text {
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: var(--text-color);
+    }
+
+    .time-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background-color: rgba(33, 33, 33, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--primary-color);
+      transition: width 0.3s ease;
+    }
+
+    .back-btn {
+      padding: 12px 24px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .back-btn:hover {
+      background-color: #1976D2;
+    }
+
+    .dark-mode .results-table th,
+    .dark-mode .results-table td {
+      border-bottom-color: rgba(236, 240, 241, 0.1);
+    }
+
+    .dark-mode .results-table th {
+      background-color: rgba(236, 240, 241, 0.05);
+    }
+
+    .dark-mode .results-table tr:hover {
+      background-color: rgba(236, 240, 241, 0.05);
+    }
+    
+    .difficulty-indicator {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    
+    .easy {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .medium {
+      background-color: #FF9800;
+      color: white;
+    }
+    
+    .hard {
+      background-color: #F44336;
+      color: white;
+    }
+    
+    .stats-metric {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .metric-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .metric-value {
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    
+    .metric-label {
+      font-size: 14px;
+      color: var(--text-color);
+      opacity: 0.7;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="stats-container">
+    <div class="stats-header">
+      <h1 class="stats-title">Статистика теста</h1>
+      <div class="stats-summary">
+        <div class="stat-card">
+          <div class="stat-value" id="total-completions">0</div>
+          <div class="stat-label">Всего прохождений</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avg-score">0%</div>
+          <div class="stat-label">Средний результат</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avg-time">0 мин</div>
+          <div class="stat-label">Среднее время</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="best-score">0%</div>
+          <div class="stat-label">Лучший результат</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="worst-score">0%</div>
+          <div class="stat-label">Худший результат</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-section">
+      <h2 class="section-title">Результаты прохождений</h2>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Пользователь</th>
+            <th>Дата</th>
+            <th>Результат</th>
+            <th>Время</th>
+          </tr>
+        </thead>
+        <tbody id="results-table-body">
+          <!-- Результаты будут добавлены здесь -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stats-section">
+      <h2 class="section-title">Статистика по вопросам</h2>
+      <div class="question-stats" id="question-stats">
+        <!-- Статистика по вопросам будет добавлена здесь -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getDatabase, ref, get, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { initializeSidebar } from './sidebar.js';
+
+    // Инициализация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+      authDomain: "tpoproject-35957.firebaseapp.com",
+      databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tpoproject-35957",
+      storageBucket: "tpoproject-35957.appspot.com",
+      messagingSenderId: "683982725892",
+      appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const testId = new URLSearchParams(window.location.search).get('id');
+    
+    // Функция для форматирования времени в минуты и секунды
+    function formatTime(seconds) {
+      if (!seconds) return 'Неизвестно';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return `${mins} мин ${secs} сек`;
+    }
+
+    // Проверка авторизации и прав доступа
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (!userData || userData.uid !== user.uid) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Загрузка данных теста
+      const testRef = ref(db, `tests/${testId}`);
+      const testSnapshot = await get(testRef);
+      
+      if (!testSnapshot.exists()) {
+        alert('Тест не найден');
+        window.location.href = 'home.html';
+        return;
+      }
+
+      const test = testSnapshot.val();
+      if (test.createdBy !== user.uid) {
+        alert('У вас нет прав на просмотр статистики этого теста');
+        window.location.href = 'home.html';
+        return;
+      }
+
+      // Загрузка результатов теста
+      const resultsRef = ref(db, 'test_results');
+      // Вместо запроса с фильтрацией на сервере, получаем все результаты и фильтруем на клиенте
+      const resultsSnapshot = await get(resultsRef);
+
+      if (!resultsSnapshot.exists()) {
+        document.getElementById('results-table-body').innerHTML = 
+          '<tr><td colspan="4" style="text-align: center;">Пока нет результатов прохождения теста</td></tr>';
+        return;
+      }
+
+      const results = [];
+      // Фильтруем результаты на клиенте
+      resultsSnapshot.forEach((resultSnapshot) => {
+        const resultData = resultSnapshot.val();
+        if (resultData.testId === testId) {
+          results.push(resultData);
+        }
+      });
+      
+      console.log('Загруженные результаты:', results);
+      
+      if (results.length === 0) {
+        document.getElementById('results-table-body').innerHTML = 
+          '<tr><td colspan="4" style="text-align: center;">Пока нет результатов прохождения теста</td></tr>';
+        
+        // Обнуляем статистику
+        document.getElementById('total-completions').textContent = '0';
+        document.getElementById('avg-score').textContent = '0%';
+        document.getElementById('avg-time').textContent = '0 мин';
+        document.getElementById('best-score').textContent = '0%';
+        document.getElementById('worst-score').textContent = '0%';
+        
+        // Очищаем статистику по вопросам
+        document.getElementById('question-stats').innerHTML = 
+          '<p>Нет данных для отображения статистики по вопросам</p>';
+          
+        return;
+      }
+
+      // Обновление общей статистики
+      document.getElementById('total-completions').textContent = results.length;
+      
+      // Проверяем структуру данных для корректного расчета среднего балла
+      let scores = [];
+      let times = [];
+      
+      if (results.length > 0) {
+        results.forEach(result => {
+          let score = 0;
+          if (result.hasOwnProperty('percentage')) {
+            score = result.percentage;
+          } else if (result.hasOwnProperty('score')) {
+            score = result.score;
+          } else if (result.correctAnswers && result.totalQuestions) {
+            score = (result.correctAnswers / result.totalQuestions * 100);
+          }
+          scores.push(score);
+          
+          if (result.hasOwnProperty('totalTime')) {
+            times.push(result.totalTime);
+          }
+        });
+      }
+      
+      // Средний балл
+      const avgScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+      document.getElementById('avg-score').textContent = `${Math.round(avgScore)}%`;
+      
+      // Лучший и худший результаты
+      const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
+      const worstScore = scores.length > 0 ? Math.min(...scores) : 0;
+      document.getElementById('best-score').textContent = `${Math.round(bestScore)}%`;
+      document.getElementById('worst-score').textContent = `${Math.round(worstScore)}%`;
+
+      // Среднее время
+      const avgTime = times.length > 0 ? times.reduce((sum, time) => sum + time, 0) / times.length : 0;
+      document.getElementById('avg-time').textContent = formatTime(avgTime);
+
+      // Заполнение таблицы результатов
+      const tbody = document.getElementById('results-table-body');
+      tbody.innerHTML = '';
+
+      // Создаем объект для кеширования данных пользователей, чтобы не делать повторные запросы
+      const userCache = {};
+
+      for (const result of results) {
+        try {
+          let userData = { email: 'Неизвестный пользователь' };
+          
+          // Сначала проверяем, есть ли имя пользователя в самом результате теста
+          if (result.userName || result.userEmail) {
+            userData = {
+              name: result.userName,
+              email: result.userEmail
+            };
+          }
+          // Если нет данных в результате, используем кэш или запрашиваем из базы
+          else if (userCache[result.userId]) {
+            userData = userCache[result.userId];
+          } else if (result.userId) {
+            // Если нет в кеше, запрашиваем из базы данных
+            const userRef = ref(db, `users/${result.userId}`);
+            const userSnapshot = await get(userRef);
+            
+            if (userSnapshot.exists()) {
+              userData = userSnapshot.val();
+              // Сохраняем в кеш
+              userCache[result.userId] = userData;
+            }
+          }
+          
+          // Определяем и форматируем данные о результате теста
+          const userEmail = userData.name || userData.email || 'Неизвестный пользователь';
+          const completedDate = result.completedAt ? new Date(result.completedAt).toLocaleString() : 'Неизвестно';
+          
+          let score = 0;
+          if (result.percentage) {
+            score = result.percentage;
+          } else if (result.score) {
+            score = result.score;
+          } else if (result.correctAnswers && result.totalQuestions) {
+            score = Math.round((result.correctAnswers / result.totalQuestions) * 100);
+          }
+          const scoreDisplay = `${score}%`;
+          
+          // Форматирование времени прохождения теста
+          const timeDisplay = result.totalTime ? formatTime(result.totalTime) : 'Неизвестно';
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${userEmail}</td>
+            <td>${completedDate}</td>
+            <td>${scoreDisplay}</td>
+            <td>${timeDisplay}</td>
+          `;
+          tbody.appendChild(row);
+        } catch (error) {
+          console.error('Ошибка при загрузке информации о пользователе:', error);
+        }
+      }
+
+      // Загрузка статистики по вопросам
+      const questionStats = {};
+      test.questions.forEach((question, index) => {
+        questionStats[index] = {
+          text: question.text,
+          totalAttempts: 0,
+          correctAnswers: 0,
+          totalTime: 0,
+          timeDistribution: {}
+        };
+      });
+
+      // Проверяем наличие детальной информации по вопросам
+      let hasQuestionStats = false;
+      results.forEach(result => {
+        if (result.answers && Array.isArray(result.answers)) {
+          hasQuestionStats = true;
+          result.answers.forEach((answer, index) => {
+            if (questionStats[index]) {
+              questionStats[index].totalAttempts++;
+              if (answer.isCorrect) {
+                questionStats[index].correctAnswers++;
+              }
+              
+              if (answer.timeSpent) {
+                questionStats[index].totalTime += answer.timeSpent;
+                
+                // Распределение времени
+                const timeRange = Math.floor(answer.timeSpent / 10) * 10; // Группируем по 10 секунд
+                if (!questionStats[index].timeDistribution[timeRange]) {
+                  questionStats[index].timeDistribution[timeRange] = 0;
+                }
+                questionStats[index].timeDistribution[timeRange]++;
+              }
+            }
+          });
+        }
+      });
+
+      // Отображение статистики по вопросам
+      const questionStatsContainer = document.getElementById('question-stats');
+      questionStatsContainer.innerHTML = '';
+
+      if (!hasQuestionStats) {
+        questionStatsContainer.innerHTML = '<p>Детальная статистика по вопросам недоступна. Возможно, тесты проходились в предыдущей версии приложения.</p>';
+      } else {
+        // Создание массива вопросов для сортировки по сложности
+        const sortedQuestions = Object.entries(questionStats).map(([index, stats]) => {
+          let correctPercentage = 0;
+          if (stats.totalAttempts > 0) {
+            correctPercentage = (stats.correctAnswers / stats.totalAttempts) * 100;
+          }
+          return { index, stats, correctPercentage };
+        });
+        
+        // Сортировка вопросов по сложности (по проценту правильных ответов)
+        sortedQuestions.sort((a, b) => a.correctPercentage - b.correctPercentage);
+        
+        sortedQuestions.forEach(({ index, stats, correctPercentage }) => {
+          const card = document.createElement('div');
+          card.className = 'question-stat-card';
+          
+          let avgTime = 0;
+          
+          if (stats.totalAttempts > 0) {
+            avgTime = stats.totalTime / stats.totalAttempts;
+          }
+
+          // Определение сложности вопроса
+          let difficultyClass = '';
+          let difficultyText = '';
+          
+          if (correctPercentage >= 75) {
+            difficultyClass = 'easy';
+            difficultyText = 'Легкий';
+          } else if (correctPercentage >= 40) {
+            difficultyClass = 'medium';
+            difficultyText = 'Средний';
+          } else {
+            difficultyClass = 'hard';
+            difficultyText = 'Сложный';
+          }
+
+          // Находим наиболее частое время ответа
+          let mostCommonTime = 0;
+          let maxCount = 0;
+          
+          Object.entries(stats.timeDistribution).forEach(([time, count]) => {
+            if (count > maxCount) {
+              maxCount = count;
+              mostCommonTime = parseInt(time);
+            }
+          });
+
+          card.innerHTML = `
+            <div class="question-text">
+              Вопрос ${parseInt(index) + 1}: ${stats.text}
+              <span class="difficulty-indicator ${difficultyClass}">${difficultyText}</span>
+            </div>
+            <div class="time-stats">
+              <span>Среднее время: ${Math.round(avgTime)} сек</span>
+              <span>Типичное время: ${mostCommonTime}-${mostCommonTime + 10} сек</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${correctPercentage}%"></div>
+            </div>
+            <div class="time-stats">
+              <span>Правильных ответов: ${Math.round(correctPercentage)}%</span>
+              <span>Всего ответов: ${stats.totalAttempts}</span>
+            </div>
+            <div class="stats-metric">
+              <div class="metric-icon"><i class="fas fa-check"></i></div>
+              <span class="metric-value">${stats.correctAnswers}</span>
+              <span class="metric-label">верных ответов</span>
+            </div>
+            <div class="stats-metric">
+              <div class="metric-icon"><i class="fas fa-times"></i></div>
+              <span class="metric-value">${stats.totalAttempts - stats.correctAnswers}</span>
+              <span class="metric-label">неверных ответов</span>
+            </div>
+          `;
+          
+          questionStatsContainer.appendChild(card);
+        });
+      }
+    });
+
+    // Инициализация сайдбара
+    window.addEventListener('load', () => {
+      initializeSidebar();
+    });
+  </script>
+
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedTheme === 'system') {
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.style.visibility = 'visible';
+        });
+      } else {
+        const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(theme);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(theme);
+          document.documentElement.classList.remove(theme);
+          document.documentElement.style.visibility = 'visible';
+        });
+      }
+
+      // Добавляем слушатель изменения системной темы
+      if (savedTheme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          document.body.classList.remove('dark-mode', 'light-mode');
+          document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html> 

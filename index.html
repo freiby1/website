@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Аутентификация | Cosmic Auth</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+	<link rel="stylesheet" href="styles.css">
+
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+      
+      document.documentElement.style.visibility = 'hidden';
+      document.documentElement.classList.add(theme);
+      
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add(theme);
+        document.documentElement.classList.remove(theme);
+        document.documentElement.style.visibility = 'visible';
+      });
+    })();
+  </script>
+</head>
+
+<body>
+  <canvas id="networkCanvas"></canvas>
+
+  <!-- Кнопка для переключения темы -->
+  <div class="theme-toggle-button" id="theme-toggle">
+    <i class="fas fa-sun sun-icon icon"></i>
+    <i class="fas fa-moon moon-icon icon"></i>
+  </div>
+
+  <div class="form-container">
+    <!-- Секция восстановления пароля -->
+    <section id="reset-section" class="form-section" style="display: none;">
+      <div class="reset-header">
+        <button class="back-button" id="back-to-login">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+        </button>
+        <h2>Восстановление пароля</h2>
+      </div>
+      <form id="reset-form">
+        <div class="form-field">
+          <label for="reset-email">Email</label>
+          <!-- Текст "Заполните обязательное поле" уже внутри -->
+          <input type="email" id="reset-email" placeholder="Ваш email" />
+          <div class="error-text">Заполните обязательное поле</div>
+        </div>
+        <button type="submit" class="primary">Отправить письмо</button>
+      </form>
+    </section>
+
+    <div class="tabs">
+      <button id="tab-login" class="tab active">Вход</button>
+      <button id="tab-signup" class="tab">Регистрация</button>
+    </div>
+
+    <!-- Форма входа -->
+    <section id="login-section" class="form-section">
+      <h2>Добро пожаловать!</h2>
+      <form id="login-form">
+        <div class="form-field">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="Email" />
+          <!-- По умолчанию есть текст ошибки, но скрыт (visibility:hidden) -->
+          <div class="error-text">Заполните обязательное поле</div>
+        </div>
+
+        <div class="form-field">
+          <label for="login-password">Пароль</label>
+          <div class="password-wrapper">
+            <input type="password" id="login-password" placeholder="Пароль" />
+            <button type="button" class="toggle-password" aria-label="Показать пароль">
+              <svg class="eye-closed" viewBox="0 0 24 24">
+                <path d="M12 4.5C7 4.5
+                  2.73 7.61 1 12c1.73
+                  4.39 6 7.5 11 7.5s9.27-3.11
+                  11-7.5c-1.73-4.39-6
+                  -7.5-11-7.5zM12 17c-2.76 0
+                  -5-2.24-5-5s2.24-5
+                  5-5 5 2.24 5 5
+                  -2.24 5-5 5zm0
+                  -8c-1.66 0-3
+                  1.34-3 3s1.34 3 3
+                  3 3-1.34 3
+                  -3-1.34-3
+                  -3-3z" />
+              </svg>
+              <svg class="eye-open" viewBox="0 0 24 24">
+                <path d="M12 6.5c3.79
+                  0 7.17 2.13
+                  8.82 5.5-1.65
+                  3.37-5.02 5.5
+                  -8.82 5.5s
+                  -7.17-2.13
+                  -8.82-5.5
+                  C4.83 8.63
+                  8.21 6.5
+                  12 6.5m0
+                  -2C7 4.5
+                  2.73 7.61
+                  1 12c1.73
+                  4.39 6
+                  7.5 11
+                  7.5s9.27
+                  -3.11 11
+                  -7.5c-1.73
+                  -4.39-6
+                  -7.5-11
+                  -7.5zm0
+                  5c1.66
+                  0 3 1.34
+                  3 3s
+                  -1.34 3
+                  -3 3-3
+                  -1.34-3
+                  -3 1.34
+                  -3 3-3m0
+                  -2c-2.76
+                  0-5 2.24
+                  -5 5s
+                  2.24 5 5
+                  5 5
+                  -2.24 5
+                  -5-2.24
+                  -5-5
+                  -5z" />
+                <path d="M0 0h24v24H0z" fill="none" />
+              </svg>
+            </button>
+          </div>
+          <div class="error-text">Заполните обязательное поле</div>
+          <a href="#" id="forgot-password" class="forgot-password">Забыли пароль?</a>
+        </div>
+        <button type="submit" class="primary" style="margin-top: 15px;">Войти</button>
+      </form>
+
+      <div class="separator"><span>ИЛИ</span></div>
+      <button class="google-auth">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+        Продолжить с Google
+      </button>
+    </section>
+
+    <!-- Форма регистрации -->
+    <section id="signup-section" class="form-section">
+      <h2>Создать аккаунт</h2>
+      <form id="signup-form" autocomplete="off">
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="Email" autocomplete="new-email" />
+          <div class="error-text">Заполните обязательное поле</div>
+        </div>
+
+        <div class="form-field">
+          <label for="password">Пароль</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" placeholder="Пароль" autocomplete="new-password" />
+            <button type="button" class="toggle-password" aria-label="Показать пароль">
+              <svg class="eye-closed" viewBox="0 0 24 24">
+                <path d="M12 4.5C7
+                  4.5 2.73 7.61
+                  1 12c1.73 4.39
+                  6 7.5 11 7.5s9.27
+                  -3.11 11-7.5
+                  c-1.73-4.39
+                  -6-7.5-11
+                  -7.5zM12
+                  17c-2.76 0
+                  -5-2.24
+                  -5-5s2.24
+                  -5 5-5
+                  5 2.24 5
+                  5-2.24
+                  5-5 5zm0
+                  -8c-1.66
+                  0-3 1.34
+                  -3 3s1.34
+                  3 3 3
+                  3-1.34
+                  3-3-1.34
+                  -3-3-3z" />
+              </svg>
+              <svg class="eye-open" viewBox="0 0 24 24">
+                <path d="M12 6.5c3.79
+                  0 7.17 2.13
+                  8.82 5.5
+                  -1.65 3.37
+                  -5.02 5.5
+                  -8.82 5.5s
+                  -7.17-2.13
+                  -8.82-5.5
+                  C4.83 8.63
+                  8.21 6.5
+                  12 6.5m0
+                  -2C7 4.5
+                  2.73 7.61
+                  1 12c1.73
+                  4.39 6
+                  7.5 11
+                  7.5s9.27
+                  -3.11 11
+                  -7.5c-1.73
+                  -4.39-6
+                  -7.5-11
+                  -7.5zm0
+                  5c1.66
+                  0 3 1.34
+                  3 3s
+                  -1.34 3
+                  -3 3-3
+                  -1.34-3
+                  -3 1.34
+                  -3 3-3m0
+                  -2c-2.76
+                  0-5 2.24
+                  -5 5s
+                  2.24 5 5
+                  5 5
+                  -2.24 5
+                  -5-2.24
+                  -5-5
+                  -5z" />
+                <path d="M0 0h24v24H0z" fill="none" />
+              </svg>
+            </button>
+          </div>
+          <div class="error-text">Заполните обязательное поле</div>
+
+          <!-- Индикатор сложности пароля (всегда занимает место, но скрыт) -->
+          <div class="password-strength-container">
+            <div class="password-strength" id="password-strength"></div>
+            <span id="password-strength-text">Слабый</span>
+          </div>
+        </div>
+
+        <button type="submit" class="primary" style="margin-top: 15px;">Зарегистрироваться</button>
+      </form>
+
+      <div class="separator"><span>ИЛИ</span></div>
+      <button class="google-auth">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" />
+        Продолжить с Google
+      </button>
+    </section>
+  </div>
+
+  <!-- Скрипт отрисовки сетки на фоне -->
+  <script>
+    class Node {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = Math.random() * 0.5 - 0.25;
+        this.vy = Math.random() * 0.5 - 0.25;
+        this.radius = 3;
+      }
+      update() {
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+      draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = document.body.classList.contains('dark-mode')
+          ? 'rgba(255, 255, 255, 0.8)'
+          : 'rgba(33, 150, 243, 0.8)';
+        ctx.fill();
+      }
+    }
+
+    class Connection {
+      constructor(node1, node2) {
+        this.node1 = node1;
+        this.node2 = node2;
+      }
+      draw(ctx) {
+        const dx = this.node1.x - this.node2.x;
+        const dy = this.node1.y - this.node2.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          ctx.beginPath();
+          ctx.moveTo(this.node1.x, this.node1.y);
+          ctx.lineTo(this.node2.x, this.node2.y);
+          ctx.strokeStyle = document.body.classList.contains('dark-mode')
+            ? `rgba(255, 255, 255, ${1 - dist / 150})`
+            : `rgba(33, 150, 243, ${1 - dist / 150})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+    }
+
+    const canvas = document.getElementById('networkCanvas');
+    const ctx = canvas.getContext('2d');
+    let mouseX = 0, mouseY = 0;
+    const nodes = [];
+
+    function generateNodes() {
+      nodes.length = 0;
+      for (let i = 0; i < 40; i++) {
+        nodes.push(new Node(Math.random() * canvas.width, Math.random() * canvas.height));
+      }
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      generateNodes();
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      nodes.forEach(node => {
+        node.update();
+        node.draw(ctx);
+        const dx = node.x - mouseX;
+        const dy = node.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          ctx.beginPath();
+          ctx.moveTo(node.x, node.y);
+          ctx.lineTo(mouseX, mouseY);
+          ctx.strokeStyle = document.body.classList.contains('dark-mode')
+            ? `rgba(255, 255, 255, ${1 - dist / 150})`
+            : `rgba(33, 150, 243, ${1 - dist / 150})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      });
+      nodes.forEach((node1, i) => {
+        nodes.slice(i + 1).forEach(node2 => {
+          new Connection(node1, node2).draw(ctx);
+        });
+      });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+
+  <!-- Скрипт Firebase и логика форм -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import {
+      getAuth, createUserWithEmailAndPassword, sendEmailVerification,
+      signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider,
+      onAuthStateChanged, signOut, sendPasswordResetEmail, setPersistence, browserLocalPersistence
+    } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getDatabase, ref, set, update, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+      authDomain: "tpoproject-35957.firebaseapp.com",
+      databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tpoproject-35957",
+      storageBucket: "tpoproject-35957.appspot.com",
+      messagingSenderId: "683982725892",
+      appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+    const googleProvider = new GoogleAuthProvider();
+
+    // Устанавливаем persistance для сохранения сессии
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        console.log('Persistence установлен успешно');
+      })
+      .catch((error) => {
+        console.error('Ошибка установки persistence:', error);
+      });
+
+    // Проверяем аутентификацию при загрузке страницы
+    const savedUserData = localStorage.getItem('userData');
+    const isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+
+    if (isAuthenticated && savedUserData) {
+        console.log('Пользователь уже аутентифицирован, перенаправление на home.html');
+        window.location.href = 'home.html';
+    }
+
+    // Показываем/прячем всплывающие сообщения (ошибки/успех)
+    const showMessage = (type, message, duration = 5000) => {
+      document.querySelectorAll('.error-message, .success-message').forEach(el => el.remove());
+      const messageBox = document.createElement('div');
+      messageBox.className = `${type}-message`;
+      messageBox.innerHTML = `
+      <svg viewBox="0 0 24 24" style="height:20px;margin-right:8px;">
+        ${type === 'error'
+          ? `<path fill="white"
+               d="M11 15h2v2h-2zm0-8h2v6h-2zm1-5C6.47
+               2 2 6.5 2 12a10 10 0 0 0 10
+               10a10 10 0 0 0 10-10A10 10
+               0 0 0 12 2m0 18a8 8 0 0
+               1-8-8a8 8 0 0 1 8-8a8 8
+               0 0 1 8 8a8 8 0 0 1-8 8"/>`
+          : `<path fill="white"
+               d="M12 2C6.5 2 2 6.5 2 12s4.5
+               10 10 10 10-4.5 10-10S17.5
+               2 12 2m-2 15l-5-5 1.41-1.41L10
+               14.17l7.59-7.59L19 8l-9 9z"/>`
+        }
+      </svg>
+      ${message}
+    `;
+      document.body.appendChild(messageBox);
+
+      setTimeout(() => {
+        messageBox.classList.add('message-exit');
+        messageBox.addEventListener('animationend', () => messageBox.remove());
+      }, duration);
+    };
+    const showError = (msg, dur) => showMessage('error', msg, dur);
+    const showSuccess = (msg, dur) => showMessage('success', msg, dur);
+
+    // Проверка на пустоту полей
+    function checkRequired(input) {
+      const fieldWrapper = input.closest('.form-field');
+      if (!fieldWrapper) return false;
+      const errorDiv = fieldWrapper.querySelector('.error-text');
+      if (!errorDiv) return false;
+
+      // Если пустое: красная обводка + показываем текст
+      if (input.value.trim() === '') {
+        input.classList.add('input-error');
+        errorDiv.classList.add('error-active'); // делаем видимым
+        return false;
+      } else {
+        // Если не пустое: убираем рамку и скрываем текст
+        input.classList.remove('input-error');
+        errorDiv.classList.remove('error-active');
+        return true;
+      }
+    }
+
+    // Функция форматирования даты
+    function formatDate(date) {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
+    }
+
+    // Функция для получения следующего номера пользователя
+    async function getNextUserNumber() {
+      try {
+        const usersRef = ref(db, 'users');
+        const snapshot = await get(usersRef);
+        let maxNumber = 0;
+
+        snapshot.forEach((userSnapshot) => {
+          const userData = userSnapshot.val();
+          if (userData.numericId && typeof userData.numericId === 'number') {
+            if (userData.numericId > maxNumber) {
+              maxNumber = userData.numericId;
+            }
+          }
+        });
+
+        return maxNumber + 1;
+      } catch (error) {
+        console.error('Error getting next user number:', error);
+        return 1; // Возвращаем 1 в случае ошибки
+      }
+    }
+
+    // Функция для получения случайной аватарки из Firebase Storage
+    async function getRandomDefaultAvatar() {
+      try {
+        // Генерируем случайное число от 1 до 4
+        const randomNum = Math.floor(Math.random() * 4) + 1;
+        const avatarPath = `avatars_default/ava${randomNum}.jpg`;
+        
+        // Получаем URL аватарки из Firebase Storage
+        const avatarRef = storageRef(storage, avatarPath);
+        const downloadURL = await getDownloadURL(avatarRef);
+        
+        return downloadURL;
+      } catch (error) {
+        console.error('Ошибка при получении аватарки:', error);
+        return null;
+      }
+    }
+
+    // Модифицируем обработчик Google-авторизации
+    const handleGoogleAuth = async () => {
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+        console.log('Google auth result:', user);
+
+        // Проверяем, существует ли пользователь с таким email, но с другим UID
+        const usersRef = ref(db, 'users');
+        const usersSnapshot = await get(usersRef);
+        let existingUserData = null;
+        let existingUserId = null;
+
+        usersSnapshot.forEach((userSnapshot) => {
+          const userData = userSnapshot.val();
+          if (userData.email === user.email && userSnapshot.key !== user.uid) {
+            existingUserData = userData;
+            existingUserId = userSnapshot.key;
+          }
+        });
+
+        // Если найден существующий пользователь с таким email, но другим UID
+        if (existingUserData && existingUserId) {
+          console.log('Найден существующий пользователь с таким email:', existingUserData);
+          
+          // Если у существующего пользователя уже привязан Google аккаунт, показываем ошибку
+          if (existingUserData.googleLinked) {
+            showError('Этот email уже привязан к другому Google аккаунту. Пожалуйста, используйте другой аккаунт Google.');
+            await signOut(auth);
+            return;
+          }
+          
+          // Если у существующего пользователя не привязан Google аккаунт, связываем аккаунты
+          // Копируем данные из существующего аккаунта в текущий
+          const currentUserRef = ref(db, `users/${user.uid}`);
+          await update(currentUserRef, {
+            email: existingUserData.email,
+            name: existingUserData.name,
+            numericId: existingUserData.numericId,
+            photoURL: existingUserData.photoURL, // Сохраняем существующую аватарку
+            emailVerified: true,
+            emailLinked: existingUserData.emailLinked,
+            googleLinked: true,
+            lastLogin: formatDate(new Date())
+          });
+          
+          // Удаляем старую запись пользователя
+          await set(ref(db, `users/${existingUserId}`), null);
+          
+          // Сохраняем данные в localStorage
+          localStorage.setItem('userData', JSON.stringify({
+            uid: user.uid,
+            email: existingUserData.email,
+            name: existingUserData.name,
+            numericId: existingUserData.numericId,
+            photoURL: existingUserData.photoURL,
+            emailVerified: true
+          }));
+          
+          sessionStorage.setItem('isAuthenticated', 'true');
+          
+          console.log('Аккаунты успешно связаны, перенаправление...');
+          window.location.href = `profile.html?id=${existingUserData.numericId}`;
+          return;
+        }
+
+        // Получаем текущие данные пользователя
+        const userRef = ref(db, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        const userData = snapshot.val() || {};
+
+        let userName = userData.name;
+        let numericId = userData.numericId;
+        
+        if (!userName) {
+          const nextNumber = await getNextUserNumber();
+          userName = `user${nextNumber}`;
+          numericId = nextNumber;
+        }
+
+        // Проверяем, есть ли уже аватарка у пользователя
+        // Если пользователь уже существует и у него есть аватарка, используем её
+        // Иначе используем аватарку из Google
+        const photoURL = userData.photoURL || user.photoURL;
+
+        // Обновляем/создаем запись пользователя в БД
+        await update(userRef, {
+          email: user.email,
+          name: userName,
+          numericId: numericId,
+          photoURL: photoURL, // Используем существующую аватарку или аватарку из Google
+          emailVerified: true,
+          emailLinked: userData.emailLinked ?? false,
+          googleLinked: true,
+          lastLogin: formatDate(new Date())
+        });
+
+        localStorage.setItem('userData', JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          name: userName,
+          numericId: numericId,
+          photoURL: photoURL, // Используем существующую аватарку или аватарку из Google
+          emailVerified: true
+        }));
+
+        sessionStorage.setItem('isAuthenticated', 'true');
+
+        console.log('Google auth successful, redirecting...');
+        window.location.href = `profile.html?id=${numericId}`;
+      } catch (error) {
+        console.error('Google auth error:', error);
+        let errorMessage;
+        switch (error.code) {
+          case 'auth/cancelled-popup-request':
+            errorMessage = 'Вход через Google аккаунт был прерван. Попробуйте ещё раз.';
+            break;
+          case 'auth/user-cancelled':
+            errorMessage = 'Вход через Google аккаунт был отменён. Попробуйте ещё раз.';
+            break;
+          default:
+            errorMessage = `Ошибка авторизации: ${error.message}`;
+        }
+        showError(errorMessage);
+      }
+    };
+
+    // Если пользователь авторизован, перекидываем на home
+    onAuthStateChanged(auth, async (user) => {
+      console.log('Checking auth state on index page:', user);
+      
+      // Проверяем наличие сохраненных данных
+      const isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+      const savedUserData = localStorage.getItem('userData');
+
+      if (user && isAuthenticated && savedUserData) {
+        console.log('User is already authenticated, redirecting to home...');
+        window.location.href = 'home.html';
+        return;
+      }
+    });
+
+    // Переключение вкладок (Вход / Регистрация)
+    const tabs = {
+      login: document.getElementById('tab-login'),
+      signup: document.getElementById('tab-signup')
+    };
+    const sections = {
+      login: document.getElementById('login-section'),
+      signup: document.getElementById('signup-section'),
+      reset: document.getElementById('reset-section')
+    };
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      tabs.login.classList.toggle('active', isLogin);
+      tabs.signup.classList.toggle('active', !isLogin);
+      sections.login.style.display = isLogin ? 'block' : 'none';
+      sections.signup.style.display = isLogin ? 'none' : 'block';
+    }
+
+    // Показ / скрытие формы сброса
+    function showResetForm() {
+      Object.values(sections).forEach((sec) => (sec.style.display = 'none'));
+      sections.reset.style.display = 'block';
+      document.querySelector('.tabs').style.display = 'none';
+    }
+    function hideResetForm() {
+      sections.reset.style.display = 'none';
+      document.querySelector('.tabs').style.display = 'flex';
+      switchTab('login');
+    }
+
+    document.querySelectorAll('.google-auth').forEach(btn => {
+      btn.addEventListener('click', handleGoogleAuth);
+    });
+    tabs.login.addEventListener('click', () => switchTab('login'));
+    tabs.signup.addEventListener('click', () => switchTab('signup'));
+
+    // Слушатель ввода: если пользователь набрал >= 1 символ, убираем ошибку
+    document.querySelectorAll('.form-field input').forEach(input => {
+      input.addEventListener('input', function () {
+        if (this.value.trim().length > 0) {
+          checkRequired(this);
+        }
+      });
+    });
+
+    // Обработчик логина через email/password
+    const loginForm = document.getElementById('login-form');
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailInput = e.target['login-email'];
+      const passInput = e.target['login-password'];
+
+      const validEmail = checkRequired(emailInput);
+      const validPass = checkRequired(passInput);
+      if (!validEmail || !validPass) return;
+
+      try {
+        console.log('Attempting login...');
+
+        await setPersistence(auth, browserLocalPersistence);
+        
+        const userCredential = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
+        const user = userCredential.user;
+        
+        console.log('User credential:', userCredential);
+        console.log('Email verified:', user.emailVerified);
+
+        if (!user.emailVerified) {
+          console.log('Email not verified, signing out...');
+          await signOut(auth);
+          showError('Аккаунт не активирован. Проверьте почту для подтверждения.');
+          return;
+        }
+
+        // Получаем текущие данные пользователя
+        const userRef = ref(db, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        const userData = snapshot.val() || {};
+
+        // Обновляем только lastLogin, сохраняя существующие значения
+        await update(userRef, {
+          lastLogin: formatDate(new Date()),
+          emailVerified: true,
+          emailLinked: userData.emailLinked ?? true,
+          googleLinked: userData.googleLinked ?? false,
+          email: user.email,
+          photoURL: userData.photoURL // Сохраняем существующую аватарку
+        });
+
+        // Сохраняем данные пользователя в localStorage
+        localStorage.setItem('userData', JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          name: userData.name,
+          numericId: userData.numericId,
+          photoURL: userData.photoURL, // Сохраняем URL аватарки в localStorage
+          emailVerified: user.emailVerified
+        }));
+
+        sessionStorage.setItem('isAuthenticated', 'true');
+
+        console.log('Login successful, redirecting...');
+        window.location.href = `profile.html?id=${userData.numericId}`;
+      } catch (error) {
+        console.error('Login error:', error);
+        let errorMessage;
+        
+        switch (error.code) {
+          case 'auth/invalid-login-credentials':
+            errorMessage = 'Ошибка входа: Неверный логин или пароль.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Слишком много неудачных попыток входа. Пожалуйста, подождите несколько минут или воспользуйтесь восстановлением пароля.';
+            // Показываем ссылку на восстановление пароля
+            document.getElementById('forgot-password').style.animation = 'pulse 2s infinite';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Ошибка сети. Пожалуйста, проверьте подключение к интернету.';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'Этот аккаунт был отключен. Пожалуйста, свяжитесь с администратором.';
+            break;
+          default:
+            errorMessage = `Ошибка входа: ${error.message}`;
+        }
+        showError(errorMessage, 7000); // Увеличиваем время показа сообщения
+      }
+    });
+
+    // Оценка сложности пароля по новым критериям
+    const getPasswordStrength = (password) => {
+      // Минимальные требования
+      const minLength = 8;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+      // Проверка минимальной длины
+      if (password.length < minLength) return 0;
+
+      // Подсчет категорий
+      const categories = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecial]
+        .filter(Boolean).length;
+
+      // Оценка на основе длины и категорий
+      let score = 0;
+      score += password.length * 3;
+      score += categories * 20;
+
+      // Дополнительные проверки
+      if (categories === 1) score -= 20;
+      if (categories === 2) score -= 10;
+      if (password.length > 12) score += 20;
+      if (/password|123456|qwerty/i.test(password)) score = 0;
+
+      return Math.min(Math.max(score, 0), 100);
+    };
+
+    // Обновление индикатора сложности
+    function updatePasswordStrength(password) {
+      const container = document.querySelector('.password-strength-container');
+      const strengthText = document.getElementById('password-strength-text');
+      const strengthBar = document.getElementById('password-strength');
+
+      const score = getPasswordStrength(password);
+      container.classList.add('active');
+
+      if (score === 0) {
+        strengthText.textContent = 'Недопустимый';
+        strengthBar.style.width = '100%';
+        strengthBar.style.backgroundColor = '#ff4444';
+        return;
+      }
+
+      if (password.length < 8) {
+        strengthText.textContent = 'Слишком короткий';
+        strengthBar.style.width = '30%';
+        strengthBar.style.backgroundColor = '#ff4444';
+        return;
+      }
+
+      const strengthLevels = [
+        { min: 0, text: 'Очень слабый', color: '#ff4444', width: '40%' },
+        { min: 40, text: 'Слабый', color: '#ffa500', width: '60%' },
+        { min: 60, text: 'Средний', color: '#FFD700', width: '75%' },
+        { min: 80, text: 'Сильный', color: '#32CD32', width: '90%' },
+        { min: 90, text: 'Очень сильный', color: '#006400', width: '100%' }
+      ];
+
+      const currentLevel = strengthLevels.reverse().find(level => score >= level.min);
+      strengthText.textContent = currentLevel.text;
+      strengthBar.style.width = currentLevel.width;
+      strengthBar.style.backgroundColor = currentLevel.color;
+    }
+
+    // Слушаем ввод для отображения индикатора пароля (регистрация)
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+      passwordInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        const container = document.querySelector('.password-strength-container');
+        if (val.length === 0) {
+          // Оставляем место (visibility), но убираем .active
+          container.classList.remove('active');
+          // Сброс на начальное состояние
+          document.getElementById('password-strength-text').textContent = 'Слабый';
+          document.getElementById('password-strength').style.width = '0%';
+          document.getElementById('password-strength').style.backgroundColor = '#e0e0e0';
+        } else {
+          updatePasswordStrength(val);
+        }
+      });
+    }
+
+    // Обработчик регистрации
+    const signupForm = document.getElementById('signup-form');
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailInput = e.target['email'];
+      const passInput = e.target['password'];
+
+      // Проверка заполнения обязательных полей
+      const validEmail = checkRequired(emailInput);
+      const validPass = checkRequired(passInput);
+      if (!validEmail || !validPass) return;
+
+      // Основные проверки пароля
+      if (passInput.value.length < 8) {
+        showError('Пароль должен содержать минимум 8 символов');
+        passInput.focus();
+        return;
+      }
+
+      // Проверка на слабые комбинации
+      if (/(password|123456|qwerty)/i.test(passInput.value)) {
+        showError('Пароль содержит запрещённые комбинации');
+        passInput.focus();
+        return;
+      }
+
+      // Проверка сложности пароля
+      const strength = getPasswordStrength(passInput.value);
+      if (strength < 60) { // Требуем минимум "Средний" уровень
+        showError(
+          'Пароль недостаточно сложен. Используйте:<br>' +
+          '- Заглавные и строчные буквы<br>' +
+          '- Цифры и специальные символы',
+          6000
+        );
+        passInput.focus();
+        return;
+      }
+
+      // Проверка, существует ли пользователь с таким email
+      const usersRef = ref(db, 'users');
+      const usersSnapshot = await get(usersRef);
+      let userExists = false;
+      let googleLinked = false;
+
+      usersSnapshot.forEach((userSnapshot) => {
+        const userData = userSnapshot.val();
+        if (userData.email === emailInput.value) {
+          userExists = true;
+          googleLinked = userData.googleLinked;
+        }
+      });
+
+      if (userExists) {
+        if (googleLinked) {
+          showError('С данным адресом уже привязан Google аккаунт. Пожалуйста, войдите через Google.');
+        } else {
+          showError('Этот email уже зарегистрирован.');
+        }
+        return;
+      }
+
+      // Попытка регистрации
+      try {
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          emailInput.value,
+          passInput.value
+        );
+
+        // Отправка email подтверждения
+        await sendEmailVerification(userCredential.user);
+        await auth.signOut();
+
+        // Получаем следующий номер для имени пользователя
+        const nextNumber = await getNextUserNumber();
+        const userName = `user${nextNumber}`;
+        
+        // Получаем случайную аватарку
+        const avatarURL = await getRandomDefaultAvatar();
+        
+        // Сохраняем данные пользователя в базе данных
+        const userRef = ref(db, `users/${userCredential.user.uid}`);
+        await update(userRef, {
+          email: userCredential.user.email,
+          name: userName,
+          numericId: nextNumber,
+          photoURL: avatarURL, // Используем URL случайной аватарки
+          emailVerified: false,
+          emailLinked: true,
+          googleLinked: false
+        });
+
+        // Успешная регистрация
+        showSuccess('На вашу почту отправлено письмо для подтверждения регистрации');
+        switchTab('login');
+
+        // Сброс формы
+        signupForm.reset();
+        document.querySelector('.password-strength-container').classList.remove('active');
+        document.getElementById('password-strength-text').textContent = 'Слабый';
+        document.getElementById('password-strength').style.width = '0%';
+
+      } catch (error) {
+        // Обработка ошибок Firebase
+        let errorMessage = 'Ошибка регистрации: ';
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage += 'Этот email уже зарегистрирован';
+            break;
+          case 'auth/invalid-email':
+            errorMessage += 'Некорректный email адрес';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage += 'Регистрация временно недоступна';
+            break;
+          default:
+            errorMessage += error.message;
+        }
+        showError(errorMessage);
+        passInput.focus();
+      }
+    });
+
+    // Сброс пароля
+    const resetForm = document.getElementById('reset-form');
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const emailInput = e.target['reset-email'];
+      const validEmail = checkRequired(emailInput);
+      if (!validEmail) return;
+
+      try {
+        // Проверяем, существует ли пользователь с таким email
+        const usersRef = ref(db, 'users');
+        const usersSnapshot = await get(usersRef);
+        let userExists = false;
+
+        usersSnapshot.forEach((userSnapshot) => {
+          const userData = userSnapshot.val();
+          if (userData.email === emailInput.value) {
+            userExists = true;
+          }
+        });
+
+        // Если пользователь не существует
+        if (!userExists) {
+          showError('Пользователь с таким email не найден');
+          return;
+        }
+
+        await sendPasswordResetEmail(auth, emailInput.value);
+        showSuccess('Письмо с инструкциями отправлено на вашу почту');
+        hideResetForm();
+      } catch (error) {
+        showError(`Ошибка отправки: ${error.message}`);
+      }
+    });
+
+    // Клик "Забыли пароль?"
+    document.getElementById('forgot-password').addEventListener('click', (e) => {
+      e.preventDefault();
+      showResetForm();
+    });
+    // Клик "Назад к логину"
+    document.getElementById('back-to-login').addEventListener('click', (e) => {
+      e.preventDefault();
+      hideResetForm();
+    });
+
+    // Показать/скрыть пароль (глаз)
+    document.querySelectorAll('.toggle-password').forEach(button => {
+      button.addEventListener('click', function () {
+        const input = this.parentElement.querySelector('input');
+        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+        input.setAttribute('type', type);
+        this.classList.toggle('show-password');
+      });
+    });
+
+    // По умолчанию — вкладка "Вход"
+    switchTab('login');
+  </script>
+
+  <!-- Скрипт переключения темы -->
+  <script>
+    // Функция для установки темы и сохранения в localStorage
+    function setTheme(themeName) {
+      document.body.classList.remove('dark-mode', 'light-mode');
+      document.body.classList.add(themeName);
+      localStorage.setItem('theme', themeName);
+
+      // Обновляем иконку сразу после смены темы
+      const sunIcon = document.querySelector('.sun-icon');
+      const moonIcon = document.querySelector('.moon-icon');
+      if (themeName === 'dark-mode') {
+        sunIcon.style.opacity = 0;
+        moonIcon.style.opacity = 1;
+      } else {
+        sunIcon.style.opacity = 1;
+        moonIcon.style.opacity = 0;
+      }
+    }
+
+    // Проверяем сохранённую тему при загрузке
+    function initializeTheme() {
+      const savedTheme = localStorage.getItem('theme');
+
+      if (savedTheme) {
+        setTheme(savedTheme);
+      } else {
+        // Если нет сохранённой темы - используем системные настройки
+        const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        setTheme(prefersDarkMode ? 'dark-mode' : 'light-mode');
+      }
+    }
+
+    // Инициализируем тему при загрузке страницы
+    initializeTheme();
+
+    const themeToggleButton = document.getElementById('theme-toggle');
+    themeToggleButton.addEventListener('click', () => {
+      const isDark = document.body.classList.contains('dark-mode');
+      setTheme(isDark ? 'light-mode' : 'dark-mode');
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+	<title>Главная страница</title>
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+	<link rel="stylesheet" href="styles.css">
+	<link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script"
+		crossorigin="anonymous">
+	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script"
+		crossorigin="anonymous">
+	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script"
+		crossorigin="anonymous">
+
+	<style>
+		.test-rating-block {
+			margin-top: 10px;
+			padding-top: 5px;
+			border-top: 1px solid rgba(0, 0, 0, 0.1);
+		}
+
+		.test-rating {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+			font-weight: 500;
+		}
+
+		.test-rating i {
+			color: #ffc107;
+		}
+
+		.rating-count {
+			font-size: 0.8em;
+			opacity: 0.8;
+		}
+
+		.dark-mode .test-rating-block {
+			border-top-color: rgba(255, 255, 255, 0.1);
+		}
+
+		.dark-mode .test-rating {
+			color: #f0f0f0;
+		}
+
+		.test-category-badge {
+			position: absolute;
+			top: 10px;
+			left: 10px;
+			background-color: rgba(0, 0, 0, 0.7);
+			color: white;
+			padding: 5px 10px;
+			border-radius: 15px;
+			font-size: 12px;
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			z-index: 1;
+		}
+
+		.test-category-badge i {
+			font-size: 14px;
+		}
+
+		.test-cover {
+			position: relative;
+		}
+
+		.empty-cover {
+			height: 120px;
+			background-color: #f0f0f0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.dark-mode .empty-cover {
+			background-color: #2a2a2a;
+		}
+
+		.dark-mode .test-category-badge {
+			background-color: rgb(0 0 0 / 51%);
+		}
+
+		/* Стили для фильтрации по категориям */
+		.filters-categories {
+			margin-top: 15px;
+			margin-bottom: 15px;
+		}
+
+		.filters-categories h4 {
+			margin-bottom: 8px;
+			font-size: 14px;
+			font-weight: 500;
+			color: #333;
+			padding-bottom: 5px;
+			border-bottom: 1px solid #eee;
+		}
+
+		.dark-mode .filters-categories h4 {
+			color: #eee;
+			border-bottom-color: #444;
+		}
+
+		.categories-dropdown {
+			position: relative;
+			width: 100%;
+		}
+
+		.dropdown-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 8px 12px;
+			background-color: #f8f8f8;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+		}
+
+		.dark-mode .dropdown-header {
+			background-color: #333;
+			border-color: #444;
+			color: #eee;
+		}
+
+		.dropdown-header:hover {
+			background-color: #f0f0f0;
+		}
+
+		.dark-mode .dropdown-header:hover {
+			background-color: #3a3a3a;
+		}
+
+		.dropdown-content {
+			display: none;
+			position: absolute;
+			top: 100%;
+			left: 0;
+			width: 100%;
+			max-height: 300px;
+			overflow-y: auto;
+			background-color: white;
+			border: 1px solid #ddd;
+			border-top: none;
+			border-radius: 0 0 4px 4px;
+			z-index: 10;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+			padding: 5px 0;
+		}
+
+		.dark-mode .dropdown-content {
+			background-color: #333;
+			border-color: #444;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+		}
+
+		.categories-dropdown.open .dropdown-content {
+			display: block;
+		}
+
+		.categories-dropdown.open .dropdown-header {
+			border-radius: 4px 4px 0 0;
+		}
+
+		.category-option {
+			display: flex;
+			align-items: center;
+			padding: 8px 12px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.category-option:hover {
+			background-color: #f5f5f5;
+		}
+
+		.dark-mode .category-option:hover {
+			background-color: #3a3a3a;
+		}
+
+		.category-option input[type="checkbox"] {
+			margin-right: 10px;
+			width: 16px;
+			height: 16px;
+			cursor: pointer;
+		}
+
+		.category-option i {
+			margin-right: 10px;
+			width: 16px;
+			text-align: center;
+			font-size: 14px;
+			color: #555;
+		}
+
+		.dark-mode .category-option i {
+			color: #ccc;
+		}
+
+		.category-label {
+			flex: 1;
+			font-size: 14px;
+		}
+
+		.selected-categories {
+			margin-top: 8px;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 5px;
+		}
+
+		.selected-category {
+			display: inline-flex;
+			align-items: center;
+			background-color: #f0f0f0;
+			padding: 4px 8px;
+			border-radius: 15px;
+			font-size: 12px;
+			gap: 5px;
+		}
+
+		.dark-mode .selected-category {
+			background-color: #444;
+			color: #eee;
+		}
+
+		.selected-category i {
+			font-size: 12px;
+		}
+
+		.selected-category .remove {
+			cursor: pointer;
+			opacity: 0.7;
+			transition: opacity 0.2s;
+		}
+
+		.selected-category .remove:hover {
+			opacity: 1;
+		}
+
+		.categories-list {
+			padding: 5px 0;
+		}
+
+		/* Полная переделка стилей чекбоксов в фильтрах */
+		.filters-options .filter-option {
+			position: relative;
+			padding-left: 30px;
+			margin-bottom: 5px;
+			cursor: pointer;
+			font-size: 16px;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+			user-select: none;
+			display: inline-block;
+		}
+
+		.filters-options .filter-option input {
+			position: absolute;
+			opacity: 0;
+			cursor: pointer;
+			height: 0;
+			width: 0;
+		}
+
+		.filters-options .filter-option .checkmark {
+			position: absolute;
+			top: 0;
+			left: 0;
+			height: 18px;
+			width: 18px;
+			background-color: #fff;
+			border: 2px solid #ddd;
+			border-radius: 3px;
+		}
+
+		.dark-mode .filters-options .filter-option .checkmark {
+			background-color: #333;
+			border-color: #555;
+		}
+
+		.filters-options .filter-option:hover input ~ .checkmark {
+			border-color: #4a6ee0;
+		}
+
+		.filters-options .filter-option input:checked ~ .checkmark {
+			background-color: #4a6ee0;
+			border-color: #4a6ee0;
+		}
+
+		.filters-options .filter-option .checkmark:after {
+			content: "";
+			position: absolute;
+			display: none;
+		}
+
+		.filters-options .filter-option input:checked ~ .checkmark:after {
+			display: block;
+		}
+
+		.filters-options .filter-option .checkmark:after {
+			left: 5px;
+			top: 1px;
+			width: 4px;
+			height: 9px;
+			border: solid white;
+			border-width: 0 2px 2px 0;
+			-webkit-transform: rotate(45deg);
+			-ms-transform: rotate(45deg);
+			transform: rotate(45deg);
+		}
+
+		/* Отключаем оригинальную CSS-галочку */
+		.filters-options .filter-option .checkmark:after {
+			display: none !important;
+			content: none !important;
+		}
+		
+		.filters-options .filter-option input:checked ~ .checkmark:after {
+			display: none !important;
+		}
+		
+		/* Другие отключения для избежания конфликтов */
+		.filters-container .filter-option .checkmark:after {
+			display: none !important;
+			content: none !important;
+		}
+		
+		.filters-container .filter-option input:checked ~ .checkmark:after {
+			display: none !important;
+		}
+		
+		/* Дополнительные стили для улучшения отображения */
+		.custom-check {
+			box-sizing: content-box;
+		}
+		
+		/* Стили для формы присоединения к тесту */
+		.tests-actions {
+			display: flex;
+			justify-content: flex-start;
+			margin-bottom: 20px;
+			padding-left: 20px;
+		}
+		
+		.join-test-container {
+			background-color: #f8f8f8;
+			padding: 20px;
+			border-radius: 12px;
+			
+			box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+			max-width: 500px;
+			width: 100%;
+			margin: 0 auto 30px;
+			text-align: center;
+		}
+		
+		.dark-mode .join-test-container {
+			background-color: #333;
+			box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+		}
+		
+		.join-test-container h4 {
+			margin: 0 0 15px 0;
+			font-size: 18px;
+			color: #333;
+		}
+		
+		.dark-mode .join-test-container h4 {
+			color: #f8f8f8;
+		}
+		
+		.join-test-form {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 20px;
+		}
+		
+		.test-code-inputs {
+			display: flex;
+			justify-content: center;
+			gap: 10px;
+		}
+		
+		.code-input {
+			width: 50px;
+			height: 50px;
+			text-align: center;
+			font-size: 20px;
+			font-weight: 600;
+			border: 2px solid #ddd;
+			border-radius: 8px;
+			background-color: white;
+			caret-color: #4a6ee0;
+			transition: all 0.2s ease;
+			text-transform: uppercase;
+		}
+		
+		.code-input:focus {
+			border-color: #4a6ee0;
+			box-shadow: 0 0 0 2px rgba(74, 110, 224, 0.2);
+			outline: none;
+		}
+		
+		.dark-mode .code-input {
+			background-color: #444;
+			border-color: #555;
+			color: #f8f8f8;
+		}
+		
+		.dark-mode .code-input:focus {
+			border-color: #4a6ee0;
+			box-shadow: 0 0 0 2px rgba(74, 110, 224, 0.3);
+		}
+		
+		.join-test-form button {
+			padding: 12px 25px;
+			background-color: #4a6ee0;
+			color: white;
+			border: none;
+			border-radius: 8px;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: 500;
+			transition: all 0.2s ease;
+			min-width: 180px;
+			box-shadow: 0 4px 0 #3a5ecc, 0 5px 5px rgba(0, 0, 0, 0.15);
+			position: relative;
+			top: 0;
+		}
+		
+		.join-test-form button:hover {
+			background-color: #3a5ecc;
+			box-shadow: 0 4px 0 #2a4eb8, 0 5px 5px rgba(0, 0, 0, 0.15);
+		}
+		
+		.join-test-form button:active {
+			top: 3px;
+			box-shadow: 0 1px 0 #2a4eb8, 0 2px 3px rgba(0, 0, 0, 0.15);
+		}
+		
+		.join-test-form button:disabled {
+			background-color: #9e9e9e;
+			cursor: not-allowed;
+			box-shadow: none;
+			top: 0;
+			opacity: 0.7;
+		}
+		
+		/* Анимация при вводе */
+		.code-input.filled {
+			transform: scale(1.05);
+		}
+		
+		/* Адаптивность на мобильных */
+		@media screen and (max-width: 768px) {
+			.tests-actions {
+				flex-direction: column;
+				align-items: center;
+			}
+			
+			.new-test-btn {
+				width: 100%;
+				max-width: 300px;
+			}
+			
+			.test-code-inputs {
+				gap: 5px;
+			}
+			
+			.code-input {
+				width: 40px;
+				height: 40px;
+				font-size: 18px;
+			}
+		}
+		
+		/* Для очень маленьких экранов */
+		@media screen and (max-width: 360px) {
+			.code-input {
+				width: 35px;
+				height: 35px;
+				font-size: 16px;
+			}
+		}
+		
+		/* Стили для заголовка и кнопки создания теста */
+		.my-tests-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15px;
+			flex-wrap: wrap;
+			gap: 15px;
+		}
+		
+		.my-tests-header h2 {
+			margin: 0;
+			font-size: 1.5rem;
+		}
+		
+		.new-test-btn {
+			color: white;
+			border: none;
+			border-radius: 8px;
+			padding: 10px 16px;
+			font-size: 15px;
+			font-weight: 500;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			transition: all 0.2s ease;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		}
+		
+		.new-test-btn:hover {
+			background-color: #3a5ecc;
+			box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+			transform: translateY(-2px);
+		}
+		
+		.new-test-btn:active {
+			transform: translateY(0);
+			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		}
+		
+		.new-test-btn i {
+			font-size: 14px;
+		}
+		
+		.dark-mode .new-test-btn {
+			box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+		}
+		
+		.dark-mode .new-test-btn:hover {
+			box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+		}
+		
+		/* Для адаптации на мобильных устройствах */
+		@media screen and (max-width: 600px) {
+			.my-tests-header {
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 10px;
+			}
+			
+			.new-test-btn {
+				width: 100%;
+			}
+		}
+	</style>
+
+	<style>		
+		.filters-container .filters-options .filter-option {
+			position: relative;
+			padding-left: 30px;
+			margin-bottom: 5px;
+			cursor: pointer;
+			font-size: 16px;
+			user-select: none;
+			display: flex;
+			align-items: center;
+		}
+		
+		.filters-container .filter-option input {
+			position: absolute;
+			opacity: 0;
+			cursor: pointer;
+			height: 0;
+			width: 0;
+		}
+		
+		.filters-container .filter-option .checkmark {
+			position: absolute;
+			top: 50%;
+			left: 0;
+			transform: translateY(-50%);
+			height: 18px;
+			width: 18px;
+			background-color: #fff;
+			border: 2px solid #ddd;
+			border-radius: 3px;
+		}
+		
+		.dark-mode .filters-container .filter-option .checkmark {
+			background-color: #333;
+			border-color: #555;
+		}
+		
+		.filters-container .filter-option:hover input ~ .checkmark {
+			border-color: #4a6ee0;
+		}
+		
+		.filters-container .filter-option input:checked ~ .checkmark {
+			background-color: #4a6ee0;
+			border-color: #4a6ee0;
+		}
+		
+		.filters-container .filter-option .checkmark:after {
+			content: "";
+			position: absolute;
+			display: none;
+			left: 5px;
+			top: 1px;
+			width: 4px;
+			height: 9px;
+			border: solid white;
+			border-width: 0 2px 2px 0;
+			transform: rotate(45deg);
+		}
+		
+		.filters-container .filter-option input:checked ~ .checkmark:after {
+			display: block;
+		}
+		
+		.filters-container .filter-label {
+			font-size: 14px;
+		}
+	</style>
+
+	<!-- Добавляем синхронную инициализацию темы -->
+	<script>
+		(function () {
+			const savedTheme = localStorage.getItem('theme');
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+			// Обновляем логику установки темы
+			if (savedTheme === 'system') {
+				document.documentElement.style.visibility = 'hidden';
+				document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+
+				document.addEventListener('DOMContentLoaded', () => {
+					document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+					document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+					document.documentElement.style.visibility = 'visible';
+				});
+			} else {
+				const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+				document.documentElement.style.visibility = 'hidden';
+				document.documentElement.classList.add(theme);
+
+				document.addEventListener('DOMContentLoaded', () => {
+					document.body.classList.add(theme);
+					document.documentElement.classList.remove(theme);
+					document.documentElement.style.visibility = 'visible';
+				});
+			}
+
+			// Добавляем слушатель изменения системной темы
+			if (savedTheme === 'system') {
+				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+					document.body.classList.remove('dark-mode', 'light-mode');
+					document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+				});
+			}
+		})();
+	</script>
+
+	<script type="module">
+		import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+		import {
+			getAuth,
+			signOut,
+			onAuthStateChanged,
+			setPersistence,
+			browserLocalPersistence
+		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+		import { getDatabase, ref, get, update, connectDatabaseEmulator, query, orderByChild, equalTo, limitToLast } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+		import { initializeSidebar } from './sidebar.js';
+
+		// Добавляем глобальную переменную для отслеживания состояния загрузки
+		let isLoading = true;
+
+		// Инициализируем Firebase и устанавливаем persistence
+		async function initializeFirebase() {
+			const firebaseConfig = {
+				apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+				authDomain: "tpoproject-35957.firebaseapp.com",
+				databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+				projectId: "tpoproject-35957",
+				storageBucket: "tpoproject-35957.appspot.com",
+				messagingSenderId: "683982725892",
+				appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+			};
+
+			const app = initializeApp(firebaseConfig);
+			const auth = getAuth(app);
+			const db = getDatabase(app);
+
+			try {
+				// Проверяем наличие сохраненных данных пользователя
+				const savedUserData = localStorage.getItem('userData');
+				const isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+
+				console.log('Saved user data:', savedUserData);
+				console.log('Is authenticated:', isAuthenticated);
+
+				if (!isAuthenticated || !savedUserData) {
+					console.log('No authentication data found');
+
+					// Проверяем состояние аутентификации Firebase
+					return new Promise((resolve) => {
+						onAuthStateChanged(auth, (user) => {
+							if (user) {
+								console.log('User is authenticated in Firebase');
+								// Обновляем sessionStorage и localStorage
+								sessionStorage.setItem('isAuthenticated', 'true');
+								const userData = {
+									uid: user.uid,
+									email: user.email,
+									displayName: user.displayName,
+									photoURL: user.photoURL
+								};
+								localStorage.setItem('userData', JSON.stringify(userData));
+
+								// Обновляем UI на основе данных пользователя
+								document.getElementById('user-name').innerText = user.email;
+
+								// Обновляем отображение аватарки
+								if (user.photoURL) {
+									document.getElementById('user-avatar').innerHTML = `<img src="${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+									document.getElementById('mini-user-avatar').innerHTML = `<img src="${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+								} else {
+									const firstLetter = user.email.charAt(0).toUpperCase();
+									document.getElementById('user-avatar').innerText = firstLetter;
+									document.getElementById('mini-user-avatar').innerText = firstLetter;
+								}
+
+								resolve({ auth, db, userData });
+							} else {
+								console.log('No authenticated user found in Firebase');
+								window.location.href = 'index.html';
+								resolve({ auth, db });
+							}
+						});
+					});
+				}
+
+				// Устанавливаем persistence
+				await setPersistence(auth, browserLocalPersistence);
+				console.log('Firebase initialized and persistence set');
+
+				// Парсим сохраненные данные пользователя
+				const userData = JSON.parse(savedUserData);
+
+				// Обновляем UI на основе сохраненных данных
+				document.getElementById('user-name').innerText = userData.email;
+
+				// Обновляем отображение аватарки
+				if (userData.photoURL) {
+					// Если есть URL аватарки, отображаем изображение
+					document.getElementById('user-avatar').innerHTML = `<img src="${userData.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+					document.getElementById('mini-user-avatar').innerHTML = `<img src="${userData.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+				} else {
+					// Если нет URL, используем первую букву email
+					const firstLetter = userData.email.charAt(0).toUpperCase();
+					document.getElementById('user-avatar').innerText = firstLetter;
+					document.getElementById('mini-user-avatar').innerText = firstLetter;
+				}
+
+				return { auth, db, userData };
+			} catch (error) {
+				console.error('Error initializing Firebase:', error);
+				throw error;
+			}
+		}
+
+		// Инициализируем Firebase и настраиваем слушатели
+		initializeFirebase().then(({ auth, db, userData }) => {
+			console.log('Firebase setup complete');
+
+			// Добавляем слушатель события storage для синхронизации выхода между вкладками
+			window.addEventListener('storage', (event) => {
+				if (event.key === 'logout' && event.newValue === 'true') {
+					console.log('Logout detected from another tab');
+					// Очищаем localStorage и sessionStorage
+					localStorage.removeItem('userData');
+					sessionStorage.removeItem('isAuthenticated');
+					localStorage.removeItem('logout');
+					// Перенаправляем на страницу входа
+					window.location.href = 'index.html';
+				} else if (event.key === 'login' && event.newValue === 'true') {
+					console.log('Login detected from another tab');
+					// Обновляем страницу для отображения данных пользователя
+					window.location.reload();
+					// Удаляем флаг login
+					localStorage.removeItem('login');
+				}
+			});
+
+			// Основной слушатель изменения состояния аутентификации
+			onAuthStateChanged(auth, async (user) => {
+				console.log('Auth state changed:', user);
+
+				if (user) {
+					console.log('User authenticated:', user.email);
+					// Обновляем время последнего входа
+					const userRef = ref(db, `users/${user.uid}`);
+					await update(userRef, {
+						lastLogin: new Date().toISOString()
+					});
+					setupSearch(db);
+				} else {
+					console.log('No authenticated user found');
+					if (!isLoading) {
+						localStorage.removeItem('userData');
+						sessionStorage.removeItem('isAuthenticated');
+						window.location.href = 'index.html';
+					}
+				}
+				isLoading = false;
+			});
+
+			// Кнопка выхода
+			document.getElementById('logout').addEventListener('click', async function () {
+				try {
+					await signOut(auth);
+					localStorage.removeItem('userData');
+					sessionStorage.removeItem('isAuthenticated');
+					// Устанавливаем флаг logout для синхронизации с другими вкладками
+					localStorage.setItem('logout', 'true');
+					console.log('User signed out successfully');
+					window.location.href = 'index.html';
+				} catch (error) {
+					console.error('Error signing out:', error);
+					alert('Ошибка при выходе из аккаунта: ' + error.message);
+				}
+			});
+		}).catch(error => {
+			console.error('Failed to initialize Firebase:', error);
+			localStorage.removeItem('userData');
+			sessionStorage.removeItem('isAuthenticated');
+			window.location.href = 'index.html';
+		});
+
+		// Функция настройки поиска
+		function setupSearch(db) {
+			const searchInput = document.getElementById('search-input');
+			const searchResults = document.getElementById('search-results');
+			const clearSearch = document.getElementById('clear-search');
+			let searchTimeout;
+			let lastSearchResults = []; // Добавляем переменную для хранения последних результатов
+
+			// Функция поиска пользователей
+			async function searchUsers(query) {
+				try {
+					console.log('Searching for:', query);
+					const usersRef = ref(db, 'users');
+					const snapshot = await get(usersRef);
+					const users = [];
+
+					snapshot.forEach((userSnapshot) => {
+						const user = userSnapshot.val();
+						console.log('Checking user:', user);
+
+						const searchQuery = query.toLowerCase();
+						const userName = (user.name || '').toLowerCase();
+						const userEmail = (user.email || '').toLowerCase();
+
+						if (userName.includes(searchQuery) || userEmail.includes(searchQuery)) {
+							users.push(user);
+						}
+					});
+
+					console.log('Found users:', users);
+					return users;
+				} catch (error) {
+					console.error('Error searching users:', error);
+					return [];
+				}
+			}
+
+			// Функция для создания элемента результата поиска
+			function createSearchResultItem(user) {
+				const div = document.createElement('div');
+				div.className = 'search-result-item';
+
+				const avatar = document.createElement('div');
+				avatar.className = 'search-result-avatar';
+				if (user.photoURL) {
+					avatar.innerHTML = `<img src="${user.photoURL}" alt="${user.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+				} else {
+					avatar.textContent = user.name.charAt(0).toUpperCase();
+				}
+
+				const info = document.createElement('div');
+				info.className = 'search-result-info';
+
+				const name = document.createElement('div');
+				name.className = 'search-result-name';
+				name.textContent = user.name;
+
+				const email = document.createElement('div');
+				email.className = 'search-result-email';
+				email.textContent = user.email;
+
+				info.appendChild(name);
+				info.appendChild(email);
+				div.appendChild(avatar);
+				div.appendChild(info);
+
+				div.addEventListener('click', () => {
+					window.location.href = `profile.html?id=${user.numericId}`;
+				});
+
+				return div;
+			}
+
+			// Показ результатов поиска
+			function showSearchResults(users) {
+				searchResults.innerHTML = '';
+				lastSearchResults = users; // Сохраняем результаты
+
+				if (users.length === 0) {
+					searchResults.innerHTML = '<div class="no-results">Пользователи не найдены</div>';
+				} else {
+					users.forEach(user => {
+						searchResults.appendChild(createSearchResultItem(user));
+					});
+				}
+
+				searchResults.classList.add('active');
+			}
+
+			// Обработчик фокуса
+			if (searchInput) {
+				searchInput.addEventListener('focus', () => {
+					const query = searchInput.value.trim();
+					if (query.length > 0) {
+						// Показываем последние результаты, если они есть
+						if (lastSearchResults.length > 0) {
+							showSearchResults(lastSearchResults);
+						} else {
+							// Если результатов нет, выполняем новый поиск
+							searchResults.innerHTML = `
+                <div class="search-loading">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              `;
+							searchResults.classList.add('active');
+
+							clearTimeout(searchTimeout);
+							searchTimeout = setTimeout(async () => {
+								const users = await searchUsers(query);
+								showSearchResults(users);
+							}, 300);
+						}
+					}
+				});
+
+				// Обработчик ввода (модифицируем существующий)
+				searchInput.addEventListener('input', (e) => {
+					const query = e.target.value.trim();
+
+					if (clearSearch) {
+						if (query.length > 0) {
+							clearSearch.classList.add('visible');
+						} else {
+							clearSearch.classList.remove('visible');
+						}
+					}
+
+					if (query.length === 0) {
+						searchResults.classList.remove('active');
+						lastSearchResults = []; // Очищаем сохраненные результаты
+						return;
+					}
+
+					searchResults.innerHTML = `
+            <div class="search-loading">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          `;
+					searchResults.classList.add('active');
+
+					clearTimeout(searchTimeout);
+					searchTimeout = setTimeout(async () => {
+						const users = await searchUsers(query);
+						showSearchResults(users);
+					}, 300);
+				});
+			}
+
+			// Очистка поиска (модифицируем)
+			if (clearSearch) {
+				clearSearch.addEventListener('click', () => {
+					if (searchInput) {
+						searchInput.value = '';
+						searchResults.classList.remove('active');
+						clearSearch.classList.remove('visible');
+						lastSearchResults = []; // Очищаем сохраненные результаты
+					}
+				});
+			}
+
+			// Закрытие результатов при клике вне (модифицируем)
+			document.addEventListener('click', (e) => {
+				if (!e.target.closest('.search-container')) {
+					searchResults.classList.remove('active');
+				}
+			});
+		}
+
+		window.addEventListener('load', () => {
+			initializeSidebar();
+			// Вызываем функцию инициализации фильтров
+			if (typeof window.initFilters === 'function') {
+				window.initFilters();
+			}
+		});
+	</script>
+</head>
+
+<body>
+	<h1>Добро пожаловать!</h1>
+
+	<!-- Добавьте после header -->
+	<div class="search-container">
+		<div class="search-box">
+			<i class="fas fa-search search-icon"></i>
+			<input type="text" id="search-input" placeholder="Поиск пользователей...">
+			<i class="fas fa-times clear-icon" id="clear-search"></i>
+		</div>
+		<div class="search-results" id="search-results"></div>
+	</div>
+
+	<!-- Контейнер для тестов -->
+	<div class="tests-container">		
+		<div class="tests-actions">
+		</div>
+		
+		<div class="join-test-container">
+			<h4>Присоединиться к тесту</h4>
+			<div class="join-test-form">
+				<div class="test-code-inputs">
+					<input type="text" class="code-input" maxlength="1" autocomplete="off" inputmode="text" pattern="[0-9A-Za-z]">
+					<input type="text" class="code-input" maxlength="1" autocomplete="off" inputmode="text" pattern="[0-9A-Za-z]">
+					<input type="text" class="code-input" maxlength="1" autocomplete="off" inputmode="text" pattern="[0-9A-Za-z]">
+					<input type="text" class="code-input" maxlength="1" autocomplete="off" inputmode="text" pattern="[0-9A-Za-z]">
+					<input type="text" class="code-input" maxlength="1" autocomplete="off" inputmode="text" pattern="[0-9A-Za-z]">
+					<input type="text" class="code-input" maxlength="1" autocomplete="off" inputmode="text" pattern="[0-9A-Za-z]">
+				</div>
+				<button id="join-test-btn">Присоединиться</button>
+			</div>
+		</div>
+
+		<div class="filters-container">
+			<div class="filters-header">
+				<h3>Фильтры</h3>
+			</div>
+			<div class="filters-options">
+				<label class="filter-option">
+					<input type="checkbox" id="filter-my-tests" checked>
+					<span class="checkmark" style="display:block; position:absolute; top:50%; left:0; transform:translateY(-50%); width:18px; height:18px; border-radius:3px;"></span>
+					<span class="filter-label">Мои тесты</span>
+				</label>
+				<label class="filter-option">
+					<input type="checkbox" id="filter-popular-tests" checked>
+					<span class="checkmark" style="display:block; position:absolute; top:50%; left:0; transform:translateY(-50%); width:18px; height:18px; border-radius:3px;"></span>
+					<span class="filter-label">Популярные тесты</span>
+				</label>
+				<label class="filter-option">
+					<input type="checkbox" id="filter-new-tests" checked>
+					<span class="checkmark" style="display:block; position:absolute; top:50%; left:0; transform:translateY(-50%); width:18px; height:18px; border-radius:3px;"></span>
+					<span class="filter-label">Новые тесты</span>
+				</label>
+			</div>
+			
+			<div class="filters-categories">
+				<h4>Категории тестов</h4>
+				<div class="categories-dropdown">
+					<div class="dropdown-header">
+						<span>Выбрать категории</span>
+						<i class="fas fa-chevron-down"></i>
+					</div>
+					<div class="dropdown-content">
+						<div class="categories-list">
+							<label class="category-option">
+								<input type="checkbox" id="category-all" checked>
+								<span class="category-label">Все категории</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-general">
+								<i class="fas fa-globe"></i>
+								<span class="category-label">Общее</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-education">
+								<i class="fas fa-graduation-cap"></i>
+								<span class="category-label">Образование</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-science">
+								<i class="fas fa-flask"></i>
+								<span class="category-label">Наука</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-technology">
+								<i class="fas fa-laptop-code"></i>
+								<span class="category-label">Технологии</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-history">
+								<i class="fas fa-landmark"></i>
+								<span class="category-label">История</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-geography">
+								<i class="fas fa-map-marked-alt"></i>
+								<span class="category-label">География</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-art">
+								<i class="fas fa-palette"></i>
+								<span class="category-label">Искусство</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-sports">
+								<i class="fas fa-running"></i>
+								<span class="category-label">Спорт</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-entertainment">
+								<i class="fas fa-film"></i>
+								<span class="category-label">Развлечения</span>
+							</label>
+							<label class="category-option">
+								<input type="checkbox" id="category-other">
+								<i class="fas fa-ellipsis-h"></i>
+								<span class="category-label">Другое</span>
+							</label>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="filter-search">
+				<div class="filter-search-box">
+					<i class="fas fa-search search-icon"></i>
+					<input type="text" id="filter-search-input" placeholder="Поиск по названию, автору или дате...">
+				</div>
+			</div>
+		</div>
+
+		<!-- Раздел "Мои тесты" -->
+		<div class="tests-list-container" id="my-tests-container">
+			<div class="my-tests-header">
+				<h2>Мои тесты:</h2>
+				<button id="new-test-btn" class="new-test-btn"><i class="fas fa-plus"></i> Создать новый тест</button>
+			</div>
+			<div id="my-tests-list" class="tests-list">
+				<!-- Тесты будут загружены здесь -->
+				<div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>
+			</div>
+		</div>
+
+		<!-- Раздел "Популярные тесты" -->
+		<div class="tests-list-container" id="popular-tests-container">
+			<h2>Популярные тесты:</h2>
+			<div id="popular-tests-list" class="tests-list">
+				<!-- Тесты будут загружены здесь -->
+				<div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>
+			</div>
+		</div>
+
+		<!-- Раздел "Новые тесты" -->
+		<div class="tests-list-container" id="new-tests-container">
+			<h2>Новые тесты:</h2>
+			<div id="new-tests-list" class="tests-list">
+				<!-- Тесты будут загружены здесь -->
+				<div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Скрипт для управления тестами -->
+	<script type="module">
+		import { getDatabase, ref, onValue, query, orderByChild, equalTo, limitToLast, get } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+
+		// Инициализация полей ввода кода
+		function initCodeInputs() {
+			const codeInputs = document.querySelectorAll('.code-input');
+			
+			// Для каждого поля ввода добавляем обработчики событий
+			codeInputs.forEach((input, index) => {
+				// При получении фокуса выделяем текст
+				input.addEventListener('focus', function() {
+					this.select();
+				});
+				
+				// Обработка ввода
+				input.addEventListener('input', function(e) {
+					// Преобразуем ввод в верхний регистр
+					this.value = this.value.toUpperCase();
+					
+					// Добавляем класс для анимации
+					this.classList.add('filled');
+					setTimeout(() => {
+						this.classList.remove('filled');
+					}, 150);
+					
+					// Если введен символ, переходим к следующему полю
+					if (this.value.length === 1 && index < codeInputs.length - 1) {
+						codeInputs[index + 1].focus();
+					}
+					
+					// Если заполнены все поля, проверяем возможность отправки
+					checkSubmitAvailability();
+				});
+				
+				// Обработка клавиш
+				input.addEventListener('keydown', function(e) {
+					// Если нажат Backspace и поле пустое, переходим к предыдущему полю
+					if (e.key === 'Backspace' && this.value === '' && index > 0) {
+						codeInputs[index - 1].focus();
+						codeInputs[index - 1].value = '';
+						e.preventDefault();
+					}
+					
+					// Если нажата стрелка влево, переходим к предыдущему полю
+					else if (e.key === 'ArrowLeft' && index > 0) {
+						codeInputs[index - 1].focus();
+					}
+					
+					// Если нажата стрелка вправо, переходим к следующему полю
+					else if (e.key === 'ArrowRight' && index < codeInputs.length - 1) {
+						codeInputs[index + 1].focus();
+					}
+					
+					// Если нажат Enter, пытаемся присоединиться к тесту
+					else if (e.key === 'Enter') {
+						document.getElementById('join-test-btn').click();
+					}
+				});
+				
+				// Обработка вставки (например, при Ctrl+V)
+				input.addEventListener('paste', function(e) {
+					e.preventDefault();
+					const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+					
+					// Если вставленный текст содержит 6 символов, заполняем все поля
+					if (pastedText && pastedText.length === codeInputs.length) {
+						// Распределяем символы по полям
+						for (let i = 0; i < codeInputs.length; i++) {
+							codeInputs[i].value = pastedText[i].toUpperCase();
+						}
+						// Фокусируемся на последнем поле
+						codeInputs[codeInputs.length - 1].focus();
+					} 
+					// Если вставлен более короткий текст, заполняем начиная с текущего поля
+					else if (pastedText) {
+						let remainingInputs = codeInputs.length - index;
+						let textToFill = pastedText.substring(0, remainingInputs);
+						
+						for (let i = 0; i < textToFill.length; i++) {
+							if (index + i < codeInputs.length) {
+								codeInputs[index + i].value = textToFill[i].toUpperCase();
+							}
+						}
+						
+						// Фокусируемся на следующем незаполненном поле или последнем
+						let nextIndex = Math.min(index + textToFill.length, codeInputs.length - 1);
+						codeInputs[nextIndex].focus();
+					}
+					
+					// Проверяем возможность отправки
+					checkSubmitAvailability();
+				});
+			});
+			
+			// Начальный фокус на первом поле
+			if (codeInputs.length > 0) {
+				codeInputs[0].focus();
+			}
+		}
+		
+		// Проверка возможности отправки формы
+		function checkSubmitAvailability() {
+			const codeInputs = document.querySelectorAll('.code-input');
+			const joinButton = document.getElementById('join-test-btn');
+			
+			// Проверяем, все ли поля заполнены
+			const allFilled = Array.from(codeInputs).every(input => input.value.trim() !== '');
+			
+			// Включаем/отключаем кнопку в зависимости от заполненности полей
+			joinButton.disabled = !allFilled;
+		}
+		
+		// Функция для сбора кода из всех полей
+		function getTestCode() {
+			const codeInputs = document.querySelectorAll('.code-input');
+			return Array.from(codeInputs).map(input => input.value.trim()).join('');
+		}
+
+		// Обработчик присоединения к тесту по коду
+		document.getElementById('join-test-btn').addEventListener('click', async () => {
+			const codeInputs = document.querySelectorAll('.code-input');
+			const joinButton = document.getElementById('join-test-btn');
+			const testCode = getTestCode();
+			
+			if (!testCode || testCode.length !== 6) {
+				alert('Пожалуйста, введите 6-значный код теста');
+				return;
+			}
+			
+			// Меняем текст кнопки и блокируем ввод во время проверки
+			const originalButtonText = joinButton.textContent;
+			joinButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
+			joinButton.disabled = true;
+			codeInputs.forEach(input => input.disabled = true);
+			
+			try {
+				const db = getDatabase();
+				
+				// Проверяем существование лобби по коду
+				const lobbyRef = ref(db, 'test_lobbies');
+				const lobbySnapshot = await get(lobbyRef);
+				
+				let lobbyExists = false;
+				let lobbyData = null;
+				
+				if (lobbySnapshot.exists()) {
+					// Ищем лобби с указанным кодом вручную
+					lobbySnapshot.forEach((childSnapshot) => {
+						const lobby = childSnapshot.val();
+						console.log("Проверяем лобби:", lobby);
+						
+						// Проверяем, соответствует ли код или является ли ключом
+						if (lobby.code === testCode || childSnapshot.key === testCode) {
+							lobbyExists = true;
+							lobbyData = lobby;
+							lobbyData.id = childSnapshot.key;
+							console.log("Найдено лобби:", lobby);
+							return true; // Останавливаем перебор
+						}
+					});
+				}
+				
+				if (lobbyExists && lobbyData) {
+					// Лобби найдено, используем подход аналогичный lobby-popup.js
+					
+					// Получаем ID теста, связанного с лобби
+					const testId = lobbyData.testId;
+					if (!testId) {
+						console.error("ID теста не найден в данных лобби");
+						alert('Невозможно присоединиться к лобби: не найден связанный тест.');
+						joinButton.textContent = originalButtonText;
+						joinButton.disabled = false;
+						codeInputs.forEach(input => input.disabled = false);
+						return;
+					}
+					
+					// Сохраняем информацию о присоединении к лобби
+					sessionStorage.setItem('autoJoinLobby', testCode);
+					sessionStorage.setItem('testLobbyCode', testCode);
+					sessionStorage.setItem('testLobbyId', lobbyData.id);
+					
+					// Перенаправляем на страницу теста с параметрами для автоматического присоединения
+					window.location.href = `view-test.html?id=${testId}&lobbyCode=${testCode}&autoJoin=true`;
+				} else {
+					// Проверяем, есть ли тест с таким ID (на случай если код - это ID теста)
+					const testRef = ref(db, `tests/${testCode}`);
+					const testSnapshot = await get(testRef);
+					
+					if (testSnapshot.exists()) {
+						window.location.href = `view-test.html?id=${testCode}`;
+					} else {
+						alert('Тест с указанным кодом не найден. Пожалуйста, проверьте код и попробуйте снова.');
+						joinButton.textContent = originalButtonText;
+						joinButton.disabled = false;
+						codeInputs.forEach(input => input.disabled = false);
+					}
+				}
+			} catch (error) {
+				console.error('Ошибка при проверке кода теста:', error);
+				alert('Произошла ошибка при проверке кода теста. Пожалуйста, попробуйте снова.');
+				joinButton.textContent = originalButtonText;
+				joinButton.disabled = false;
+				codeInputs.forEach(input => input.disabled = false);
+			}
+		});
+
+		// Инициализируем поля ввода кода при загрузке страницы
+		window.addEventListener('DOMContentLoaded', () => {
+			initCodeInputs();
+			checkSubmitAvailability();
+		});
+
+		// Глобальная функция для применения фильтров
+		window.applyFilters = function () {
+			const showMyTests = document.getElementById('filter-my-tests').checked;
+			const showPopularTests = document.getElementById('filter-popular-tests').checked;
+			const showNewTests = document.getElementById('filter-new-tests').checked;
+			const searchQuery = document.getElementById('filter-search-input')?.value.toLowerCase().trim() || '';
+			
+			// Получаем состояние фильтров категорий
+			const showAllCategories = document.getElementById('category-all').checked;
+			const selectedCategories = [];
+			
+			// Если не выбран режим "Все категории", собираем выбранные категории
+			if (!showAllCategories) {
+				const categoryCheckboxes = document.querySelectorAll('.category-option input[type="checkbox"]:not(#category-all)');
+				categoryCheckboxes.forEach(checkbox => {
+					if (checkbox.checked) {
+						// Извлекаем имя категории из id (убираем префикс "category-")
+						selectedCategories.push(checkbox.id.replace('category-', ''));
+					}
+				});
+			}
+
+			const myTestsContainer = document.getElementById('my-tests-container');
+			const popularTestsContainer = document.getElementById('popular-tests-container');
+			const newTestsContainer = document.getElementById('new-tests-container');
+
+			// Подробное логирование для отладки
+			console.log('Состояние фильтров:', {
+				showMyTests,
+				showPopularTests,
+				showNewTests,
+				searchQuery,
+				showAllCategories,
+				selectedCategories
+			});
+
+			// Применяем фильтры видимости категорий
+			if (myTestsContainer) {
+				myTestsContainer.style.display = showMyTests ? 'block' : 'none';
+			}
+
+			if (popularTestsContainer) {
+				popularTestsContainer.style.display = showPopularTests ? 'block' : 'none';
+			}
+
+			if (newTestsContainer) {
+				newTestsContainer.style.display = showNewTests ? 'block' : 'none';
+			}
+
+			// Применяем фильтры к тестам
+			const testCards = document.querySelectorAll('.test-card');
+			testCards.forEach(card => {
+				// Получаем категорию теста из карточки
+				const categoryBadge = card.querySelector('.test-category-badge span');
+				const categoryName = categoryBadge ? categoryBadge.textContent.trim() : '';
+				const categoryToCode = {
+					"Общее": "general",
+					"Образование": "education",
+					"Наука": "science",
+					"Технологии": "technology",
+					"История": "history",
+					"География": "geography",
+					"Искусство": "art",
+					"Спорт": "sports",
+					"Развлечения": "entertainment",
+					"Другое": "other"
+				};
+				const categoryCode = categoryToCode[categoryName] || 'general';
+				
+				// Проверяем соответствие категории
+				const matchesCategory = showAllCategories || selectedCategories.includes(categoryCode);
+				
+				// Проверяем соответствие поисковому запросу
+				let matchesSearch = true;
+				if (searchQuery) {
+					const testTitle = card.querySelector('h3')?.textContent?.toLowerCase() || '';
+					const testDescription = card.querySelector('.test-info p')?.textContent?.toLowerCase() || '';
+					const testMeta = card.querySelector('.test-meta')?.textContent?.toLowerCase() || '';
+					
+					matchesSearch = testTitle.includes(searchQuery) || 
+						testDescription.includes(searchQuery) || 
+						testMeta.includes(searchQuery);
+				}
+				
+				// Отображаем только тесты, которые соответствуют всем критериям фильтрации
+				card.style.display = (matchesCategory && matchesSearch) ? 'block' : 'none';
+			});
+
+			// Сохраняем настройки в localStorage
+			localStorage.setItem('test-filters', JSON.stringify({
+				myTests: showMyTests,
+				popularTests: showPopularTests,
+				newTests: showNewTests,
+				lastSearchQuery: searchQuery,
+				showAllCategories: showAllCategories,
+				selectedCategories: selectedCategories
+			}));
+		};
+
+		// Функция для фильтрации тестов по поисковому запросу - теперь используется в applyFilters
+		function filterTestsByQuery(query) {
+			console.log('Фильтрация тестов по запросу:', query);
+
+			const testCards = document.querySelectorAll('.test-card');
+			testCards.forEach(card => {
+				const testTitle = card.querySelector('h3')?.textContent?.toLowerCase() || '';
+				const testDescription = card.querySelector('.test-info p')?.textContent?.toLowerCase() || '';
+				const testMeta = card.querySelector('.test-meta')?.textContent?.toLowerCase() || '';
+
+				// Проверяем, соответствует ли тест поисковому запросу
+				const matchesSearch =
+					testTitle.includes(query) ||
+					testDescription.includes(query) ||
+					testMeta.includes(query);
+
+				// Отображаем только подходящие тесты
+				card.style.display = matchesSearch ? 'block' : 'none';
+			});
+		}
+
+		// Функция для сброса фильтрации тестов (показывает все тесты)
+		function resetTestFilters() {
+			const testCards = document.querySelectorAll('.test-card');
+			testCards.forEach(card => {
+				card.style.display = 'block';
+			});
+		}
+
+		// Инициализация обработчиков фильтров
+		window.initFilters = function () {
+			// Настройка стилей чекбоксов программно
+			setTimeout(function() {
+				// Функция для очистки всех галочек перед созданием новых
+				function clearAllCustomChecks() {
+					document.querySelectorAll('.filters-options .custom-check').forEach(function(check) {
+						check.remove();
+					});
+				}
+				
+				// Очищаем все существующие галочки при инициализации
+				clearAllCustomChecks();
+				
+				// Исправление стилей чекбоксов
+				document.querySelectorAll('.filters-options .filter-option .checkmark').forEach(function(checkmark) {
+					// Сбрасываем все прежние стили
+					checkmark.removeAttribute('style');
+					
+					// Добавляем корректные стили
+					Object.assign(checkmark.style, {
+						position: 'absolute',
+						top: '50%',
+						transform: 'translateY(-50%)',
+						left: '0',
+						width: '18px',
+						height: '18px',
+						backgroundColor: '#fff',
+						border: '2px solid #ddd',
+						borderRadius: '3px'
+					});
+					
+					// Для темной темы
+					if (document.body.classList.contains('dark-mode')) {
+						Object.assign(checkmark.style, {
+							backgroundColor: '#333',
+							borderColor: '#555'
+						});
+					}
+				});
+				
+				// Добавляем слушатель изменений для корректировки галочек
+				document.querySelectorAll('.filters-options .filter-option input[type="checkbox"]').forEach(function(checkbox) {
+					checkbox.addEventListener('change', function() {
+						const checkmark = this.nextElementSibling;
+						
+						// Удаляем существующую галочку если она есть
+						const existingCheck = checkmark.querySelector('.custom-check');
+						if (existingCheck) existingCheck.remove();
+						
+						if (this.checked) {
+							// Создаем новую галочку
+							const customCheck = document.createElement('span');
+							customCheck.className = 'custom-check';
+							Object.assign(customCheck.style, {
+								position: 'absolute',
+								left: '5px',
+								top: '1px',
+								width: '4px',
+								height: '9px',
+								borderRight: '2px solid white',
+								borderBottom: '2px solid white',
+								transform: 'rotate(45deg)',
+								display: 'block',
+								zIndex: '100'
+							});
+							
+							// Устанавливаем цвет фона чекбокса
+							Object.assign(checkmark.style, {
+								backgroundColor: '#4a6ee0',
+								borderColor: '#4a6ee0'
+							});
+							
+							// Добавляем галочку в чекбокс
+							checkmark.appendChild(customCheck);
+						} else {
+							// Возвращаем обычный стиль без галочки
+							Object.assign(checkmark.style, {
+								backgroundColor: '#fff',
+								borderColor: '#ddd'
+							});
+							
+							// Для темной темы
+							if (document.body.classList.contains('dark-mode')) {
+								Object.assign(checkmark.style, {
+									backgroundColor: '#333',
+									borderColor: '#555'
+								});
+							}
+						}
+					});
+					
+					// Вызываем событие change чтобы применить стили сразу
+					checkbox.dispatchEvent(new Event('change'));
+				});
+			}, 100); // Небольшая задержка для гарантии загрузки DOM
+			
+			// Получаем сохраненные настройки
+			const savedFilters = localStorage.getItem('test-filters');
+
+			if (savedFilters) {
+				const filters = JSON.parse(savedFilters);
+
+				// Устанавливаем состояние чекбоксов
+				document.getElementById('filter-my-tests').checked = filters.myTests;
+				document.getElementById('filter-popular-tests').checked = filters.popularTests;
+				document.getElementById('filter-new-tests').checked = filters.newTests;
+
+				// Устанавливаем последний поисковый запрос
+				if (filters.lastSearchQuery) {
+					document.getElementById('filter-search-input').value = filters.lastSearchQuery;
+				}
+				
+				// Устанавливаем состояние фильтров категорий
+				if (filters.hasOwnProperty('showAllCategories')) {
+					document.getElementById('category-all').checked = filters.showAllCategories;
+					
+					// Если есть сохраненные категории и не выбран "Все категории"
+					if (!filters.showAllCategories && filters.selectedCategories && filters.selectedCategories.length > 0) {
+						// Сначала сбрасываем все чекбоксы
+						document.querySelectorAll('.category-option input[type="checkbox"]:not(#category-all)').forEach(checkbox => {
+							checkbox.checked = false;
+						});
+						
+						// Затем отмечаем только выбранные
+						filters.selectedCategories.forEach(category => {
+							const checkbox = document.getElementById(`category-${category}`);
+							if (checkbox) {
+								checkbox.checked = true;
+							}
+						});
+						
+						// Обновляем текст в dropdown-header
+						updateCategoriesHeaderText();
+					}
+				}
+			}
+
+			// Добавляем обработчики событий для чекбоксов
+			document.getElementById('filter-my-tests').addEventListener('change', window.applyFilters);
+			document.getElementById('filter-popular-tests').addEventListener('change', window.applyFilters);
+			document.getElementById('filter-new-tests').addEventListener('change', window.applyFilters);
+
+			// Добавляем обработчик для поля поиска
+			const searchInput = document.getElementById('filter-search-input');
+			let searchTimeout;
+
+			searchInput.addEventListener('input', () => {
+				// Применяем фильтрацию с небольшой задержкой, чтобы не вызывать
+				// функцию фильтрации при каждом нажатии клавиши
+				clearTimeout(searchTimeout);
+				searchTimeout = setTimeout(() => {
+					window.applyFilters();
+				}, 300);
+			});
+			
+			// Добавляем обработчики для категорий
+			const categoryAll = document.getElementById('category-all');
+			const categoryCheckboxes = document.querySelectorAll('.category-option input[type="checkbox"]:not(#category-all)');
+			
+			// Обработчик для чекбокса "Все категории"
+			categoryAll.addEventListener('change', function() {
+				// Если выбраны все категории, снимаем выбор с отдельных категорий
+				if (this.checked) {
+					categoryCheckboxes.forEach(checkbox => {
+						checkbox.checked = false;
+					});
+				}
+				
+				// Обновляем текст в dropdown-header
+				updateCategoriesHeaderText();
+				
+				window.applyFilters();
+			});
+			
+			// Обработчики для остальных чекбоксов категорий
+			categoryCheckboxes.forEach(checkbox => {
+				checkbox.addEventListener('change', () => {
+					// Если выбрана хотя бы одна категория, снимаем выбор с "Все категории"
+					if (checkbox.checked) {
+						categoryAll.checked = false;
+					} else {
+						// Если ни одна категория не выбрана, выбираем "Все категории"
+						const anyChecked = Array.from(categoryCheckboxes).some(cb => cb.checked);
+						if (!anyChecked) {
+							categoryAll.checked = true;
+						}
+					}
+					
+					// Обновляем текст в dropdown-header
+					updateCategoriesHeaderText();
+					
+					window.applyFilters();
+				});
+			});
+			
+			// Обработчик для выпадающего списка категорий
+			const dropdownHeader = document.querySelector('.dropdown-header');
+			const categoriesDropdown = document.querySelector('.categories-dropdown');
+			
+			if (dropdownHeader && categoriesDropdown) {
+				dropdownHeader.addEventListener('click', () => {
+					categoriesDropdown.classList.toggle('open');
+				});
+				
+				// Закрываем выпадающий список при клике вне его
+				document.addEventListener('click', (e) => {
+					if (!e.target.closest('.categories-dropdown')) {
+						categoriesDropdown.classList.remove('open');
+					}
+				});
+			}
+
+			// Применяем фильтры сразу
+			window.applyFilters();
+			
+			// Обновляем текст заголовка при загрузке
+			updateCategoriesHeaderText();
+		};
+
+		// Функция для обновления текста в dropdown-header
+		function updateCategoriesHeaderText() {
+			const dropdownHeader = document.querySelector('.dropdown-header span');
+			const showAllCategories = document.getElementById('category-all').checked;
+			
+			if (showAllCategories) {
+				dropdownHeader.textContent = 'Выбрать категории';
+				return;
+			}
+			
+			const categoryNameMap = {
+				"general": "Общее",
+				"education": "Образование",
+				"science": "Наука",
+				"technology": "Технологии",
+				"history": "История",
+				"geography": "География",
+				"art": "Искусство",
+				"sports": "Спорт",
+				"entertainment": "Развлечения",
+				"other": "Другое"
+			};
+			
+			const selectedCategories = [];
+			document.querySelectorAll('.category-option input[type="checkbox"]:not(#category-all)').forEach(checkbox => {
+				if (checkbox.checked) {
+					const categoryCode = checkbox.id.replace('category-', '');
+					const categoryName = categoryNameMap[categoryCode];
+					if (categoryName) {
+						selectedCategories.push(categoryName);
+					}
+				}
+			});
+			
+			if (selectedCategories.length === 0) {
+				dropdownHeader.textContent = 'Выбрать категории';
+			} else if (selectedCategories.length <= 2) {
+				dropdownHeader.textContent = selectedCategories.join(', ');
+			} else {
+				dropdownHeader.textContent = `${selectedCategories.length} категории`;
+			}
+		}
+
+		// Функция для создания карточки теста
+		function createTestCard(test, testId) {
+			const testCard = document.createElement('div');
+			testCard.className = 'test-card';
+
+			// Определяем иконку и название категории
+			const categoryIcons = {
+				"general": "fas fa-globe",
+				"education": "fas fa-graduation-cap",
+				"science": "fas fa-flask",
+				"technology": "fas fa-laptop-code",
+				"history": "fas fa-landmark",
+				"geography": "fas fa-map-marked-alt",
+				"art": "fas fa-palette",
+				"sports": "fas fa-running",
+				"entertainment": "fas fa-film",
+				"other": "fas fa-ellipsis-h"
+			};
+
+			const categoryNames = {
+				"general": "Общее",
+				"education": "Образование",
+				"science": "Наука",
+				"technology": "Технологии",
+				"history": "История",
+				"geography": "География",
+				"art": "Искусство",
+				"sports": "Спорт",
+				"entertainment": "Развлечения",
+				"other": "Другое"
+			};
+
+			const category = test.category || "general";
+			const categoryIcon = categoryIcons[category];
+			const categoryName = categoryNames[category];
+
+			// Создаем содержимое карточки теста
+			let coverHtml = '';
+			if (test.coverURL) {
+				coverHtml = `
+      <div class="test-cover">
+        <img src="${test.coverURL}" alt="${test.title}">
+        <div class="test-category-badge">
+          <i class="${categoryIcon}"></i>
+          <span>${categoryName}</span>
+        </div>
+      </div>`;
+			} else {
+				// Если нет обложки, всё равно добавляем бейдж с категорией
+				coverHtml = `
+      <div class="test-cover empty-cover">
+        <div class="test-category-badge">
+          <i class="${categoryIcon}"></i>
+          <span>${categoryName}</span>
+        </div>
+      </div>`;
+			}
+
+			// Добавляем звезды рейтинга, если они есть
+			let ratingHtml = '';
+			if (test.avgRating && test.avgRating > 0) {
+				ratingHtml = `
+      <div class="test-rating-block">
+        <span class="test-rating">
+          <i class="fas fa-star"></i> 
+          ${test.avgRating} <span class="rating-count">(${test.reviewCount})</span>
+        </span>
+      </div>
+    `;
+			}
+
+			testCard.innerHTML = `
+    ${coverHtml}
+    <div class="test-info">
+      <h3>${test.title}</h3>
+      ${test.description ? `<p>${test.description}</p>` : ''}
+      <div class="test-meta">
+        <span><i class="fas fa-question-circle"></i> ${test.questionsCount} вопр.</span>
+        <span><i class="fas fa-calendar-alt"></i> ${new Date(test.createdAt).toLocaleDateString()}</span>
+        ${test.completionsCount ? `<span><i class="fas fa-users"></i> ${test.completionsCount}</span>` : ''}
+      </div>
+      ${ratingHtml}
+    </div>
+  `;
+
+			// Обработчик клика по карточке теста
+			testCard.addEventListener('click', () => {
+				window.location.href = `view-test.html?id=${testId}`;
+			});
+
+			return testCard;
+		}
+
+		// Функция для загрузки моих тестов
+		async function loadMyTests(db, userId) {
+			const testsRef = query(ref(db, 'tests'), orderByChild('createdBy'), equalTo(userId));
+			const testsList = document.getElementById('my-tests-list');
+
+			testsList.innerHTML = '<div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>';
+
+			onValue(testsRef, async (snapshot) => {
+				testsList.innerHTML = '';
+
+				let hasTests = false;
+				const testPromises = [];
+
+				snapshot.forEach((testSnapshot) => {
+					hasTests = true;
+					const test = testSnapshot.val();
+					const testId = testSnapshot.key;
+
+					// Добавляем Promise для получения рейтинга
+					const promise = getTestRating(db, testId).then(ratingData => {
+						test.avgRating = ratingData.avgRating;
+						test.reviewCount = ratingData.count;
+						const testCard = createTestCard(test, testId);
+						testsList.appendChild(testCard);
+					});
+
+					testPromises.push(promise);
+				});
+
+				if (!hasTests) {
+					testsList.innerHTML = '<div class="no-tests-message">У вас пока нет созданных тестов</div>';
+				} else {
+					// Ждем завершения всех запросов рейтингов
+					await Promise.all(testPromises);
+
+					// Применяем текущие фильтры после загрузки всех тестов
+					if (typeof window.applyFilters === 'function') {
+						window.applyFilters();
+					}
+				}
+			});
+		}
+
+		// Функция для загрузки популярных тестов
+		async function loadPopularTests(db) {
+			try {
+				const testsList = document.getElementById('popular-tests-list');
+				testsList.innerHTML = '<div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>';
+
+				// Получаем все результаты тестов
+				const resultsRef = ref(db, 'test_results');
+				const resultsSnapshot = await get(resultsRef);
+
+				// Подсчитываем количество прохождений для каждого теста
+				const testCompletions = {};
+				resultsSnapshot.forEach((resultSnapshot) => {
+					const result = resultSnapshot.val();
+					if (result.testId) {
+						if (!testCompletions[result.testId]) {
+							testCompletions[result.testId] = 0;
+						}
+						testCompletions[result.testId]++;
+					}
+				});
+
+				// Сортируем тесты по количеству прохождений
+				const sortedTests = Object.keys(testCompletions).sort((a, b) => {
+					return testCompletions[b] - testCompletions[a];
+				});
+
+				// Берем топ-10 тестов
+				const topTests = sortedTests.slice(0, 10);
+
+				if (topTests.length === 0) {
+					testsList.innerHTML = '<div class="no-tests-message">Пока нет популярных тестов</div>';
+					return;
+				}
+
+				testsList.innerHTML = '';
+
+				// Загружаем данные для каждого теста
+				for (const testId of topTests) {
+					const testRef = ref(db, `tests/${testId}`);
+					const testSnapshot = await get(testRef);
+
+					if (testSnapshot.exists()) {
+						const test = testSnapshot.val();
+						// Добавляем количество прохождений
+						test.completionsCount = testCompletions[testId];
+
+						// Добавляем рейтинг
+						const ratingData = await getTestRating(db, testId);
+						test.avgRating = ratingData.avgRating;
+						test.reviewCount = ratingData.count;
+
+						const testCard = createTestCard(test, testId);
+						testsList.appendChild(testCard);
+					}
+				}
+
+				// Применяем текущие фильтры
+				if (typeof window.applyFilters === 'function') {
+					window.applyFilters();
+				}
+			} catch (error) {
+				console.error('Ошибка при загрузке популярных тестов:', error);
+				document.getElementById('popular-tests-list').innerHTML =
+					'<div class="error-message">Ошибка при загрузке популярных тестов</div>';
+			}
+		}
+
+		// Функция для загрузки новых тестов
+		async function loadNewTests(db) {
+			try {
+				const testsList = document.getElementById('new-tests-list');
+				testsList.innerHTML = '<div class="loading-tests"><i class="fas fa-spinner fa-spin"></i> Загрузка тестов...</div>';
+
+				// Получаем все тесты (без индексации по createdAt)
+				const testsRef = ref(db, 'tests');
+				const testsSnapshot = await get(testsRef);
+
+				if (!testsSnapshot.exists()) {
+					testsList.innerHTML = '<div class="no-tests-message">Пока нет новых тестов</div>';
+					return;
+				}
+
+				testsList.innerHTML = '';
+
+				// Создаем массив тестов для сортировки
+				const tests = [];
+				testsSnapshot.forEach((testSnapshot) => {
+					tests.push({
+						id: testSnapshot.key,
+						data: testSnapshot.val()
+					});
+				});
+
+				// Сортируем тесты по дате создания (от новых к старым)
+				tests.sort((a, b) => b.data.createdAt - a.data.createdAt);
+
+				// Берем только 10 последних тестов
+				const latestTests = tests.slice(0, 10);
+
+				// Загружаем рейтинги и добавляем тесты на страницу
+				for (const test of latestTests) {
+					// Добавляем рейтинг
+					const ratingData = await getTestRating(db, test.id);
+					test.data.avgRating = ratingData.avgRating;
+					test.data.reviewCount = ratingData.count;
+
+					const testCard = createTestCard(test.data, test.id);
+					testsList.appendChild(testCard);
+				}
+
+				// Применяем текущие фильтры
+				if (typeof window.applyFilters === 'function') {
+					window.applyFilters();
+				}
+			} catch (error) {
+				console.error('Ошибка при загрузке новых тестов:', error);
+				document.getElementById('new-tests-list').innerHTML =
+					'<div class="error-message">Ошибка при загрузке новых тестов</div>';
+			}
+		}
+
+		// Обработчик нажатия на кнопку "Новый тест"
+		document.getElementById('new-test-btn').addEventListener('click', () => {
+			window.location.href = 'create-test.html';
+		});
+
+		// Загружаем тесты после инициализации Firebase
+		window.addEventListener('DOMContentLoaded', () => {
+			const userData = JSON.parse(localStorage.getItem('userData'));
+			if (userData && userData.uid) {
+				const db = getDatabase();
+				loadMyTests(db, userData.uid);
+				loadPopularTests(db);
+				loadNewTests(db);
+
+				// Применяем фильтры после небольшой задержки, чтобы все элементы успели загрузиться
+				setTimeout(() => {
+					if (typeof window.applyFilters === 'function') {
+						console.log('Применение фильтров после загрузки данных...');
+						window.applyFilters();
+					}
+				}, 1000);
+			}
+		});
+
+		// Также применяем фильтры при полной загрузке страницы
+		window.addEventListener('load', () => {
+			if (typeof window.applyFilters === 'function') {
+				console.log('Применение фильтров после полной загрузки страницы...');
+				window.applyFilters();
+			}
+		});
+
+		// Функция для получения данных о рейтинге теста без использования индекса
+		async function getTestRating(db, testId) {
+			try {
+				const feedbackRef = ref(db, 'test_feedback');
+				const snapshot = await get(feedbackRef);
+
+				if (!snapshot.exists()) {
+					return { avgRating: 0, count: 0 };
+				}
+
+				let totalRating = 0;
+				let count = 0;
+
+				// Фильтруем отзывы вручную на стороне клиента
+				snapshot.forEach(childSnapshot => {
+					const feedback = childSnapshot.val();
+					if (feedback.testId === testId && feedback.rating) {
+						totalRating += feedback.rating;
+						count++;
+					}
+				});
+
+				const avgRating = count > 0 ? (totalRating / count).toFixed(1) : 0;
+				return { avgRating, count };
+			} catch (error) {
+				console.error('Ошибка при получении рейтинга теста:', error);
+				return { avgRating: 0, count: 0 };
+			}
+		}
+	</script>
+
+	<!-- Подключаем скрипт для всплывающего окна лобби -->
+	<script src="js/lobby-popup.js"></script>
+</body>
+
+</html>

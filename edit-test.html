@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Редактирование теста</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js" as="script" crossorigin="anonymous">
+  
+  <!-- Cropper.js для кадрирования изображения -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (savedTheme === 'system') {
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.style.visibility = 'visible';
+        });
+      } else {
+        const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(theme);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(theme);
+          document.documentElement.classList.remove(theme);
+          document.documentElement.style.visibility = 'visible';
+        });
+      }
+
+      // Добавляем слушатель изменения системной темы
+      if (savedTheme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          document.body.classList.remove('dark-mode', 'light-mode');
+          document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+        });
+      }
+    })();
+  </script>
+  
+  <style>
+    /* Стили кнопки добавления вопроса */
+    .add-question-btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      margin: 20px 0;
+      background-color: var(--card-background);
+      border: 2px dashed var(--primary-color);
+      border-radius: 8px;
+      color: var(--primary-color);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .add-question-btn:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    /* Стили для элемента select */
+    select.form-control {
+      background-color: var(--card-background);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      padding-left: 40px; /* Добавляем отступ слева для иконки */
+      width: 100%;
+      font-size: 16px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 16px;
+    }
+    
+    select.form-control:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.25);
+    }
+    
+    .dark-mode select.form-control {
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    }
+    
+    .dark-mode select.form-control option {
+      background-color: var(--card-background);
+      color: var(--text-color);
+    }
+
+    /* Стиль для кнопки удаления вопроса */
+    .delete-question-btn {
+      border: none;
+      background: transparent;
+      color: #dc3545;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .delete-question-btn:hover {
+      background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    /* Выравнивание заголовка вопроса */
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    /* Стили для контейнера с чекбоксом */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .form-checkbox {
+      margin-right: 10px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    /* Стили для всплывающей подсказки */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      margin-left: 5px;
+      color: var(--primary-color);
+      cursor: pointer;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 300px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 10px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 14px;
+      font-weight: normal;
+    }
+    
+    .tooltip .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Стили для textarea - запрет расширения по ширине */
+    textarea.form-control {
+      resize: vertical;
+      max-width: 100%;
+      min-width: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+    
+    /* Стили для пояснительного текста в форме */
+    .form-text {
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.6);
+      margin-top: 5px;
+    }
+    
+    /* Стили для темного режима */
+    .dark-mode .form-text {
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    /* Стили для модального окна кадрирования */
+    .crop-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      overflow: hidden;
+    }
+    
+    .crop-modal.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .crop-container {
+      width: 90%;
+      max-width: 800px;
+      background-color: var(--card-background);
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .crop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .crop-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--text-color);
+    }
+    
+    .crop-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+    }
+    
+    .crop-area {
+      width: 100%;
+      height: 50vh;
+      max-height: 500px;
+      margin-bottom: 1rem;
+      background-color: #333;
+      overflow: hidden;
+    }
+    
+    .crop-img {
+      display: block;
+      max-width: 100%;
+    }
+    
+    .crop-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .crop-zoom {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .zoom-slider {
+      width: 150px;
+      margin: 0 10px;
+    }
+    
+    .crop-actions {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .crop-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .crop-btn.cancel {
+      background: transparent;
+      border: 1px solid var(--border-color);
+    }
+    
+    .crop-btn.cancel:hover {
+      background: var(--hover-bg);
+    }
+    
+    .crop-btn.apply {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .crop-btn.apply:hover {
+      opacity: 0.9;
+    }
+    
+    /* Стиль для прогресс-бара при загрузке */
+    .upload-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 5px;
+      width: 0;
+      background-color: var(--primary-color);
+      transition: width 0.3s ease;
+    }
+    
+    /* Стиль для кнопки удаления теста */
+    .delete-test-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-top: 30px;
+      background-color: transparent;
+      border: 2px solid #dc3545;
+      border-radius: 8px;
+      color: #dc3545;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+    
+    .delete-test-btn:hover {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    /* Стили для загрузки изображений вопросов и ответов */
+    .image-preview {
+      width: 100%;
+      height: 150px;
+      margin-bottom: 10px;
+      border: 2px dashed var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .image-preview.has-image {
+      border: none;
+      background-color: var(--card-secondary-bg);
+    }
+    
+    .image-preview img {
+      max-width: 100%;
+      max-height: 150px;
+      object-fit: contain;
+    }
+    
+    .image-upload-label {
+      display: inline-flex;
+      align-items: center;
+      margin-bottom: 10px;
+      background-color: var(--card-background);
+      color: var(--primary-color);
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+    
+    .image-upload-label i {
+      margin-right: 8px;
+    }
+    
+    .image-upload-label:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .image-remove-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    
+    .image-remove-btn:hover {
+      background-color: rgba(220, 53, 69, 0.8);
+    }
+    
+    .answer-image-preview {
+      max-width: 100%;
+      height: 80px;
+      margin-top: 5px;
+      border-radius: 4px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background-size: contain;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+    
+    .answer-image-preview.has-image {
+      display: flex;
+      background-color: var(--card-secondary-bg);
+    }
+    
+    .answer-image-preview img {
+      max-width: 100%;
+      max-height: 80px;
+      object-fit: contain;
+    }
+    
+    .answer-image-upload-label {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 5px;
+      background-color: transparent;
+      color: var(--secondary-text-color);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 12px;
+    }
+    
+    .answer-image-upload-label i {
+      margin-right: 5px;
+    }
+    
+    .answer-image-upload-label:hover {
+      background-color: var(--hover-bg);
+    }
+
+    /* Стили для контейнера с иконкой */
+    .select-with-icon {
+      position: relative;
+      width: 100%;
+    }
+    
+    .selected-option-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1;
+      color: var(--primary-color);
+      font-size: 18px;
+      pointer-events: none;
+    }
+    
+    /* Стилизация выпадающего списка */
+    #test-category-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+      background-color: var(--card-background);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: none;
+    }
+    
+    #test-category-dropdown.show {
+      display: block;
+    }
+    
+    .dropdown-option {
+      padding: 10px 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+    
+    .dropdown-option:hover {
+      background-color: var(--hover-bg);
+    }
+    
+    .dropdown-option i {
+      margin-right: 10px;
+      color: var(--primary-color);
+      width: 20px;
+      text-align: center;
+    }
+    
+    .dropdown-option.selected {
+      background-color: rgba(var(--primary-color-rgb), 0.1);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="create-test-container">
+    <div class="create-test-form">
+      <!-- Форма редактирования теста -->
+      <div id="edit-form" class="step-container active">
+        <h2 class="form-title">Редактирование теста</h2>
+        
+        <div class="form-group">
+          <label for="test-cover">Обложка теста (по желанию)</label>
+          <div class="cover-preview" id="cover-preview">
+            <i class="fas fa-image" style="font-size: 48px; color: #bdbdbd;"></i>
+          </div>
+          <label class="cover-upload-label">
+            <i class="fas fa-upload"></i>
+            Загрузить изображение
+            <input type="file" id="test-cover" accept="image/*" style="display: none;">
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-title">Название теста *</label>
+          <input type="text" id="test-title" class="form-control" placeholder="Введите название теста" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-description">Описание теста (по желанию)</label>
+          <textarea id="test-description" class="form-control" rows="4" placeholder="Краткое описание теста"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="test-category">Категория теста</label>
+          <div class="select-with-icon">
+            <select id="test-category" class="form-control">
+              <option value="general" data-icon="fas fa-globe">Общее</option>
+              <option value="education" data-icon="fas fa-graduation-cap">Образование</option>
+              <option value="science" data-icon="fas fa-flask">Наука</option>
+              <option value="technology" data-icon="fas fa-laptop-code">Технологии</option>
+              <option value="history" data-icon="fas fa-landmark">История</option>
+              <option value="geography" data-icon="fas fa-map-marked-alt">География</option>
+              <option value="art" data-icon="fas fa-palette">Искусство</option>
+              <option value="sports" data-icon="fas fa-running">Спорт</option>
+              <option value="entertainment" data-icon="fas fa-film">Развлечения</option>
+              <option value="other" data-icon="fas fa-ellipsis-h">Другое</option>
+            </select>
+            <div class="selected-option-icon"><i class="fas fa-globe"></i></div>
+          </div>
+        </div>
+        
+        <!-- Добавляем опцию "Совместное прохождение" -->
+        <div class="form-group">
+          <div class="checkbox-container">
+            <input type="checkbox" id="cooperative-mode" class="form-checkbox">
+            <label for="cooperative-mode">Совместное прохождение</label>
+            <div class="tooltip">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-text">
+                Позволяет пользователям проходить тест вместе. Первый пользователь становится хостом, другие могут присоединиться. 
+                Каждый участник будет видеть ответы других после того, как все ответят на вопрос. Хост контролирует начало теста.
+              </span>
+            </div>
+          </div>
+          <div class="form-text">Позволяет пользователям проходить тест вместе и видеть ответы друг друга</div>
+        </div>
+        
+        <!-- Добавляем опцию "Показать правильные ответы после прохождения" -->
+        <div class="form-group">
+          <div class="checkbox-container">
+            <input type="checkbox" id="show-correct-answers" class="form-checkbox">
+            <label for="show-correct-answers">Показать правильные ответы после прохождения</label>
+            <div class="tooltip">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-text">
+                При включении этой опции после завершения теста пользователи увидят список вопросов, свои выбранные ответы и правильные ответы.
+                Работает как в одиночном, так и в совместном режиме прохождения.
+              </span>
+            </div>
+          </div>
+          <div class="form-text">Отображает полный список вопросов и правильных ответов после прохождения теста</div>
+        </div>
+        
+        <!-- Добавляем ограничение времени на вопрос -->
+        <div class="form-group">
+          <label for="time-limit">Ограничение времени на вопрос (в секундах)</label>
+          <input type="number" id="time-limit" class="form-control" min="0" value="0" placeholder="0 - без ограничения">
+          <div class="form-text">Укажите 0, если не хотите устанавливать ограничение времени</div>
+        </div>
+        
+        <h3 class="questions-header">Вопросы теста</h3>
+        
+        <div class="layout-selector">
+          <span>Расположение вопросов:</span>
+          <div class="layout-options">
+            <label class="layout-option">
+              <input type="radio" name="layout" value="vertical" checked>
+              <span class="layout-icon"><i class="fas fa-grip-lines"></i></span>
+              <span class="layout-text">Вертикально</span>
+            </label>
+            <label class="layout-option">
+              <input type="radio" name="layout" value="horizontal">
+              <span class="layout-icon"><i class="fas fa-grip-lines-vertical"></i></span>
+              <span class="layout-text">Горизонтально</span>
+            </label>
+          </div>
+        </div>
+        
+        <div id="questions-container">
+          <!-- Вопросы будут добавляться здесь -->
+        </div>
+        
+        <button class="add-question-btn" id="add-question">
+          <i class="fas fa-plus"></i>
+          Добавить вопрос
+        </button>
+        
+        <div class="btn-container">
+          <button class="btn btn-secondary" id="cancel-edit">Отмена</button>
+          <button class="btn btn-primary" id="save-test">Сохранить изменения</button>
+        </div>
+        
+        <button class="delete-test-btn" id="delete-test">
+          <i class="fas fa-trash"></i> Удалить тест
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+    import { getDatabase, ref, get, update, remove } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject, listAll } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+    import { initializeSidebar } from './sidebar.js';
+
+    // Инициализация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
+      authDomain: "tpoproject-35957.firebaseapp.com",
+      databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "tpoproject-35957",
+      storageBucket: "tpoproject-35957.appspot.com",
+      messagingSenderId: "683982725892",
+      appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+
+    let currentTest = null;
+    const testId = new URLSearchParams(window.location.search).get('id');
+    let selectedFile = null;
+
+    // Проверка авторизации и прав доступа
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (!userData || userData.uid !== user.uid) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Загрузка данных теста
+      const testRef = ref(db, `tests/${testId}`);
+      const snapshot = await get(testRef);
+      
+      if (!snapshot.exists()) {
+        alert('Тест не найден');
+        window.location.href = 'home.html';
+        return;
+      }
+
+      currentTest = snapshot.val();
+      if (currentTest.createdBy !== user.uid) {
+        alert('У вас нет прав на редактирование этого теста');
+        window.location.href = 'home.html';
+        return;
+      }
+
+      // Заполнение формы данными теста
+      document.getElementById('test-title').value = currentTest.title || '';
+      document.getElementById('test-description').value = currentTest.description || '';
+      
+      // Устанавливаем категорию, если она есть
+      if (currentTest.category) {
+        document.getElementById('test-category').value = currentTest.category;
+        updateCategoryIcon(); // Обновляем иконку после установки категории
+      }
+      
+      // Заполняем поля для совместного прохождения и ограничения времени
+      document.getElementById('cooperative-mode').checked = currentTest.cooperativeMode || false;
+      document.getElementById('time-limit').value = currentTest.timeLimit || 0;
+      
+      // Заполняем поле для показа правильных ответов
+      document.getElementById('show-correct-answers').checked = currentTest.showCorrectAnswers || false;
+      
+      // Отображаем обложку, если она есть
+      if (currentTest.coverURL) {
+        const coverPreview = document.getElementById('cover-preview');
+        coverPreview.innerHTML = `<img src="${currentTest.coverURL}" alt="Обложка теста">`;
+      }
+
+      // Загрузка вопросов
+      loadQuestions();
+    });
+
+    // Обработчик загрузки обложки
+    const testCoverInput = document.getElementById('test-cover');
+    const coverPreview = document.getElementById('cover-preview');
+    
+    testCoverInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      // Проверяем, является ли файл изображением
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
+      
+      // Если это GIF, загружаем без кадрирования
+      if (file.type === 'image/gif') {
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          coverPreview.innerHTML = `<img src="${event.target.result}" alt="Обложка теста">`;
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+      
+      // Инициализируем модальное окно для кадрирования
+      const modal = document.getElementById('crop-modal');
+      const cropImg = document.getElementById('crop-img');
+      const zoomSlider = document.getElementById('zoom-slider');
+      const closeBtn = document.getElementById('crop-close');
+      const cancelBtn = document.getElementById('crop-cancel');
+      const applyBtn = document.getElementById('crop-apply');
+      
+      let cropper;
+      
+      // Показываем изображение в модальном окне
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        cropImg.src = e.target.result;
+        modal.classList.add('active');
+        
+        // Инициализируем Cropper.js после загрузки изображения
+        setTimeout(() => {
+          cropper = new Cropper(cropImg, {
+            aspectRatio: 16 / 9, // Соотношение сторон для обложки теста
+            viewMode: 1, // Обрезаем по размеру области просмотра
+            guides: true, // Показываем направляющие линии
+            center: true, // Показываем индикатор центра
+            minContainerWidth: 300,
+            minContainerHeight: 150,
+            dragMode: 'move', // Режим перемещения изображения
+            autoCropArea: 0.8, // Размер области кадрирования (0-1)
+            responsive: true,
+            restore: false,
+            checkOrientation: false, // Отключаем автоматическое исправление ориентации
+            background: false, // Отключаем фон области кадрирования
+            ready() {
+              // Настраиваем слайдер масштабирования
+              zoomSlider.value = 0;
+            }
+          });
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+      
+      // Функция для закрытия модального окна
+      function closeModal() {
+        if (cropper) {
+          cropper.destroy();
+          cropper = null;
+        }
+        modal.classList.remove('active');
+        cropImg.src = '';
+        testCoverInput.value = ''; // Сбрасываем значение input, чтобы можно было выбрать тот же файл снова
+      }
+      
+      // Настраиваем слайдер масштабирования
+      zoomSlider.addEventListener('input', function() {
+        if (cropper) {
+          // Преобразуем значение слайдера (0-100) в масштаб (0.5-2)
+          const zoom = 0.5 + (this.value / 100) * 1.5;
+          cropper.zoomTo(zoom);
+        }
+      });
+      
+      // Обработчики событий для кнопок
+      closeBtn.onclick = closeModal;
+      cancelBtn.onclick = closeModal;
+      
+      // Обработчик события для кнопки "Применить"
+      applyBtn.onclick = function() {
+        if (!cropper) {
+          alert('Ошибка: кадрирование не инициализировано');
+          closeModal();
+          return;
+        }
+        
+        // Получаем кадрированное изображение в формате canvas
+        const canvas = cropper.getCroppedCanvas({
+          width: 1280, // Максимальная ширина
+          height: 720, // Максимальная высота
+          minWidth: 640, // Минимальная ширина
+          minHeight: 360, // Минимальная высота
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+        });
+        
+        if (!canvas) {
+          alert('Ошибка: не удалось создать кадрированное изображение');
+          closeModal();
+          return;
+        }
+        
+        // Преобразуем canvas в DataURL для предпросмотра
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        coverPreview.innerHTML = `<img src="${dataUrl}" alt="Обложка теста">`;
+        
+        // Преобразуем canvas в Blob для сохранения
+        canvas.toBlob((blob) => {
+          selectedFile = new File([blob], "cropped-cover.jpg", { type: "image/jpeg" });
+        }, 'image/jpeg', 0.9);
+        
+        // Закрываем модальное окно
+        closeModal();
+      };
+    });
+
+    // Функция загрузки вопросов
+    function loadQuestions() {
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+
+      if (!currentTest.questions || !Array.isArray(currentTest.questions)) {
+        currentTest.questions = [];
+        return;
+      }
+
+      currentTest.questions.forEach((question, index) => {
+        // Убедимся, что вопрос имеет все необходимые свойства
+        if (!question.options) {
+          // Если используется старый формат с answers
+          if (question.answers) {
+            question.options = question.answers.map(answer => answer.text || answer);
+            if (!question.correctAnswer) {
+              // Найдем правильный ответ
+              question.correctAnswer = question.answers.findIndex(answer => answer.isCorrect);
+              if (question.correctAnswer === -1) question.correctAnswer = 0;
+            }
+          } else {
+            // Если нет ни options, ни answers, создаем пустой массив
+            question.options = [''];
+            question.correctAnswer = 0;
+          }
+        }
+        
+        // Создаем элемент вопроса
+        createQuestionElement(question, index, container);
+      });
+    }
+
+    // Функция создания элемента вопроса
+    function createQuestionElement(question, index, container) {
+      const questionDiv = document.createElement('div');
+      questionDiv.className = 'question-builder';
+      questionDiv.dataset.questionIndex = index;
+      
+      questionDiv.innerHTML = `
+        <div class="question-header">
+          <div class="question-number">Вопрос ${index + 1}</div>
+          <button type="button" class="delete-question-btn" title="Удалить вопрос"><i class="fas fa-trash"></i></button>
+        </div>
+        
+        <div class="form-group">
+          <label for="question-text-${index}">Текст вопроса *</label>
+          <input type="text" id="question-text-${index}" class="form-control question-text" value="${question.text || ''}" placeholder="Введите текст вопроса" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Изображение для вопроса (по желанию)</label>
+          <div class="image-preview ${question.imageURL ? 'has-image' : ''}" id="question-image-preview-${index}">
+            ${question.imageURL ? `<img src="${question.imageURL}" alt="Изображение вопроса">
+            <button type="button" class="image-remove-btn" data-question="${index}"><i class="fas fa-times"></i></button>` : '<i class="fas fa-image" style="font-size: 48px; color: #bdbdbd;"></i>'}
+          </div>
+          <label class="image-upload-label">
+            <i class="fas fa-upload"></i>
+            Загрузить изображение
+            <input type="file" class="question-image-input" data-question="${index}" accept="image/*" style="display: none;">
+          </label>
+        </div>
+        
+        <div class="answers-list" id="answers-list-${index}">
+          ${createAnswerItems(question.options, index, question.correctAnswer, question.optionImages)}
+        </div>
+        
+        <button type="button" class="add-answer-btn" data-question="${index}">
+          <i class="fas fa-plus"></i> Добавить вариант ответа
+        </button>
+      `;
+      
+      container.appendChild(questionDiv);
+      
+      // Добавляем обработчики событий
+      addEventListeners(questionDiv, index);
+    }
+
+    // Функция создания элементов ответов
+    function createAnswerItems(options, questionIndex, correctAnswerIndex, optionImages) {
+      let html = '';
+      
+      // Проверяем, является ли correctAnswerIndex массивом для множественного выбора
+      let correctAnswers = Array.isArray(correctAnswerIndex) ? correctAnswerIndex : [correctAnswerIndex];
+      
+      // Инициализация optionImages, если они не переданы
+      if (!optionImages) optionImages = [];
+      
+      options.forEach((option, optionIndex) => {
+        html += `
+          <div class="answer-item">
+            <div class="answer-checkbox">
+              <input type="checkbox" name="answer-correct-${questionIndex}" value="${optionIndex}" class="answer-correct" ${correctAnswers.includes(optionIndex) ? 'checked' : ''}>
+            </div>
+            <div class="answer-text">
+              <input type="text" class="form-control answer-text-input" value="${option}" placeholder="Вариант ответа" required>
+              
+              <div class="answer-image-preview ${optionImages[optionIndex] ? 'has-image' : ''}" id="answer-image-preview-${questionIndex}-${optionIndex}">
+                ${optionImages[optionIndex] ? `<img src="${optionImages[optionIndex]}" alt="Изображение варианта ответа">
+                <button type="button" class="image-remove-btn" data-question="${questionIndex}" data-option="${optionIndex}"><i class="fas fa-times"></i></button>` : ''}
+              </div>
+              <label class="answer-image-upload-label">
+                <i class="fas fa-image"></i>
+                Добавить изображение
+                <input type="file" class="answer-image-input" data-question="${questionIndex}" data-option="${optionIndex}" accept="image/*" style="display: none;">
+              </label>
+            </div>
+            <div class="answer-actions">
+              <button type="button" class="delete-answer-btn" title="Удалить ответ"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+      });
+      
+      return html;
+    }
+
+    // Функция добавления обработчиков событий
+    function addEventListeners(questionDiv, questionIndex) {
+      // Обработчик кнопки "Удалить вопрос"
+      const deleteQuestionBtn = questionDiv.querySelector('.delete-question-btn');
+      deleteQuestionBtn.addEventListener('click', () => {
+        // Проверяем, что останется хотя бы один вопрос
+        if (currentTest.questions.length <= 1) {
+          alert('Должен быть минимум 1 вопрос');
+          return;
+        }
+        
+        currentTest.questions.splice(questionIndex, 1);
+        loadQuestions();
+        
+        // Отмечаем, что есть несохраненные изменения
+        markUnsavedChanges();
+      });
+      
+      // Обработчик кнопки "Добавить вариант ответа"
+      const addAnswerBtn = questionDiv.querySelector('.add-answer-btn');
+      addAnswerBtn.addEventListener('click', () => {
+        addNewAnswerItem(questionIndex);
+      });
+      
+      // Обработчики кнопок "Удалить вариант ответа"
+      const deleteAnswerBtns = questionDiv.querySelectorAll('.delete-answer-btn');
+      deleteAnswerBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          deleteAnswerItem(e, questionIndex);
+        });
+      });
+      
+      // Обработчик загрузки изображения для вопроса
+      const questionImageInput = questionDiv.querySelector('.question-image-input');
+      questionImageInput.addEventListener('change', (e) => {
+        handleImageUpload(e, questionIndex);
+      });
+      
+      // Обработчик удаления изображения для вопроса
+      const removeImageBtn = questionDiv.querySelector('.image-remove-btn');
+      if (removeImageBtn && !removeImageBtn.dataset.option) {
+        removeImageBtn.addEventListener('click', () => {
+          removeQuestionImage(questionIndex);
+        });
+      }
+      
+      // Обработчики загрузки изображений для вариантов ответов
+      const answerImageInputs = questionDiv.querySelectorAll('.answer-image-input');
+      answerImageInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+          handleAnswerImageUpload(e);
+        });
+      });
+      
+      // Обработчики удаления изображений для вариантов ответов
+      const removeAnswerImageBtns = questionDiv.querySelectorAll('.answer-image-preview .image-remove-btn');
+      removeAnswerImageBtns.forEach(btn => {
+        if (btn.dataset.option) {
+          btn.addEventListener('click', () => {
+            const questionIndex = parseInt(btn.dataset.question);
+            const optionIndex = parseInt(btn.dataset.option);
+            removeAnswerImage(questionIndex, optionIndex);
+          });
+        }
+      });
+    }
+    
+    // Функция обработки загрузки изображения для вопроса
+    async function handleImageUpload(event, questionIndex) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Проверяем, является ли файл изображением
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
+      
+      // Если это GIF, загружаем без кадрирования
+      if (file.type === 'image/gif') {
+        uploadImage(file, questionIndex);
+        return;
+      }
+      
+      // Открываем модальное окно для кадрирования
+      openCropModal(file, (croppedFile) => {
+        uploadImage(croppedFile, questionIndex);
+      });
+    }
+    
+    // Функция обработки загрузки изображения для варианта ответа
+    async function handleAnswerImageUpload(event) {
+      const questionIndex = parseInt(event.target.dataset.question);
+      const optionIndex = parseInt(event.target.dataset.option);
+      const file = event.target.files[0];
+      
+      if (!file) return;
+      
+      // Проверяем, является ли файл изображением
+      if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        return;
+      }
+      
+      // Если это GIF, загружаем без кадрирования
+      if (file.type === 'image/gif') {
+        uploadAnswerImage(file, questionIndex, optionIndex);
+        return;
+      }
+      
+      // Открываем модальное окно для кадрирования
+      openCropModal(file, (croppedFile) => {
+        uploadAnswerImage(croppedFile, questionIndex, optionIndex);
+      });
+    }
+    
+    // Функция загрузки изображения для вопроса
+    async function uploadImage(file, questionIndex) {
+      try {
+        const preview = document.getElementById(`question-image-preview-${questionIndex}`);
+        
+        // Создаем предварительный просмотр
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.innerHTML = `
+            <img src="${e.target.result}" alt="Изображение вопроса">
+            <button type="button" class="image-remove-btn" data-question="${questionIndex}"><i class="fas fa-times"></i></button>
+            <div class="upload-progress"></div>
+          `;
+          preview.classList.add('has-image');
+          
+          // Добавляем обработчик для кнопки удаления
+          const removeBtn = preview.querySelector('.image-remove-btn');
+          removeBtn.addEventListener('click', () => {
+            removeQuestionImage(questionIndex);
+          });
+        };
+        reader.readAsDataURL(file);
+        
+        // Устанавливаем файл в память для последующей загрузки при сохранении
+        if (!currentTest.questions[questionIndex].tempImages) {
+          currentTest.questions[questionIndex].tempImages = {};
+        }
+        currentTest.questions[questionIndex].tempImages.question = file;
+        
+        // Отмечаем, что есть несохраненные изменения
+        markUnsavedChanges();
+      } catch (error) {
+        console.error('Ошибка при загрузке изображения:', error);
+        alert('Произошла ошибка при загрузке изображения');
+      }
+    }
+    
+    // Функция загрузки изображения для варианта ответа
+    async function uploadAnswerImage(file, questionIndex, optionIndex) {
+      try {
+        const preview = document.getElementById(`answer-image-preview-${questionIndex}-${optionIndex}`);
+        
+        // Создаем предварительный просмотр
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.innerHTML = `
+            <img src="${e.target.result}" alt="Изображение варианта ответа">
+            <button type="button" class="image-remove-btn" data-question="${questionIndex}" data-option="${optionIndex}"><i class="fas fa-times"></i></button>
+            <div class="upload-progress"></div>
+          `;
+          preview.classList.add('has-image');
+          
+          // Добавляем обработчик для кнопки удаления
+          const removeBtn = preview.querySelector('.image-remove-btn');
+          removeBtn.addEventListener('click', () => {
+            removeAnswerImage(questionIndex, optionIndex);
+          });
+        };
+        reader.readAsDataURL(file);
+        
+        // Устанавливаем файл в память для последующей загрузки при сохранении
+        if (!currentTest.questions[questionIndex].tempImages) {
+          currentTest.questions[questionIndex].tempImages = {};
+        }
+        if (!currentTest.questions[questionIndex].tempImages.options) {
+          currentTest.questions[questionIndex].tempImages.options = {};
+        }
+        currentTest.questions[questionIndex].tempImages.options[optionIndex] = file;
+        
+        // Отмечаем, что есть несохраненные изменения
+        markUnsavedChanges();
+      } catch (error) {
+        console.error('Ошибка при загрузке изображения:', error);
+        alert('Произошла ошибка при загрузке изображения');
+      }
+    }
+    
+    // Функция удаления изображения вопроса
+    function removeQuestionImage(questionIndex) {
+      const preview = document.getElementById(`question-image-preview-${questionIndex}`);
+      preview.innerHTML = '<i class="fas fa-image" style="font-size: 48px; color: #bdbdbd;"></i>';
+      preview.classList.remove('has-image');
+      
+      // Отмечаем изображение как удаленное
+      if (!currentTest.questions[questionIndex].tempImages) {
+        currentTest.questions[questionIndex].tempImages = {};
+      }
+      currentTest.questions[questionIndex].tempImages.questionRemoved = true;
+      
+      // Отмечаем, что есть несохраненные изменения
+      markUnsavedChanges();
+    }
+    
+    // Функция удаления изображения варианта ответа
+    function removeAnswerImage(questionIndex, optionIndex) {
+      const preview = document.getElementById(`answer-image-preview-${questionIndex}-${optionIndex}`);
+      preview.innerHTML = '';
+      preview.classList.remove('has-image');
+      
+      // Отмечаем изображение как удаленное
+      if (!currentTest.questions[questionIndex].tempImages) {
+        currentTest.questions[questionIndex].tempImages = {};
+      }
+      if (!currentTest.questions[questionIndex].tempImages.optionsRemoved) {
+        currentTest.questions[questionIndex].tempImages.optionsRemoved = {};
+      }
+      currentTest.questions[questionIndex].tempImages.optionsRemoved[optionIndex] = true;
+      
+      // Отмечаем, что есть несохраненные изменения
+      markUnsavedChanges();
+    }
+    
+    // Функция открытия модального окна для кадрирования
+    function openCropModal(file, callback) {
+      const modal = document.getElementById('crop-modal');
+      const cropImg = document.getElementById('crop-img');
+      const zoomSlider = document.getElementById('zoom-slider');
+      const closeBtn = document.getElementById('crop-close');
+      const cancelBtn = document.getElementById('crop-cancel');
+      const applyBtn = document.getElementById('crop-apply');
+      
+      let cropper;
+      
+      // Показываем изображение в модальном окне
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        cropImg.src = e.target.result;
+        modal.classList.add('active');
+        
+        // Инициализируем Cropper.js после загрузки изображения
+        setTimeout(() => {
+          cropper = new Cropper(cropImg, {
+            aspectRatio: NaN, // Свободное соотношение сторон для изображений вопросов и ответов
+            viewMode: 1, // Обрезаем по размеру области просмотра
+            guides: true, // Показываем направляющие линии
+            center: true, // Показываем индикатор центра
+            minContainerWidth: 300,
+            minContainerHeight: 150,
+            dragMode: 'move', // Режим перемещения изображения
+            autoCropArea: 0.8, // Размер области кадрирования (0-1)
+            responsive: true,
+            restore: false,
+            checkOrientation: false, // Отключаем автоматическое исправление ориентации
+            background: false, // Отключаем фон области кадрирования
+            ready() {
+              // Настраиваем слайдер масштабирования
+              zoomSlider.value = 0;
+            }
+          });
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+      
+      // Функция для закрытия модального окна
+      function closeModal() {
+        if (cropper) {
+          cropper.destroy();
+          cropper = null;
+        }
+        modal.classList.remove('active');
+        cropImg.src = '';
+      }
+      
+      // Настраиваем слайдер масштабирования
+      zoomSlider.addEventListener('input', function() {
+        if (cropper) {
+          // Преобразуем значение слайдера (0-100) в масштаб (0.5-2)
+          const zoom = 0.5 + (this.value / 100) * 1.5;
+          cropper.zoomTo(zoom);
+        }
+      });
+      
+      // Обработчики событий для кнопок
+      closeBtn.onclick = closeModal;
+      cancelBtn.onclick = closeModal;
+      
+      // Обработчик события для кнопки "Применить"
+      applyBtn.onclick = function() {
+        if (!cropper) {
+          alert('Ошибка: кадрирование не инициализировано');
+          closeModal();
+          return;
+        }
+        
+        // Получаем кадрированное изображение в формате canvas
+        const canvas = cropper.getCroppedCanvas({
+          maxWidth: 1280, // Максимальная ширина
+          maxHeight: 720, // Максимальная высота
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+        });
+        
+        if (!canvas) {
+          alert('Ошибка: не удалось создать кадрированное изображение');
+          closeModal();
+          return;
+        }
+        
+        // Преобразуем canvas в Blob для сохранения
+        canvas.toBlob((blob) => {
+          const croppedFile = new File([blob], "cropped-image.jpg", { type: "image/jpeg" });
+          callback(croppedFile);
+        }, 'image/jpeg', 0.9);
+        
+        // Закрываем модальное окно
+        closeModal();
+      };
+    }
+
+    // Добавление нового вопроса
+    document.getElementById('add-question').addEventListener('click', () => {
+      // Создаем новый вопрос
+      const newQuestion = {
+        text: '',
+        options: ['', ''],
+        correctAnswer: 0
+      };
+      
+      // Добавляем в массив вопросов
+      if (!currentTest.questions) {
+        currentTest.questions = [];
+      }
+      
+      currentTest.questions.push(newQuestion);
+      
+      // Создаем элемент в DOM
+      const container = document.getElementById('questions-container');
+      createQuestionElement(newQuestion, currentTest.questions.length - 1, container);
+    });
+
+    // Сохранение изменений
+    document.getElementById('save-test').addEventListener('click', async () => {
+      try {
+        // Показываем индикатор загрузки
+        const saveBtn = document.getElementById('save-test');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+        
+        // Собираем данные формы
+        const testTitle = document.getElementById('test-title').value.trim();
+        const testDescription = document.getElementById('test-description').value.trim();
+        const testCategory = document.getElementById('test-category').value;
+        
+        // Получаем значения для совместного прохождения и ограничения времени
+        const cooperativeMode = document.getElementById('cooperative-mode').checked;
+        const timeLimit = parseInt(document.getElementById('time-limit').value) || 0;
+        
+        // Получаем значение для показа правильных ответов
+        const showCorrectAnswers = document.getElementById('show-correct-answers').checked;
+        
+        if (!testTitle) {
+          alert('Пожалуйста, введите название теста');
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = 'Сохранить изменения';
+          return;
+        }
+        
+        // Загрузка новой обложки, если выбрана
+        let coverURL = currentTest.coverURL;
+        if (selectedFile) {
+          const coverRef = storageRef(storage, `test-covers/${testId}/${selectedFile.name}`);
+          await uploadBytes(coverRef, selectedFile);
+          coverURL = await getDownloadURL(coverRef);
+        } else if (!currentTest.coverURL) {
+          // Если обложка не выбрана и у теста нет обложки, используем изображение по умолчанию
+          const defaultImageRef = storageRef(storage, 'test-covers/test-cover-default.png');
+          try {
+            coverURL = await getDownloadURL(defaultImageRef);
+          } catch (error) {
+            console.error('Ошибка при получении изображения по умолчанию:', error);
+          }
+        }
+        
+        // Собираем данные вопросов из DOM
+        const questionBuilders = document.querySelectorAll('.question-builder');
+        
+        // Загрузка изображений для вопросов и вариантов ответов
+        const updatedQuestions = [];
+        for (let index = 0; index < questionBuilders.length; index++) {
+          const question = currentTest.questions[index];
+          
+          // Проверяем наличие временных изображений
+          if (question.tempImages) {
+            // Загружаем изображение вопроса, если оно было добавлено
+            if (question.tempImages.question) {
+              const imageFile = question.tempImages.question;
+              const imagePath = `test-questions/${testId}/${index}/question-image.jpg`;
+              const questionImageRef = storageRef(storage, imagePath);
+              
+              await uploadBytes(questionImageRef, imageFile);
+              question.imageURL = await getDownloadURL(questionImageRef);
+            }
+            
+            // Удаляем изображение вопроса, если оно было удалено
+            if (question.tempImages.questionRemoved && question.imageURL) {
+              try {
+                const imageRef = storageRef(storage, question.imageURL);
+                await deleteObject(imageRef);
+                delete question.imageURL;
+              } catch (error) {
+                console.error('Ошибка при удалении изображения вопроса:', error);
+              }
+            }
+            
+            // Загружаем изображения для вариантов ответов
+            if (question.tempImages.options) {
+              if (!question.optionImages) {
+                question.optionImages = [];
+              }
+              
+              for (const [optionIndex, imageFile] of Object.entries(question.tempImages.options)) {
+                const imagePath = `test-questions/${testId}/${index}/options/${optionIndex}.jpg`;
+                const optionImageRef = storageRef(storage, imagePath);
+                
+                await uploadBytes(optionImageRef, imageFile);
+                question.optionImages[optionIndex] = await getDownloadURL(optionImageRef);
+              }
+            }
+            
+            // Удаляем изображения для вариантов ответов, которые были удалены
+            if (question.tempImages.optionsRemoved) {
+              for (const optionIndex of Object.keys(question.tempImages.optionsRemoved)) {
+                if (question.optionImages && question.optionImages[optionIndex]) {
+                  try {
+                    const imageRef = storageRef(storage, question.optionImages[optionIndex]);
+                    await deleteObject(imageRef);
+                    delete question.optionImages[optionIndex];
+                  } catch (error) {
+                    console.error('Ошибка при удалении изображения варианта ответа:', error);
+                  }
+                }
+              }
+            }
+            
+            // Удаляем временные данные
+            delete question.tempImages;
+          }
+          
+          // Обновляем данные вопроса
+          const questionText = questionBuilders[index].querySelector('.question-text').value;
+          if (!questionText) {
+            throw new Error(`Пожалуйста, введите текст вопроса ${index + 1}`);
+          }
+          
+          // Создаем объект вопроса без undefined значений
+          const updatedQuestion = {
+            text: questionText,
+            options: question.options,
+            correctAnswer: question.correctAnswer
+          };
+          
+          // Добавляем свойство imageURL только если оно существует и не undefined
+          if (question.imageURL) {
+            updatedQuestion.imageURL = question.imageURL;
+          }
+          
+          // Добавляем свойство optionImages только если оно существует и не пустое
+          if (question.optionImages && Object.keys(question.optionImages).length > 0) {
+            // Очищаем пустые или undefined значения в массиве optionImages
+            const cleanedOptionImages = {};
+            for (const [key, value] of Object.entries(question.optionImages)) {
+              if (value) {
+                cleanedOptionImages[key] = value;
+              }
+            }
+            
+            if (Object.keys(cleanedOptionImages).length > 0) {
+              updatedQuestion.optionImages = cleanedOptionImages;
+            }
+          }
+          
+          updatedQuestions.push(updatedQuestion);
+        }
+        
+        // Обновляем данные теста
+        const updatedData = {
+          title: testTitle,
+          description: testDescription,
+          coverURL: coverURL,
+          cooperativeMode: cooperativeMode,
+          showCorrectAnswers: showCorrectAnswers,
+          timeLimit: timeLimit,
+          questions: updatedQuestions,
+          category: testCategory,
+          lastEditedAt: Date.now()
+        };
+        
+        // Сохраняем в базу данных
+        const testRef = ref(db, `tests/${testId}`);
+        await update(testRef, updatedData);
+        
+        alert('Тест успешно сохранен');
+        window.location.href = `view-test.html?id=${testId}`;
+      } catch (error) {
+        console.error('Ошибка при сохранении теста:', error);
+        alert(error.message || 'Произошла ошибка при сохранении теста');
+        
+        const saveBtn = document.getElementById('save-test');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = 'Сохранить изменения';
+      }
+    });
+
+    // Отмена редактирования
+    document.getElementById('cancel-edit').addEventListener('click', (event) => {
+      if (hasUnsavedChanges) {
+        if (confirm('У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?')) {
+          window.location.href = `view-test.html?id=${testId}`;
+        }
+      } else {
+        window.location.href = `view-test.html?id=${testId}`;
+      }
+    });
+
+    // Инициализация сайдбара
+    window.addEventListener('load', () => {
+      initializeSidebar();
+    });
+    
+    // Флаг для отслеживания изменений
+    let hasUnsavedChanges = false;
+    
+    // Функция для отметки о наличии несохраненных изменений
+    function markUnsavedChanges() {
+      hasUnsavedChanges = true;
+    }
+    
+    // Добавляем обработчики изменений для полей формы
+    document.getElementById('test-title').addEventListener('input', markUnsavedChanges);
+    document.getElementById('test-description').addEventListener('input', markUnsavedChanges);
+    document.getElementById('cooperative-mode').addEventListener('change', markUnsavedChanges);
+    document.getElementById('show-correct-answers').addEventListener('change', markUnsavedChanges);
+    document.getElementById('time-limit').addEventListener('input', markUnsavedChanges);
+    document.getElementById('test-cover').addEventListener('change', markUnsavedChanges);
+    
+    // Добавляем слушатель на изменения в контейнере вопросов
+    document.getElementById('questions-container').addEventListener('input', markUnsavedChanges);
+    document.getElementById('questions-container').addEventListener('change', markUnsavedChanges);
+    
+    // Добавляем обработчик для кнопки добавления вопроса
+    document.getElementById('add-question').addEventListener('click', markUnsavedChanges);
+    
+    // Сбрасываем флаг при сохранении
+    document.getElementById('save-test').addEventListener('click', () => {
+      hasUnsavedChanges = false;
+    });
+    
+    // Предупреждение при попытке покинуть страницу с несохраненными изменениями
+    window.addEventListener('beforeunload', (event) => {
+      if (hasUnsavedChanges) {
+        event.preventDefault();
+        event.returnValue = 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?';
+        return event.returnValue;
+      }
+    });
+    
+    // Обработчик для кнопки удаления теста
+    document.getElementById('delete-test').addEventListener('click', async () => {
+      // Спрашиваем подтверждение перед удалением
+      if (!confirm('Вы уверены, что хотите удалить этот тест? Это действие нельзя отменить.')) {
+        return;
+      }
+      
+      // Дополнительная защита: просим ввести название теста для подтверждения
+      const testTitle = currentTest.title;
+      const confirmInput = prompt(`Для подтверждения удаления введите название теста: "${testTitle}"`);
+      
+      if (confirmInput !== testTitle) {
+        alert('Название теста введено неверно. Тест не был удален.');
+        return;
+      }
+      
+      try {
+        // Отключаем кнопку для предотвращения повторных нажатий
+        const deleteBtn = document.getElementById('delete-test');
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Удаление...';
+        
+        // Удаляем тест из базы данных
+        const testRef = ref(db, `tests/${testId}`);
+        await remove(testRef);
+        
+        // Удаляем файлы обложки из хранилища
+        try {
+          // Получаем список всех файлов в директории теста
+          const folderRef = storageRef(storage, `test-covers/${testId}`);
+          const dir = await listAll(folderRef);
+          
+          // Удаляем все файлы
+          const deletePromises = dir.items.map(item => deleteObject(item));
+          await Promise.all(deletePromises);
+        } catch (error) {
+          console.error('Ошибка при удалении файлов обложки:', error);
+          // Продолжаем выполнение, даже если не удалось удалить файлы
+        }
+        
+        alert('Тест успешно удален');
+        window.location.href = 'home.html';
+      } catch (error) {
+        console.error('Ошибка при удалении теста:', error);
+        alert('Произошла ошибка при удалении теста. Пожалуйста, попробуйте еще раз.');
+        
+        // Восстанавливаем состояние кнопки
+        const deleteBtn = document.getElementById('delete-test');
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Удалить тест';
+      }
+    });
+
+    // Функция добавления нового варианта ответа
+    function addNewAnswerItem(questionIndex) {
+      const answersList = document.getElementById(`answers-list-${questionIndex}`);
+      const answersCount = answersList.querySelectorAll('.answer-item').length;
+      
+      const answerItem = document.createElement('div');
+      answerItem.className = 'answer-item';
+      answerItem.innerHTML = `
+        <div class="answer-checkbox">
+          <input type="checkbox" name="answer-correct-${questionIndex}" value="${answersCount}" class="answer-correct">
+        </div>
+        <div class="answer-text">
+          <input type="text" class="form-control answer-text-input" placeholder="Вариант ответа" required>
+          
+          <div class="answer-image-preview" id="answer-image-preview-${questionIndex}-${answersCount}">
+          </div>
+          <label class="answer-image-upload-label">
+            <i class="fas fa-image"></i>
+            Добавить изображение
+            <input type="file" class="answer-image-input" data-question="${questionIndex}" data-option="${answersCount}" accept="image/*" style="display: none;">
+          </label>
+        </div>
+        <div class="answer-actions">
+          <button type="button" class="delete-answer-btn" title="Удалить ответ"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+      
+      answersList.appendChild(answerItem);
+      
+      // Добавляем обработчик для новой кнопки удаления
+      const deleteBtn = answerItem.querySelector('.delete-answer-btn');
+      deleteBtn.addEventListener('click', (e) => {
+        deleteAnswerItem(e, questionIndex);
+      });
+      
+      // Добавляем обработчик для загрузки изображений
+      const imageInput = answerItem.querySelector('.answer-image-input');
+      imageInput.addEventListener('change', (e) => {
+        handleAnswerImageUpload(e);
+      });
+      
+      // Обновляем options в объекте вопроса
+      if (!currentTest.questions[questionIndex].options) {
+        currentTest.questions[questionIndex].options = [];
+      }
+      currentTest.questions[questionIndex].options.push('');
+    }
+
+    // Функция удаления варианта ответа
+    function deleteAnswerItem(event, questionIndex) {
+      const answersList = event.currentTarget.closest('.answers-list');
+      const answerItems = answersList.querySelectorAll('.answer-item');
+      
+      if (answerItems.length > 2) {
+        // Находим индекс удаляемого элемента
+        const answerItem = event.currentTarget.closest('.answer-item');
+        const answerIndex = Array.from(answerItems).indexOf(answerItem);
+        
+        // Удаляем из DOM
+        answerItem.remove();
+        
+        // Удаляем из массива options
+        currentTest.questions[questionIndex].options.splice(answerIndex, 1);
+        
+        // Удаляем изображение, если оно есть
+        if (currentTest.questions[questionIndex].optionImages && 
+            currentTest.questions[questionIndex].optionImages[answerIndex]) {
+          if (!currentTest.questions[questionIndex].tempImages) {
+            currentTest.questions[questionIndex].tempImages = {};
+          }
+          if (!currentTest.questions[questionIndex].tempImages.optionsRemoved) {
+            currentTest.questions[questionIndex].tempImages.optionsRemoved = {};
+          }
+          currentTest.questions[questionIndex].tempImages.optionsRemoved[answerIndex] = true;
+        }
+        
+        // Обновляем индексы радиокнопок и изображений
+        const checkboxes = answersList.querySelectorAll('input[type="checkbox"]');
+        const imageInputs = answersList.querySelectorAll('.answer-image-input');
+        const imageRemoveBtns = answersList.querySelectorAll('.image-remove-btn[data-option]');
+        const imagePreviews = answersList.querySelectorAll('.answer-image-preview');
+        
+        // Обновляем индексы и data-атрибуты
+        checkboxes.forEach((checkbox, index) => {
+          checkbox.value = index;
+        });
+        
+        imageInputs.forEach((input, index) => {
+          input.dataset.option = index;
+        });
+        
+        imageRemoveBtns.forEach((btn, index) => {
+          btn.dataset.option = index;
+        });
+        
+        // Обновляем id превью изображений
+        imagePreviews.forEach((preview, index) => {
+          preview.id = `answer-image-preview-${questionIndex}-${index}`;
+        });
+        
+        // Обновляем индексы изображений в массиве optionImages
+        if (currentTest.questions[questionIndex].optionImages) {
+          const newOptionImages = [];
+          for (let i = 0; i < currentTest.questions[questionIndex].optionImages.length; i++) {
+            if (i !== answerIndex && currentTest.questions[questionIndex].optionImages[i]) {
+              newOptionImages[i < answerIndex ? i : i - 1] = currentTest.questions[questionIndex].optionImages[i];
+            }
+          }
+          currentTest.questions[questionIndex].optionImages = newOptionImages;
+        }
+        
+        // Обновляем индексы временных изображений
+        if (currentTest.questions[questionIndex].tempImages && 
+            currentTest.questions[questionIndex].tempImages.options) {
+          const newTempOptions = {};
+          for (const [key, value] of Object.entries(currentTest.questions[questionIndex].tempImages.options)) {
+            if (parseInt(key) !== answerIndex) {
+              newTempOptions[key < answerIndex ? key : key - 1] = value;
+            }
+          }
+          currentTest.questions[questionIndex].tempImages.options = newTempOptions;
+        }
+        
+        // Проверяем, если удаляемый ответ был отмечен как правильный
+        if (currentTest.questions[questionIndex].correctAnswer === answerIndex) {
+          currentTest.questions[questionIndex].correctAnswer = 0;
+          if (checkboxes.length > 0) {
+            checkboxes[0].checked = true;
+          }
+        } else if (currentTest.questions[questionIndex].correctAnswer > answerIndex) {
+          currentTest.questions[questionIndex].correctAnswer--;
+        } else if (Array.isArray(currentTest.questions[questionIndex].correctAnswer)) {
+          // Обрабатываем множественный выбор
+          currentTest.questions[questionIndex].correctAnswer = currentTest.questions[questionIndex].correctAnswer
+            .filter(idx => idx !== answerIndex)
+            .map(idx => idx > answerIndex ? idx - 1 : idx);
+        }
+        
+        // Отмечаем, что есть несохраненные изменения
+        markUnsavedChanges();
+      } else {
+        alert('Должно быть минимум 2 варианта ответа');
+      }
+    }
+
+    // Переключение между вертикальным и горизонтальным расположением карточек с вопросами
+    const layoutOptions = document.querySelectorAll('input[name="layout"]');
+    const container = document.getElementById('questions-container');
+    
+    // Установка начального класса для контейнера вопросов
+    container.classList.add('vertical');
+    
+    // Обработчик изменения расположения
+    layoutOptions.forEach(option => {
+      option.addEventListener('change', (e) => {
+        if (e.target.value === 'vertical') {
+          container.classList.remove('horizontal');
+          container.classList.add('vertical');
+          // Сохраняем выбор в localStorage
+          localStorage.setItem('questionsLayout', 'vertical');
+        } else {
+          container.classList.remove('vertical');
+          container.classList.add('horizontal');
+          // Сохраняем выбор в localStorage
+          localStorage.setItem('questionsLayout', 'horizontal');
+        }
+      });
+    });
+    
+    // Загружаем сохраненное расположение из localStorage при загрузке страницы
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedLayout = localStorage.getItem('questionsLayout');
+      if (savedLayout === 'horizontal') {
+        document.querySelector('input[name="layout"][value="horizontal"]').checked = true;
+        container.classList.remove('vertical');
+        container.classList.add('horizontal');
+      }
+    });
+
+    // Обновляем иконку категории при загрузке и изменении
+    function updateCategoryIcon() {
+      const categorySelect = document.getElementById('test-category');
+      const selectedIcon = document.querySelector('.selected-option-icon i');
+      
+      if (categorySelect && selectedIcon) {
+        const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+        const iconClass = selectedOption.getAttribute('data-icon');
+        selectedIcon.className = iconClass;
+      }
+    }
+    
+    // Добавляем обработчик изменения категории
+    document.getElementById('test-category').addEventListener('change', updateCategoryIcon);
+    
+    // После загрузки всей страницы
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedLayout = localStorage.getItem('questionsLayout');
+      if (savedLayout === 'horizontal') {
+        document.querySelector('input[name="layout"][value="horizontal"]').checked = true;
+        container.classList.remove('vertical');
+        container.classList.add('horizontal');
+      }
+      
+      // Обновляем иконку категории при загрузке данных
+      setTimeout(updateCategoryIcon, 500);
+    });
+  </script>
+</body>
+
+<!-- Модальное окно для кадрирования изображения -->
+<div class="crop-modal" id="crop-modal">
+  <div class="crop-container">
+    <div class="crop-header">
+      <div class="crop-title">Настройка изображения</div>
+      <button class="crop-close" id="crop-close">&times;</button>
+    </div>
+    <div class="crop-area">
+      <img src="" alt="Изображение для обложки" id="crop-img" class="crop-img">
+    </div>
+    <div class="crop-controls">
+      <div class="crop-zoom">
+        <i class="fas fa-search-minus"></i>
+        <input type="range" id="zoom-slider" class="zoom-slider" min="0" max="100" value="0">
+        <i class="fas fa-search-plus"></i>
+      </div>
+      <div class="crop-actions">
+        <button class="crop-btn cancel" id="crop-cancel">Отмена</button>
+        <button class="crop-btn apply" id="crop-apply">Применить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</html> 
