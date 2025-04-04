@@ -2191,6 +2191,36 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   position: relative;
 }
 
+.reset-header h2 {
+  margin: 0 auto;
+  text-align: center;
+  flex-grow: 1;
+}
+
+.reset-header .back-button {
+  position: relative;
+  top: auto;
+  left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  color: var(--primary-color);
+  z-index: 1;
+}
+
+.reset-header .back-button svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s;
+}
+
+.reset-header .back-button:hover svg {
+  transform: translateX(-4px);
+}
+
 /* Стили для блока фильтров */
 .filters-container {
   background-color: var(--card-background);
