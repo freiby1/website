@@ -7,7 +7,7 @@
 	<title>Главная страница</title>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
 	<link rel="stylesheet" href="styles.css">
-	<link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
+	<link rel="preload" href="./sidebar_old.js" as="script" crossorigin="anonymous">
 	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script"
 		crossorigin="anonymous">
 	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script"
@@ -558,73 +558,1683 @@
 				width: 100%;
 			}
 		}
-	</style>
 
-	<style>		
-		.filters-container .filters-options .filter-option {
-			position: relative;
-			padding-left: 30px;
-			margin-bottom: 5px;
-			cursor: pointer;
-			font-size: 16px;
-			user-select: none;
+		/* Стили для новой структуры постов */
+		.post-info {
+			display: flex;
+			flex-direction: column;
+			flex-grow: 1;
+			margin-left: 10px;
+		}
+		
+		.post-info-top {
 			display: flex;
 			align-items: center;
+			margin-bottom: 5px;
 		}
 		
-		.filters-container .filter-option input {
-			position: absolute;
-			opacity: 0;
+		.post-group-name {
+			font-weight: bold;
+			font-size: 1.1em;
+			margin-right: 6px;
+		}
+		
+		.post-author-name {
+			font-size: 0.9em;
+			color: #666;
+		}
+		
+		.post-date {
+			font-size: 0.8em;
+			color: #777;
+		}
+		
+		/* Стили для кнопок действий */
+		.post-actions {
+			display: flex;
+			flex-wrap: wrap;
+			padding: 10px 0;
+			border-top: 1px solid #eee;
+			margin-top: 10px;
+		}
+		
+		.post-action-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background-color: #f5f5f5;
+			border: none;
+			color: #555;
+			font-size: 14px;
+			padding: 8px 12px;
+			margin-right: 15px;
 			cursor: pointer;
-			height: 0;
-			width: 0;
+			transition: all 0.2s ease;
+			border-radius: 20px;
+			min-width: 70px;
+			text-align: center;
 		}
 		
-		.filters-container .filter-option .checkmark {
-			position: absolute;
-			top: 50%;
-			left: 0;
-			transform: translateY(-50%);
-			height: 18px;
-			width: 18px;
-			background-color: #fff;
-			border: 2px solid #ddd;
-			border-radius: 3px;
-		}
-		
-		.dark-mode .filters-container .filter-option .checkmark {
+		.dark-mode .post-action-btn {
 			background-color: #333;
-			border-color: #555;
+			color: #ccc;
 		}
 		
-		.filters-container .filter-option:hover input ~ .checkmark {
-			border-color: #4a6ee0;
+		.post-action-btn:hover {
+			background-color: #e9e9e9;
+			transform: translateY(-2px);
 		}
 		
-		.filters-container .filter-option input:checked ~ .checkmark {
-			background-color: #4a6ee0;
-			border-color: #4a6ee0;
+		.dark-mode .post-action-btn:hover {
+			background-color: #444;
 		}
 		
-		.filters-container .filter-option .checkmark:after {
-			content: "";
-			position: absolute;
+		.post-action-btn.active {
+			background-color: #e6f2ff;
+			color: #3b5998;
+		}
+		
+		.dark-mode .post-action-btn.active {
+			background-color: #2a3f5f;
+			color: #88a4d9;
+		}
+		
+		.post-action-btn i {
+			margin-right: 5px;
+			font-size: 16px;
+		}
+		
+		.like-btn.active i {
+			color: #3b5998;
+		}
+		
+		.dislike-btn.active i {
+			color: #e74c3c;
+		}
+		
+		.dark-mode .like-btn.active i {
+			color: #88a4d9;
+		}
+		
+		.dark-mode .dislike-btn.active i {
+			color: #e57373;
+		}
+		
+		.view-post-link {
+			margin-left: auto;
+			text-decoration: none;
+			color: #555;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background-color: #f5f5f5;
+			padding: 8px 12px;
+			border-radius: 20px;
+			transition: all 0.2s ease;
+			font-size: 14px;
+		}
+		
+		.dark-mode .view-post-link {
+			background-color: #333;
+			color: #ccc;
+		}
+		
+		.view-post-link:hover {
+			background-color: #e9e9e9;
+			transform: translateY(-2px);
+		}
+		
+		.dark-mode .view-post-link:hover {
+			background-color: #444;
+		}
+		
+		.view-post-link i {
+			margin-left: 5px;
+		}
+		
+		.loading-indicator {
+			text-align: center;
+			padding: 30px 0;
+			color: #888;
+			font-size: 16px;
+		}
+
+		.dark-mode .loading-indicator {
+			color: #999;
+		}
+
+		.loading-indicator i {
+			margin-right: 10px;
+			animation: spin 1s linear infinite;
+		}
+
+		@keyframes spin {
+			0% {
+				transform: rotate(0deg);
+			}
+			100% {
+				transform: rotate(360deg);
+			}
+		}
+
+		.no-posts-message {
+			text-align: center;
+			padding: 40px 20px;
+			color: #888;
+			font-size: 16px;
+			background-color: #f8f8f8;
+			border-radius: 10px;
+			margin: 20px 0;
+		}
+
+		.dark-mode .no-posts-message {
+			color: #999;
+			background-color: #333;
+		}
+
+		.no-posts-message i {
+			font-size: 48px;
+			margin-bottom: 15px;
+			color: #ddd;
+		}
+
+		.dark-mode .no-posts-message i {
+			color: #555;
+		}
+
+		/* Адаптивность для мобильных устройств */
+		@media screen and (max-width: 600px) {
+			.news-feed-container {
+				padding: 0 15px;
+			}
+			
+			.news-post-item {
+				padding: 15px;
+			}
+			
+			.post-images {
+				grid-template-columns: repeat(2, 1fr);
+			}
+			
+			.post-images.count-3, 
+			.post-images.count-4 {
+				grid-template-columns: repeat(2, 1fr);
+			}
+		}
+
+		/* Стиль для счетчика постов */
+		.posts-count-message {
+			text-align: center;
+			padding: 15px;
+			margin-top: 10px;
+			color: #666;
+			font-size: 14px;
+			background-color: #f8f8f8;
+			border-radius: 8px;
+		}
+
+		.dark-mode .posts-count-message {
+			color: #aaa;
+			background-color: #333;
+		}
+
+		/* Стили для контейнера комментариев */
+		.post-comments-container {
+			margin-top: 10px;
+			background-color: #f9f9f9;
+			border-radius: 8px;
+			padding: 8px;
+			width: 100%;
+			box-sizing: border-box;
+			overflow-x: hidden;
+		}
+
+		.dark-mode .post-comments-container {
+			background-color: #333;
+			border: 1px solid #444;
+		}
+
+		.comments-list {
+			max-height: 300px;
+			overflow-y: auto;
+			overflow-x: hidden;
+			margin-bottom: 10px;
+			gap: 0px;
+			width: 100%;
+		}
+
+		.no-comments, .loading-comments, .error-loading-comments {
+			text-align: center;
+			padding: 15px;
+			color: #777;
+			font-style: italic;
+		}
+
+		/* Стиль для элементов комментариев */
+		.comment-item {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: flex-start;
+			padding: 8px 0;
+			border-bottom: 1px solid #f0f0f0;
+			margin-bottom: 8px;
+			width: 100%;
+			box-sizing: border-box;
+			overflow-wrap: break-word;
+			word-wrap: break-word;
+			word-break: break-word;
+		}
+
+		.dark-mode .comment-item {
+			border-bottom-color: #333;
+		}
+
+		.comment-author-avatar {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			overflow: hidden;
+			margin-right: 10px;
+			flex-shrink: 0;
+			cursor: pointer; /* Добавляем указатель для показа кликабельности */
+		}
+		
+		.comment-author-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		
+		.comment-content-wrapper {
+			flex: 1;
+			min-width: 0;
+			max-width: calc(100% - 50px);
+			box-sizing: border-box;
+		}
+		
+		.comment-text {
+			margin-top: 4px;
+			word-break: break-word;
+			max-width: 100%;
+			box-sizing: border-box;
+		}
+
+		.comment-author-name {
+			font-weight: 500;
+			font-size: 0.9em;
+			color: #333;
+			display: block;
+			margin-bottom: 0;
+			cursor: pointer; /* Добавляем указатель для показа кликабельности */
+		}
+
+		.dark-mode .comment-author-name {
+			color: #e0e0e0;
+		}
+
+		.comment-date {
+			font-size: 0.75em;
+			color: #888;
+			display: block;
+			margin-bottom: 2px;
+		}
+
+
+		/* Стили для вложенных комментариев */
+		.comment-replies {
+			margin-left: 40px;
+			padding-left: 10px;
+			border-left: 2px solid transparent;
+			margin-top: 10px;
+			margin-bottom: 10px;
+			width: calc(100% - 50px);
+			box-sizing: border-box;
+			position: relative;
+		}
+		
+		.dark-mode .comment-replies {
+			border-left-color: transparent;
+		}
+		
+		/* Стили для формы ответа на комментарий */
+		.reply-form {
+			margin-top: 10px;
 			display: none;
-			left: 5px;
-			top: 1px;
-			width: 4px;
-			height: 9px;
-			border: solid white;
-			border-width: 0 2px 2px 0;
-			transform: rotate(45deg);
+			flex-direction: row;
+			align-items: flex-start;
+			width: 100%;
+			box-sizing: border-box;
+			gap: 10px;
 		}
 		
-		.filters-container .filter-option input:checked ~ .checkmark:after {
+		.reply-form.active {
+			display: flex;
+		}
+		
+		.reply-form .comment-form-avatar {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			flex-shrink: 0;
+		}
+		
+		.reply-form .comment-form-content {
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+			width: calc(100% - 50px);
+			box-sizing: border-box;
+		}
+		
+		.comment-reply-input {
+			padding: 10px;
+			border: 1px solid #ddd;
+			resize: vertical;
+			min-height: 60px;
+			margin-bottom: 10px;
+			width: 100%;
+			box-sizing: border-box;
+		}
+		
+		.dark-mode .comment-reply-input {
+			background-color: #444;
+			border-color: #555;
+			color: #eee;
+		}
+		
+		.reply-form-buttons {
+			display: flex;
+			justify-content: flex-end;
+			gap: 10px;
+			margin-top: 5px;
+		}
+		
+		.reply-form-button {
+			padding: 8px 15px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 14px;
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			transition: all 0.2s ease;
+		}
+		
+		.reply-form-button.cancel-reply-btn {
+			background-color: #f0f0f0;
+			color: #555;
+		}
+		
+		.dark-mode .reply-form-button.cancel-reply-btn {
+			background-color: #444;
+			color: #ddd;
+		}
+		
+		.reply-form-button.submit-reply-btn {
+			background-color: #4a6ee0;
+			color: white;
+		}
+		
+		.reply-form-button:hover {
+			opacity: 0.9;
+			transform: translateY(-2px);
+		}
+		
+		.reply-form-button:active {
+			transform: translateY(0);
+		}
+
+		/* Адаптивные стили для мобильных устройств */
+		@media screen and (max-width: 600px) {
+			.news-feed-container {
+				padding: 0 10px;
+			}
+			
+			.news-post-item {
+				padding: 15px;
+			}
+			
+			.comment-replies {
+				margin-left: 20px;
+				padding-left: 5px;
+				width: calc(100% - 25px);
+			}
+			
+			.comment-content-wrapper {
+				max-width: calc(100% - 40px);
+			}
+			
+			.home-comment-actions {
+				margin-left: 40px;
+			}
+		}
+
+		/* Стили для ленты новостей */
+		.news-feed-container {
+			max-width: 800px;
+			width: 100%;
+			margin: 30px auto;
+			padding: 0 20px;
+			box-sizing: border-box;
+			overflow-x: hidden;
+		}
+
+		.news-feed-container h2 {
+			margin-bottom: 20px;
+			font-size: 24px;
+			color: #333;
+			border-bottom: 1px solid #eee;
+			padding-bottom: 10px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-wrap: wrap;
+		}
+
+		.dark-mode .news-feed-container h2 {
+			color: #f5f5f5;
+			border-bottom-color: #444;
+		}
+
+		.news-posts-list {
+			display: flex;
+			flex-direction: column;
+			gap: 20px;
+			width: 100%;
+		}
+
+		.news-post-item {
+			background-color: #fff;
+			border-radius: 10px;
+			padding: 20px;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+			transition: transform 0.2s ease, box-shadow 0.2s ease;
+			width: 100%;
+			box-sizing: border-box;
+			overflow-wrap: break-word;
+			word-wrap: break-word;
+			word-break: break-word;
+		}
+
+		.dark-mode .news-post-item {
+			background-color: #2d2d2d;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+		}
+
+		.dark-mode .news-post-item:hover {
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+		}
+
+		.post-header {
+			display: flex;
+			align-items: center;
+			margin-bottom: 15px;
+		}
+
+		.post-group-info {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 5px;
+		}
+
+		.post-group-avatar {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			overflow: hidden;
+			background-color: #eee;
+		}
+
+		.dark-mode .post-group-avatar {
+			background-color: #3d3d3d;
+		}
+
+		.post-group-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.post-group-name {
+			font-weight: 600;
+			color: #333;
+			font-size: 16px;
+		}
+
+		.dark-mode .post-group-name {
+			color: #f5f5f5;
+		}
+
+		.post-author-name {
+			color: #555;
+			font-size: 14px;
+		}
+
+		.dark-mode .post-author-name {
+			color: #bbb;
+		}
+
+		.post-date {
+			font-size: 12px;
+			color: #888;
+		}
+
+		.dark-mode .post-date {
+			color: #999;
+		}
+
+		.post-content {
+			margin-bottom: 15px;
+			color: #333;
+			line-height: 1.5;
+			font-size: 15px;
+		}
+
+		.dark-mode .post-content {
+			color: #ddd;
+		}
+
+		.post-images {
+			margin: 10px 0;
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+			grid-gap: 5px;
+			margin-bottom: 15px;
+		}
+
+		.post-images.count-1 {
+			grid-template-columns: minmax(0, 100%);
+		}
+
+		.post-images.count-2 {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.post-images.count-3 {
+			grid-template-columns: repeat(3, 1fr);
+		}
+
+		.post-image-item {
+			position: relative;
+			overflow: hidden;
+			border-radius: 8px;
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+			aspect-ratio: 1;
+		}
+
+		.post-image-item img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			transition: transform 0.3s ease;
+			cursor: pointer;
+		}
+
+		.post-image-item:hover img {
+			transform: scale(1.05);
+		}
+
+		.dark-mode .post-image-item {
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+		}
+
+		.post-actions {
+			display: flex;
+			align-items: center;
+			flex-wrap: wrap;
+			border-top: 1px solid #eee;
+			padding-top: 15px;
+			color: #666;
+		}
+
+		.dark-mode .post-actions {
+			border-top-color: #444;
+		}
+
+		/* Стили для темного режима комментариев */
+		.dark-mode .post-comments-container {
+			background-color: #333;
+			border: 1px solid #444;
+		}
+
+		.dark-mode .comment-item {
+			border-bottom-color: #444;
+		}
+
+		.dark-mode .comment-author-avatar {
+			background-color: #444;
+		}
+
+		.dark-mode .comment-author-name {
+			color: #eee;
+		}
+
+		.dark-mode .comment-text {
+			color: #ddd;
+		}
+
+		.dark-mode .comment-date {
+			color: #888;
+		}
+
+		.dark-mode .no-comments, 
+		.dark-mode .loading-comments, 
+		.dark-mode .error-loading-comments {
+			color: #999;
+		}
+
+		.dark-mode .comment-submit-btn {
+			background-color: #4a6ee0;
+		}
+
+		.dark-mode .comment-submit-btn:hover {
+			background-color: #3a5ecc;
+		}
+
+		/* Обновленные стили для кнопок действий */
+		.debug-button {
+			background-color: #4a76a8;
+			color: white;
+			border: none;
+			border-radius: 4px;
+			padding: 5px 10px;
+			font-size: 14px;
+			cursor: pointer;
+			transition: background-color 0.2s ease;
+			margin-left: 10px;
+		}
+
+		.debug-button:hover {
+			background-color: #3b6798;
+		}
+
+		.dark-mode .debug-button {
+			background-color: #3d5c85;
+		}
+
+		.dark-mode .debug-button:hover {
+			background-color: #2c4b72;
+		}
+
+		/* Стили для контейнера с последним комментарием */
+		.last-comment-container {
+			margin-top: 10px;
+			padding: 8px;
+			background-color: #f9f9f9;
+			border-radius: 8px;
+			display: none;
+		}
+
+		.dark-mode .last-comment-container {
+			background-color: #333;
+			border: 1px solid #444;
+		}
+
+		.last-comment {
+			display: flex;
+			align-items: flex-start;
+			margin-bottom: 6px;
+		}
+
+		.last-comment-avatar {
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			margin-right: 10px;
+			overflow: hidden;
+			flex-shrink: 0;
+		}
+
+		.last-comment-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.last-comment-content {
+			flex: 1;
+			min-width: 0; /* Для правильной работы переносов текста */
+		}
+
+		.last-comment-header {
+			margin-bottom: 2px;
+		}
+
+		.last-comment-author {
+			font-weight: 500;
+			font-size: 0.9em;
+			color: #333;
+			display: block;
+			margin-bottom: 0;
+		}
+
+		.dark-mode .last-comment-author {
+			color: #e0e0e0;
+		}
+
+		.last-comment-date {
+			font-size: 0.75em;
+			color: #888;
+			display: block;
+			margin-bottom: 2px;
+		}
+
+		.last-comment-text {
+			font-size: 0.9em;
+			margin-bottom: 4px;
+			word-wrap: break-word;
+			overflow-wrap: break-word;
+		}
+
+		.view-all-comments {
+			background-color: #f0f0f0;
+			border: none;
+			border-radius: 4px;
+			padding: 5px 10px;
+			font-size: 0.9em;
+			color: #555;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			display: block;
+			width: 100%;
+			text-align: center;
+		}
+
+		.dark-mode .view-all-comments {
+			background-color: #444;
+			color: #ddd;
+		}
+
+		.view-all-comments:hover {
+			background-color: #e0e0e0;
+		}
+
+		.dark-mode .view-all-comments:hover {
+			background-color: #555;
+		}
+
+		/* Стили для кнопки "Скрыть все комментарии" */
+		.hide-all-comments {
+			background-color: #f0f0f0;
+			border: none;
+			border-radius: 4px;
+			padding: 5px 10px;
+			font-size: 0.9em;
+			color: #555;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			display: block;
+			width: 100%;
+			text-align: center;
+			margin-top: 10px;
+		}
+
+		.dark-mode .hide-all-comments {
+			background-color: #444;
+			color: #ddd;
+		}
+
+		.hide-all-comments:hover {
+			background-color: #e0e0e0;
+		}
+
+		.dark-mode .hide-all-comments:hover {
+			background-color: #555;
+		}
+		
+		/* Новые стили для кнопок действий с комментариями */
+		.home-comment-actions {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			width: calc(100% - 50px);
+			box-sizing: border-box;
+			flex-wrap: wrap;
+		}
+		
+		/* Форма ответа на комментарий */
+		.comment-reply-form {
+			margin-top: 8px;
+			margin-left: 50px; /* Выравнивание с текстом комментария */
+			padding-left: 0;
+			display: none;
+			width: calc(100% - 50px);
+			box-sizing: border-box;
+		}
+		
+		.comment-reply-form.active {
 			display: block;
 		}
 		
-		.filters-container .filter-label {
+		.reply-form-buttons {
+			display: flex;
+			justify-content: flex-end;
+			margin-top: 5px;
+			gap: 10px;
+			flex-wrap: wrap;
+		}
+		
+		/* Стиль для информации об ответе */
+		.reply-info {
+			font-size: 12px;
+			color: #777;
+			margin-bottom: 4px;
+			padding: 3px 6px;
+			background-color: #f8f8f8;
+			border-radius: 4px;
+			display: inline-block;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			max-width: 100%;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			box-sizing: border-box;
+		}
+		
+		/* Контейнер последнего комментария */
+		.last-comment-container {
+			margin-top: 10px;
+			padding: 8px;
+			background-color: #f9f9f9;
+			border-radius: 8px;
+			display: none;
+			width: 100%;
+			box-sizing: border-box;
+			overflow: hidden;
+		}
+		
+		.last-comment {
+			display: flex;
+			align-items: flex-start;
+			margin-bottom: 6px;
+			width: 100%;
+			box-sizing: border-box;
+		}
+		
+		.last-comment-content {
+			flex: 1;
+			min-width: 0;
+			max-width: calc(100% - 42px);
+			box-sizing: border-box;
+			overflow-wrap: break-word;
+			word-wrap: break-word;
+			word-break: break-word;
+		}
+		
+		.last-comment-text {
+			font-size: 0.9em;
+			margin-bottom: 4px;
+			word-wrap: break-word;
+			overflow-wrap: break-word;
+			max-width: 100%;
+		}
+		
+		.home-comment-action-btn {
+			display: flex;
+			align-items: center;
+			background: none;
+			border: none;
+			color: #666;
+			padding: 0;
+			font-size: 12px;
+			cursor: pointer;
+			transition: color 0.2s ease;
+		}
+		
+		.home-comment-action-btn i {
+			margin-right: 4px;
+		}
+		
+		.home-comment-action-btn:hover {
+			color: #4a6ee0;
+		}
+		
+		.dark-mode .home-comment-action-btn {
+			color: #aaa;
+		}
+		
+		.dark-mode .home-comment-action-btn:hover {
+			color: #6b8ff7;
+		}
+		
+		.home-comment-action-btn.delete-comment-btn:hover {
+			color: #e74c3c !important;
+		}
+		
+		.dark-mode .home-comment-action-btn.delete-comment-btn:hover {
+			color: #e57373 !important;
+		}
+		
+		.dark-mode .comment-reply-input {
+			background-color: #333;
+			border-color: #444;
+			color: #eee;
+		}
+		
+		.dark-mode .cancel-reply-btn {
+			background-color: #444;
+			color: #eee;
+		}
+		
+		.dark-mode .cancel-reply-btn:hover {
+			background-color: #555;
+		}
+		
+		/* Стили для вложенных комментариев */
+		.comment-replies {
+			margin-left: 40px;
+			padding-left: 10px;
+			border-left: 2px solid transparent;
+			margin-top: 10px;
+			margin-bottom: 10px;
+			width: calc(100% - 50px);
+			box-sizing: border-box;
+			position: relative;
+		}
+		
+		.dark-mode .comment-replies {
+			border-left-color: transparent;
+		}
+		
+		.reply-author {
+			font-weight: 500;
+			color: #4a6ee0;
+		}
+		
+		.reply-info-divider {
+			margin: 0 5px;
+			opacity: 0.5;
+		}
+		
+		.dark-mode .reply-info {
+			color: #999;
+			background-color: #333;
+		}
+		
+		.dark-mode .reply-info:hover {
+			background-color: #444;
+		}
+		
+		.dark-mode .reply-author {
+			color: #6b8ff7;
+		}
+		
+		/* Стиль для подсветки комментария */
+		.comment-item.highlighted {
+			animation: highlight-comment 2s ease;
+		}
+		
+		@keyframes highlight-comment {
+			0%, 100% {
+				background-color: transparent;
+			}
+			50% {
+				background-color: rgba(74, 110, 224, 0.1);
+			}
+		}
+		
+		/* Стили для скрытых ответов */
+		.hidden-replies {
+			overflow: hidden;
+			max-height: 0;
+			opacity: 0;
+			transition: max-height 0.5s ease-in, opacity 0.3s ease-in;
+		}
+		
+		.hidden-replies.expanded {
+			max-height: none;
+			opacity: 1;
+			transition: max-height 0.5s ease-out, opacity 0.3s ease-out;
+			border-left: 1px solid #eee;
+			margin-left: 0;
+			padding-left: 10px;
+		}
+		
+		.dark-mode .hidden-replies.expanded {
+			border-left-color: #444;
+		}
+		
+		/* Стили для кнопки "Показать ответы" */
+		.show-more-replies {
+			margin-top: 0.5rem;
+			margin-bottom: 0.5rem;
+			padding: 0.25rem 0.5rem;
+			font-size: 0.85em;
+			background: #f5f5f5;
+			color: #4a76a8;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 250px;
+			transition: background-color 0.2s;
+		}
+		
+		.show-more-replies:hover {
+			background: rgba(0, 0, 0, 0.03);
+		}
+		
+		.show-more-replies i {
+			margin-right: 0.5rem;
+		}
+		
+		.dark-mode .show-more-replies {
+			background: #333;
+			color: #5a86b8;
+			border-color: #444;
+		}
+		
+		.dark-mode .show-more-replies:hover {
+			background: #444;
+		}
+		
+		.reply-to-user {
+			font-weight: 500;
+			color: #4a6ee0;
+			cursor: pointer;
+		}
+		
+		.dark-mode .reply-info {
+			color: #999;
+		}
+		
+		.dark-mode .reply-to-user {
+			color: #6b8ff7;
+		}
+		
+		/* Стили для кнопок голосования комментариев */
+		.votes-actions-container {
+			display: flex;
+			align-items: center;
+			width: 100%;
+			flex-wrap: nowrap;
+			gap: 5px;
+			margin-top: 8px;
+		}
+		
+		.home-comment-votes {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			flex-shrink: 0;
+		}
+		
+		.home-comment-actions {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			flex-shrink: 0;
+		}
+		
+		/* Адаптивный дизайн для мобильных устройств */
+		@media screen and (max-width: 480px) {
+			.votes-actions-container {
+				flex-wrap: nowrap;
+				width: 100%;
+				justify-content: flex-start;
+			}
+			
+			.home-comment-actions {
+				margin-left: 15px;
+			}
+		}
+		
+		.home-comment-vote-btn {
+			background: none;
+			border: none;
+			color: #666;
+			font-size: 12px;
+			padding: 4px 8px;
+			cursor: pointer;
+			border-radius: 4px;
+			transition: all 0.2s ease;
+			display: inline-flex;
+			align-items: center;
+		}
+		
+		.home-comment-vote-btn i {
+			margin-right: 4px;
 			font-size: 14px;
+		}
+		
+		.home-comment-vote-btn.like:hover {
+			color: #4a6ee0;
+			background-color: rgba(74, 110, 224, 0.1);
+		}
+		
+		.home-comment-vote-btn.dislike:hover {
+			color: #e74c3c;
+			background-color: rgba(231, 76, 60, 0.1);
+		}
+		
+		.home-comment-vote-btn.like.active {
+			color: #4a6ee0;
+		}
+		
+		.home-comment-vote-btn.dislike.active {
+			color: #e74c3c;
+		}
+		
+		.dark-mode .home-comment-vote-btn {
+			color: #aaa;
+		}
+		
+		.dark-mode .home-comment-vote-btn.like:hover,
+		.dark-mode .home-comment-vote-btn.like.active {
+			color: #6b8ff7;
+			background-color: rgba(107, 143, 247, 0.1);
+		}
+		
+		.dark-mode .home-comment-vote-btn.dislike:hover,
+		.dark-mode .home-comment-vote-btn.dislike.active {
+			color: #e57373;
+			background-color: rgba(229, 115, 115, 0.1);
+		}
+		
+		.vote-count {
+			font-size: 12px;
+		}
+		
+		.comment-content-wrapper {
+			flex: 1;
+			min-width: 0;
+			max-width: calc(100% - 50px);
+			box-sizing: border-box;
+			display: flex;
+			flex-direction: column;
+		}
+		
+		.home-author-like-container {
+			display: inline-flex;
+			align-items: center;
+			margin-left: 5px;
+		}
+		
+		.author-like {
+			display: inline-flex;
+			align-items: center;
+			color: #f44336;
+			font-size: 12px;
+		}
+		
+		.author-like i {
+			margin-right: 3px;
+		}
+		
+		.author-like-avatar {
+			width: 16px;
+			height: 16px;
+			border-radius: 50%;
+			object-fit: cover;
+		}
+		
+		.comment-vote-count {
+			font-size: 12px;
+		}
+
+		/* Стили для модального окна с изображениями */
+		.image-modal {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			z-index: 999999;
+			display: none;
+			background-color: rgba(0, 0, 0, 0.9);
+		}
+
+		.image-modal.active {
+			display: block;
+		}
+
+		.modal-container {
+			position: relative;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.modal-content {
+			position: relative;
+			max-width: 90vw;
+			max-height: 90vh;
+			margin: 0 auto;
+			text-align: center;
+			margin-top: 5vh;
+		}
+
+		.modal-image {
+			max-width: 100%;
+			max-height: 80vh;
+			border-radius: 8px;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+			transition: opacity 0.3s ease;
+		}
+
+		.modal-close-btn {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			width: 40px;
+			height: 40px;
+			background-color: rgba(0, 0, 0, 0.5);
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			cursor: pointer;
+			z-index: 10;
+			transition: all 0.2s ease;
+		}
+
+		.modal-close-btn i {
+			color: white;
+			font-size: 20px;
+		}
+
+		.modal-close-btn:hover {
+			background-color: rgba(255, 255, 255, 0.2);
+			transform: scale(1.1);
+		}
+
+		.modal-nav-btn {
+			position: absolute;
+			width: 50px;
+			height: 50px;
+			background-color: rgba(0, 0, 0, 0.5);
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			cursor: pointer;
+			transition: all 0.2s ease;
+		}
+
+		.modal-nav-btn i {
+			color: white;
+			font-size: 20px;
+		}
+
+		.modal-nav-btn:hover {
+			background-color: rgba(255, 255, 255, 0.2);
+			transform: scale(1.1);
+		}
+
+		.prev-btn {
+			left: 20px;
+		}
+
+		.next-btn {
+			right: 20px;
+		}
+
+		.modal-image-counter {
+			position: absolute;
+			bottom: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			background-color: rgba(0, 0, 0, 0.7);
+			color: white;
+			padding: 5px 15px;
+			border-radius: 20px;
+			font-size: 14px;
+		}
+
+		/* Адаптивность для мобильных устройств */
+		@media screen and (max-width: 768px) {
+			.modal-content img {
+				max-width: 100%;
+				max-height: 80vh;
+			}
+			
+			.modal-nav-btn {
+				width: 40px;
+				height: 40px;
+			}
+			
+			.prev-btn {
+				left: 10px;
+			}
+			
+			.next-btn {
+				right: 10px;
+			}
+			
+			.modal-close-btn {
+				top: 10px;
+				right: 10px;
+			}
+		}
+
+		/* Стили для темного режима */
+		.dark-mode .image-modal {
+			background-color: rgba(0, 0, 0, 0.95);
+		}
+
+		.dark-mode .modal-close-btn,
+		.dark-mode .modal-nav-btn {
+			background-color: rgba(0, 0, 0, 0.7)
+		}
+
+		.dark-mode .modal-close-btn:hover,
+		.dark-mode .modal-nav-btn:hover {
+			background-color: rgba(80, 80, 80, 0.8);
+		}
+
+		.dark-mode .modal-image-counter {
+			background-color: rgba(50, 50, 50, 0.8);
+		}
+
+		/* Анимация для плавного переключения изображений */
+		#modal-image {
+			transition: opacity 0.3s ease;
+		}
+
+		.image-changing #modal-image {
+			opacity: 0.5;
+		}
+
+		/* Дополнительные стили для адаптивности формы комментариев на мобильных устройствах */
+		@media screen and (max-width: 480px) {
+			.comment-form {
+				flex-direction: column;
+				gap: 10px;
+			}
+			
+			.comment-form-avatar {
+				margin: 0 auto;
+			}
+			
+			.comment-form-content {
+				width: 100%;
+				max-width: 100%;
+			}
+			
+			.comment-form-buttons {
+				flex-direction: column;
+				gap: 8px;
+				width: 100%;
+			}
+			
+			/* Аналогичные стили для формы ответа */
+			.reply-form {
+				flex-direction: column;
+				gap: 10px;
+			}
+			
+			.reply-form .comment-form-avatar {
+				margin: 0 auto;
+			}
+			
+			.reply-form .comment-form-content {
+				width: 100%;
+				max-width: 100%;
+			}
+			
+			.reply-form-buttons {
+				flex-direction: column;
+				gap: 8px;
+				width: 100%;
+			}
+			
+			.reply-form-button {
+				width: 100%;
+				justify-content: center;
+			}
+			
+			.comment-reply-input {
+				font-size: 16px; /* Предотвращает масштабирование на iOS */
+			}
+		}
+
+		/* Улучшенные стили для votes-actions-container на мобильных устройствах */
+		@media screen and (max-width: 480px) {
+			.votes-actions-container {
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 8px;
+				width: 100%;
+				margin-top: 10px;
+			}
+			
+			.home-comment-votes {
+				display: flex;
+				width: 100%;
+				justify-content: flex-start;
+			}
+			
+			.home-comment-actions {
+				margin-left: 0;
+				width: 100%;
+				justify-content: flex-start;
+			}
+			
+			.home-comment-vote-btn,
+			.home-comment-action-btn {
+				font-size: 11px;
+				padding: 3px 6px;
+			}
+			
+			.home-comment-vote-btn i,
+			.home-comment-action-btn i {
+				margin-right: 3px;
+				font-size: 12px;
+			}
+			
+			.home-author-like-container {
+				margin-left: auto;
+			}
+			
+			.comment-vote-count {
+				font-size: 11px;
+			}
+		}
+
+		/* Стили для изображений в комментариях */
+		.comment-images {
+			display: grid;
+			gap: 5px;
+			margin: 8px 0;
+			grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+			width: 100%;
+			max-width: 500px;
+		}
+
+		.comment-images.count-1 {
+			grid-template-columns: minmax(0, 300px);
+		}
+
+		.comment-images.count-2 {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.comment-images.count-3, 
+		.comment-images.count-4 {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.comment-images.count-5,
+		.comment-images.count-6 {
+			grid-template-columns: repeat(3, 1fr);
+		}
+
+		.comment-images.count-7,
+		.comment-images.count-8,
+		.comment-images.count-9,
+		.comment-images.count-10 {
+			grid-template-columns: repeat(4, 1fr);
+		}
+
+		.comment-image-item {
+			cursor: pointer;
+			border-radius: 8px;
+			overflow: hidden;
+			aspect-ratio: 1;
+			transition: transform 0.2s ease;
+		}
+
+		.comment-image-item:hover {
+			transform: scale(1.02);
+		}
+
+		.comment-image-item img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		/* Адаптивность для мобильных устройств */
+		@media screen and (max-width: 480px) {
+			.comment-images {
+				max-width: 100%;
+			}
+			
+			.comment-images.count-1 {
+				grid-template-columns: minmax(0, 250px);
+			}
+		}
+		
+		.comment-form button.secondary,
+		.comment-form button.primary {
+			width: 100%;
+			padding: 10px;
+			justify-content: center;
+		}
+		
+		.comment-input,
+		.reply-form textarea {
+			font-size: 16px; /* Предотвращает масштабирование на iOS */
+		}
+		
+		/* Аналогичные стили для формы ответа */
+		.post-image-item img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			cursor: pointer;
+			border-radius: 8px;
+		}
+
+		.post-image-item video {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			transition: transform 0.3s ease;
+			cursor: pointer;
+		}
+
+		.post-image-item .video-container {
+			position: relative;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			border-radius: 8px;
+		}
+
+		.post-image-item .video-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0,0,0,0.2);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			cursor: pointer;
+		}
+
+		.post-image-item .video-overlay::before {
+			content: '\f144';
+			font-family: 'Font Awesome 5 Free';
+			font-size: 32px;
+			color: #fff;
+			opacity: 0.8;
+		}
+
+		.post-image-item:hover img {
+			transform: scale(1.05);
+		}
+
+		.image-modal .modal-video {
+			max-width: 100%;
+			max-height: 80vh;
+			border-radius: 8px;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+			background-color: #000;
+		}
+
+		/* Стили для видео в комментариях */
+		.comment-image-item .video-container {
+			width: 100%;
+			height: 0;
+			padding-bottom: 60%;
+			cursor: pointer;
+			overflow: hidden;
+			border-radius: 8px;
+		}
+		
+		.comment-image-item .video-container video {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+		
+		.comment-image-item .video-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background-color: rgba(0, 0, 0, 0.4);
+			color: white;
+			z-index: 2;
+			transition: background-color 0.3s ease;
+		}
+		
+		.comment-image-item .video-overlay::before {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 50px;
+			height: 50px;
+			background-color: rgba(0, 0, 0, 0.7);
+			border-radius: 50%;
+			z-index: -1;
+		}
+		
+		.comment-image-item .video-overlay:hover {
+			background-color: rgba(0, 0, 0, 0.2);
+		}
+		
+		.comment-image-item .video-overlay:hover::before {
+			background-color: rgba(0, 0, 0, 0.9);
+		}
+		
+		.comment-image-item video::-webkit-media-controls,
+		.comment-image-item video::-moz-media-controls,
+		.comment-image-item video::-ms-media-controls {
+			display: none !important;
+		}
+		
+		.dark-mode .comment-image-item video {
+			filter: brightness(0.9);
 		}
 	</style>
 
@@ -634,7 +2244,6 @@
 			const savedTheme = localStorage.getItem('theme');
 			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-			// Обновляем логику установки темы
 			if (savedTheme === 'system') {
 				document.documentElement.style.visibility = 'hidden';
 				document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
@@ -656,7 +2265,6 @@
 				});
 			}
 
-			// Добавляем слушатель изменения системной темы
 			if (savedTheme === 'system') {
 				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
 					document.body.classList.remove('dark-mode', 'light-mode');
@@ -664,6 +2272,19 @@
 				});
 			}
 		})();
+	</script>
+
+	<!-- Добавляем импорт и инициализацию сайдбара -->
+	<script type="module">
+		import { initializeSidebar } from './sidebar_old.js';
+		
+		document.addEventListener('DOMContentLoaded', () => {
+			initializeSidebar();
+			// Вызываем функцию инициализации фильтров
+			if (typeof window.initFilters === 'function') {
+				window.initFilters();
+			}
+		});
 	</script>
 
 	<script type="module">
@@ -675,8 +2296,8 @@
 			setPersistence,
 			browserLocalPersistence
 		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
-		import { getDatabase, ref, get, update, connectDatabaseEmulator, query, orderByChild, equalTo, limitToLast } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
-		import { initializeSidebar } from './sidebar.js';
+		import { getDatabase, ref, get, update, connectDatabaseEmulator, query, orderByChild, equalTo, limitToLast, set, push, onValue, serverTimestamp, onChildAdded, remove, onChildRemoved } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+		import { initializeSidebar } from './sidebar_old.js';
 
 		// Добавляем глобальную переменную для отслеживания состояния загрузки
 		let isLoading = true;
@@ -684,13 +2305,14 @@
 		// Инициализируем Firebase и устанавливаем persistence
 		async function initializeFirebase() {
 			const firebaseConfig = {
-				apiKey: "AIzaSyAR-ui1g1VurKML1wQwZFdon_2Bgcrz-ms",
-				authDomain: "tpoproject-35957.firebaseapp.com",
-				databaseURL: "https://tpoproject-35957-default-rtdb.europe-west1.firebasedatabase.app",
-				projectId: "tpoproject-35957",
-				storageBucket: "tpoproject-35957.appspot.com",
-				messagingSenderId: "683982725892",
-				appId: "1:683982725892:web:4d4e07e6ea913ddff5a2f7"
+				apiKey: "AIzaSyCPQajYeeRG-GyQHhwlZ08nI5-BT36XpaU",
+				authDomain: "ochat-9cfc9.firebaseapp.com",
+				databaseURL: "https://ochat-9cfc9-default-rtdb.europe-west1.firebasedatabase.app",
+				projectId: "ochat-9cfc9",
+				storageBucket: "ochat-9cfc9.appspot.com",
+				messagingSenderId: "190209379577",
+				appId: "1:190209379577:web:a57171ab4b1f55a49f6628",
+				measurementId: "G-KNRXS2ZKZ9"
 			};
 
 			const app = initializeApp(firebaseConfig);
@@ -728,8 +2350,15 @@
 
 								// Обновляем отображение аватарки
 								if (user.photoURL) {
-									document.getElementById('user-avatar').innerHTML = `<img src="${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
-									document.getElementById('mini-user-avatar').innerHTML = `<img src="${user.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+									const stableId = user.uid || 'user';
+									let avatarUrl = user.photoURL;
+									if (avatarUrl.includes('?')) {
+										avatarUrl = `${avatarUrl}&_stable=${stableId}`;
+									} else {
+										avatarUrl = `${avatarUrl}?_stable=${stableId}`;
+									}
+									document.getElementById('user-avatar').innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+									document.getElementById('mini-user-avatar').innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
 								} else {
 									const firstLetter = user.email.charAt(0).toUpperCase();
 									document.getElementById('user-avatar').innerText = firstLetter;
@@ -759,8 +2388,15 @@
 				// Обновляем отображение аватарки
 				if (userData.photoURL) {
 					// Если есть URL аватарки, отображаем изображение
-					document.getElementById('user-avatar').innerHTML = `<img src="${userData.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
-					document.getElementById('mini-user-avatar').innerHTML = `<img src="${userData.photoURL}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+					const stableId = userData.uid || 'user';
+					let avatarUrl = userData.photoURL;
+					if (avatarUrl.includes('?')) {
+						avatarUrl = `${avatarUrl}&_stable=${stableId}`;
+					} else {
+						avatarUrl = `${avatarUrl}?_stable=${stableId}`;
+					}
+					document.getElementById('user-avatar').innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+					document.getElementById('mini-user-avatar').innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
 				} else {
 					// Если нет URL, используем первую букву email
 					const firstLetter = userData.email.charAt(0).toUpperCase();
@@ -810,6 +2446,14 @@
 						lastLogin: new Date().toISOString()
 					});
 					setupSearch(db);
+					
+					// Добавляем загрузку ленты новостей
+					try {
+						console.log('Запуск загрузки ленты новостей для пользователя:', user.uid);
+						loadNewsFeedAlternative(db, user.uid);
+					} catch (error) {
+						console.error('Ошибка при загрузке ленты новостей:', error);
+					}
 				} else {
 					console.log('No authenticated user found');
 					if (!isLoading) {
@@ -845,7 +2489,7 @@
 
 		// Функция настройки поиска
 		function setupSearch(db) {
-			const searchInput = document.getElementById('search-input');
+			const searchInput = document.getElementById('main-search-input');
 			const searchResults = document.getElementById('search-results');
 			const clearSearch = document.getElementById('clear-search');
 			let searchTimeout;
@@ -1016,12 +2660,2691 @@
 		}
 
 		window.addEventListener('load', () => {
-			initializeSidebar();
 			// Вызываем функцию инициализации фильтров
 			if (typeof window.initFilters === 'function') {
 				window.initFilters();
 			}
+
+			// Добавляем обработчик для кнопки отладки
+			const debugButton = document.getElementById('debug-refresh-feed');
+			if (debugButton) {
+				 debugButton.addEventListener('click', async () => {
+					console.log("Принудительное обновление ленты новостей...");
+					
+					// Получаем текущего пользователя
+					const auth = getAuth();
+					const user = auth.currentUser;
+					
+					if (user) {
+						// Получаем базу данных
+						const db = getDatabase();
+						
+						// Запускаем функцию загрузки с альтернативным подходом
+						await loadNewsFeedAlternative(db, user.uid);
+					} else {
+						console.error("Пользователь не авторизован!");
+						alert("Вы не авторизованы! Пожалуйста, войдите в систему.");
+					}
+				});
+			}
 		});
+
+		// Функция для проверки является ли URL видео
+		function isVideoUrl(url) {
+			return url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg') || url.includes('.mov') || 
+				   url.includes('video') || url.includes('comment_videos');
+		}
+
+		// Функция для создания элемента поста
+		async function createPostElement(post) {
+			// Получаем объект auth
+			const auth = getAuth();
+			
+			// Получаем форматированную дату
+			const postDate = new Date(post.timestamp);
+			const formattedDate = postDate.toLocaleString('ru-RU', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit'
+			});
+
+			// Создаем элемент поста
+			const postElement = document.createElement('div');
+			postElement.className = 'news-post-item';
+			postElement.dataset.postId = post.id;
+			postElement.dataset.groupId = post.groupId;
+
+			// Добавляем метку прочитанного поста, если она есть
+			if (post.read) {
+				postElement.classList.add('post-read');
+			}
+
+			// Формируем заголовок поста с новой структурой
+			let postHTML = `
+				<div class="post-header">
+					<div class="post-group-info">
+						<div class="post-group-avatar">
+							${post.groupData.photoURL ? `<img src="${post.groupData.photoURL}" alt="${post.groupData.name}">` : ''}
+						</div>
+						<div class="post-info">
+							<div class="post-info-top">
+								<div class="post-group-name">${post.groupData.name}</div>
+								${post.publishedAsGroup && post.showAuthor && post.authorId ? 
+									`<div class="post-author-name" data-author-id="${post.authorId}">Автор поста</div>` : ''}
+							</div>
+							<div class="post-date">${formattedDate}</div>
+						</div>
+					</div>
+				</div>
+			`;
+
+			// Добавляем содержимое
+			postHTML += `
+				<div class="post-content">${post.content}</div>
+			`;
+
+			// Добавляем изображения, если они есть
+			if (post.imageUrls && post.imageUrls.length > 0) {
+				postHTML += `
+					<div class="post-images count-${post.imageUrls.length}">
+						${post.imageUrls.map((url, index) => {
+							const isVideo = isVideoUrl(url);
+							return `
+								<div class="post-image-item">
+									${isVideo ? 
+										`<div class="video-container">
+											<video src="${url}" preload="metadata"></video>
+											<div class="video-overlay"></div>
+										</div>` : 
+										`<img src="${url}" alt="Изображение ${index + 1}" class="post-image">`
+									}
+								</div>
+							`;
+						}).join('')}
+					</div>
+				`;
+			} else if (post.imageURL) {
+				// Обратная совместимость со старыми постами, у которых одно изображение
+				const isVideo = isVideoUrl(post.imageURL);
+				postHTML += `
+					<div class="post-images count-1">
+						<div class="post-image-item">
+							${isVideo ? 
+								`<div class="video-container">
+									<video src="${post.imageURL}" preload="metadata"></video>
+									<div class="video-overlay"></div>
+								</div>` : 
+								`<img src="${post.imageURL}" alt="Изображение к посту" class="post-image">`
+							}
+						</div>
+					</div>
+				`;
+			}
+
+			// Получаем количество лайков, дизлайков и комментариев из новых путей
+			const db = getDatabase();
+			let likeCount = 0;
+			let dislikeCount = 0;
+			let commentCount = 0;
+
+			// Получаем количество лайков и дизлайков из новой структуры данных
+			if (post.id && post.groupId) {
+				try {
+					const votesRef = ref(db, `groupPostVotes/${post.id}`);
+					const votesSnapshot = await get(votesRef);
+					if (votesSnapshot.exists()) {
+						const votes = votesSnapshot.val();
+						const voteCounts = countVotes(votes);
+						likeCount = voteCounts.likes;
+						dislikeCount = voteCounts.dislikes;
+						
+						// Проверяем голос текущего пользователя, если он авторизован
+						const auth = getAuth();
+						if (auth.currentUser) {
+							const userId = auth.currentUser.uid;
+							const userVote = votes[userId];
+							post.userLiked = userVote === 1;
+							post.userDisliked = userVote === -1;
+						}
+					}
+					
+					// Получаем количество комментариев по правильному пути
+					const commentsRef = ref(db, `groupComments/${post.groupId}/${post.id}`);
+					const commentsSnapshot = await get(commentsRef);
+					if (commentsSnapshot.exists()) {
+						commentCount = Object.keys(commentsSnapshot.val()).length;
+					}
+				} catch (error) {
+					console.error(`Ошибка при получении данных для поста ${post.id}:`, error);
+				}
+			}
+
+			// Добавляем кнопки действий (лайки, дизлайки, комментарии)
+			postHTML += `
+				<div class="post-actions">
+					<button class="post-action-btn like-btn" data-post-id="${post.id}" data-group-id="${post.groupId}">
+						<i class="fas fa-thumbs-up"></i> <span class="like-count">${likeCount}</span>
+					</button>
+					<button class="post-action-btn dislike-btn" data-post-id="${post.id}" data-group-id="${post.groupId}">
+						<i class="fas fa-thumbs-down"></i> <span class="dislike-count">${dislikeCount}</span>
+					</button>
+					<button class="post-action-btn comment-btn" data-post-id="${post.id}" data-group-id="${post.groupId}">
+						<i class="fas fa-comment"></i> <span class="comment-count">${commentCount}</span>
+					</button>
+				</div>
+			`;
+
+			// Добавляем контейнер для комментариев (изначально скрытый)
+			postHTML += `
+				<div class="post-comments-container" id="comments-${post.id}" style="display: none;">
+					<div class="comments-list" id="comments-list-${post.id}"></div>
+					<form class="comment-form" data-post-id="${post.id}" data-group-id="${post.groupId}">
+						<img class="comment-form-avatar" 
+							src="${auth.currentUser ? (auth.currentUser.photoURL || 'https://ui-avatars.com/api/?name=User&background=random') : 'https://ui-avatars.com/api/?name=User&background=random'}" alt="">
+						<div class="comment-form-content">
+							<textarea class="comment-input" placeholder="Написать комментарий..." maxlength="1000" rows="1" id="comment-input-${post.id}"></textarea>
+							<div class="character-counter">0/1000</div>
+							<div class="comment-form-buttons">
+								<button type="button" class="secondary cancel-comment-button">
+									<i class="fas fa-times"></i> Отмена
+								</button>
+								<button type="submit" class="primary">
+									<i class="fas fa-paper-plane"></i> Отправить
+								</button>
+							</div>
+						</div>
+					</form>
+					<button class="hide-all-comments" data-post-id="${post.id}" data-group-id="${post.groupId}">
+						<i class="fas fa-chevron-up"></i> Скрыть все комментарии
+					</button>
+				</div>
+				<div class="last-comment-container" id="last-comment-container-${post.id}">
+					<div class="last-comment" id="last-comment-${post.id}">
+						<!-- Последний комментарий будет загружен динамически -->
+					</div>
+					<button class="view-all-comments" data-post-id="${post.id}" data-group-id="${post.groupId}">
+						<i class="fas fa-comments"></i> Просмотреть все комментарии
+					</button>
+				</div>
+			`;
+
+			// Устанавливаем содержимое элемента
+			postElement.innerHTML = postHTML;
+
+			// Добавляем обработчики кликов для перехода на страницу группы
+			const groupAvatarElement = postElement.querySelector('.post-group-avatar');
+			const groupNameElement = postElement.querySelector('.post-group-name');
+			const groupId = post.groupId;
+
+			if (groupId) {
+				if (groupAvatarElement) {
+					groupAvatarElement.style.cursor = 'pointer';
+					groupAvatarElement.addEventListener('click', (e) => {
+						e.stopPropagation(); // Предотвращаем всплытие события
+						window.location.href = `group.html?id=${groupId}`;
+					});
+				}
+				if (groupNameElement) {
+					groupNameElement.style.cursor = 'pointer';
+					groupNameElement.addEventListener('click', (e) => {
+						e.stopPropagation(); // Предотвращаем всплытие события
+						window.location.href = `group.html?id=${groupId}`;
+					});
+				}
+			}
+
+			// Загружаем информацию об авторе, если она есть (внутри loadAuthorInfo добавится обработчик для автора)
+			if (post.publishedAsGroup && post.showAuthor && post.authorId) {
+				loadAuthorInfo(post.authorId, postElement);
+			}
+
+			// Отмечаем активные кнопки лайка/дизлайка, если пользователь уже отметил пост
+			if (post.userLiked) {
+				const likeBtn = postElement.querySelector('.like-btn');
+				if (likeBtn) likeBtn.classList.add('active');
+			}
+
+			if (post.userDisliked) {
+				const dislikeBtn = postElement.querySelector('.dislike-btn');
+				if (dislikeBtn) dislikeBtn.classList.add('active');
+			}
+
+			// Добавляем обработчики событий для лайков, дизлайков и комментариев
+			addPostInteractionHandlers(postElement, post);
+
+			// Добавляем обработчик для кнопки "Просмотреть все комментарии"
+			const viewAllCommentsBtn = postElement.querySelector('.view-all-comments');
+			if (viewAllCommentsBtn) {
+				viewAllCommentsBtn.addEventListener('click', () => {
+					const postId = viewAllCommentsBtn.dataset.postId;
+					const groupId = viewAllCommentsBtn.dataset.groupId;
+					
+					console.log(`Нажата кнопка "Просмотреть все комментарии" для поста ${postId}`);
+					
+					// Скрываем контейнер с последним комментарием
+					const lastCommentContainer = postElement.querySelector(`#last-comment-container-${postId}`);
+					if (lastCommentContainer) {
+						lastCommentContainer.style.display = 'none';
+					}
+					
+					// Показываем контейнер со всеми комментариями
+					const commentsContainer = postElement.querySelector(`#comments-${postId}`);
+					if (commentsContainer) {
+						commentsContainer.style.display = 'block';
+						// Загружаем комментарии
+						loadComments(postId, groupId);
+					}
+				});
+			}
+
+			// Добавляем обработчик для кнопки "Скрыть все комментарии"
+			const hideAllCommentsBtn = postElement.querySelector('.hide-all-comments');
+			if (hideAllCommentsBtn) {
+				hideAllCommentsBtn.addEventListener('click', () => {
+					const postId = hideAllCommentsBtn.dataset.postId;
+					const groupId = hideAllCommentsBtn.dataset.groupId;
+					
+					console.log(`Нажата кнопка "Скрыть все комментарии" для поста ${postId}`);
+					
+					// Скрываем контейнер со всеми комментариями
+					const commentsContainer = postElement.querySelector(`#comments-${postId}`);
+					if (commentsContainer) {
+						commentsContainer.style.display = 'none';
+					}
+					
+					// Показываем контейнер с последним комментарием
+					const lastCommentContainer = postElement.querySelector(`#last-comment-container-${postId}`);
+					if (lastCommentContainer) {
+						lastCommentContainer.style.display = 'block';
+					}
+				});
+			}
+
+			// Загружаем последний комментарий
+			loadLastComment(post.id, post.groupId, postElement);
+
+			// После добавления всех обработчиков, подписываемся на обновления счетчиков
+			subscribeToPostCounters(post);
+
+			return postElement;
+		}
+
+		// Функция для загрузки комментариев к посту
+		async function loadComments(postId, groupId) {
+			const db = getDatabase();
+			const commentsList = document.getElementById(`comments-list-${postId}`);
+			
+			if (!commentsList) return;
+			
+			// Добавляем индикатор загрузки, только если список пуст
+			if (!commentsList.hasChildNodes()) {
+				commentsList.innerHTML = '<div class="loading-comments">Загрузка комментариев...</div>';
+			}
+			
+			try {
+				// Используем правильный путь к комментариям
+				const commentsRef = ref(db, `groupComments/${groupId}/${postId}`);
+				
+				// Получаем начальные данные
+				const initialSnapshot = await get(commentsRef);
+				
+				// Очищаем индикатор загрузки
+				const loadingIndicator = commentsList.querySelector('.loading-comments');
+				if (loadingIndicator) {
+					commentsList.removeChild(loadingIndicator);
+				}
+				
+				// Если данных нет, показываем сообщение
+				if (!initialSnapshot.exists() || Object.keys(initialSnapshot.val()).length === 0) {
+					commentsList.innerHTML = '<div class="no-comments">Комментариев пока нет</div>';
+				} else {
+					// Загружаем начальные комментарии
+					const comments = [];
+					initialSnapshot.forEach(childSnapshot => {
+						comments.push({
+							id: childSnapshot.key,
+							...childSnapshot.val()
+						});
+					});
+					
+					// Сортируем и отображаем
+					comments.sort((a, b) => {
+						const timeA = a.clientTimestamp || 0;
+						const timeB = b.clientTimestamp || 0;
+						return timeA - timeB;
+					});
+					
+					for (const comment of comments) {
+						addCommentToList(postId, comment);
+					}
+				}
+				
+				// Подписываемся на изменения комментариев в реальном времени
+				onValue(commentsRef, (snapshot) => {
+					// Если комментариев нет в базе
+					if (!snapshot.exists() || Object.keys(snapshot.val()).length === 0) {
+						// Проверяем, есть ли уже отображенные комментарии в DOM
+						const hasExistingComments = commentsList.querySelector('.comment-item');
+						
+						// Если комментарии есть в DOM, но их нет в базе - удаляем все из DOM
+						if (hasExistingComments) {
+							commentsList.querySelectorAll('.comment-item').forEach(el => el.remove());
+							commentsList.querySelectorAll('.comment-replies').forEach(el => el.remove());
+							commentsList.innerHTML = '<div class="no-comments">Комментариев пока нет</div>';
+						}
+						return;
+					}
+					
+					// Получаем все комментарии из базы данных
+					const comments = [];
+					snapshot.forEach(childSnapshot => {
+						const comment = childSnapshot.val();
+						comment.id = childSnapshot.key;
+						comments.push(comment);
+					});
+					
+					// Собираем ID всех комментариев из базы данных
+					const dbCommentIds = new Set(comments.map(comment => comment.id));
+					
+					// Проверяем существующие комментарии в DOM и удаляем те, которых нет в базе данных
+					commentsList.querySelectorAll('.comment-item').forEach(el => {
+						const commentId = el.dataset.commentId;
+						
+						// Если комментария нет в базе данных, удаляем его из DOM
+						if (!dbCommentIds.has(commentId)) {
+							// Если это корневой комментарий, удаляем также контейнер с ответами
+							if (!el.closest('.hidden-replies')) {
+								const repliesContainer = document.querySelector(`.comment-replies[data-parent-id="${commentId}"]`);
+								if (repliesContainer) {
+									repliesContainer.remove();
+								}
+							}
+							el.remove();
+						}
+					});
+					
+					// Отдельно храним корневые комментарии и ответы
+					const rootComments = [];
+					const replies = {};
+					
+					comments.forEach(comment => {
+						if (!comment.parentId) {
+							rootComments.push(comment);
+						} else {
+							if (!replies[comment.parentId]) {
+								replies[comment.parentId] = [];
+							}
+							replies[comment.parentId].push(comment);
+						}
+					});
+					
+					// Получаем список отображенных комментариев в DOM
+					const existingCommentIds = new Set();
+					commentsList.querySelectorAll('.comment-item').forEach(el => {
+						existingCommentIds.add(el.dataset.commentId);
+					});
+					
+					// Отображаем только новые корневые комментарии
+					for (const comment of rootComments) {
+						// Проверяем, существует ли уже этот комментарий в DOM
+						if (!existingCommentIds.has(comment.id)) {
+							addCommentToList(postId, comment, false);
+						}
+					}
+					
+					// Проверяем контейнеры с ответами и обновляем их
+					commentsList.querySelectorAll('.comment-replies').forEach(repliesContainer => {
+						const parentId = repliesContainer.dataset.parentId;
+						const hiddenRepliesContainer = repliesContainer.querySelector('.hidden-replies');
+						const showRepliesButton = repliesContainer.querySelector('.show-more-replies');
+						
+						// Получаем актуальное количество ответов из данных базы данных
+						const actualReplies = replies[parentId] || [];
+						const repliesCount = actualReplies.length;
+						
+						// Если ответов не осталось, но кнопка и контейнер есть - удаляем их
+						if (repliesCount === 0) {
+							if (showRepliesButton) showRepliesButton.remove();
+							if (hiddenRepliesContainer) hiddenRepliesContainer.remove();
+							repliesContainer.remove();
+						} else if (hiddenRepliesContainer) {
+							// Иначе обновляем отображение кнопки с правильным количеством
+							if (showRepliesButton && !hiddenRepliesContainer.classList.contains('expanded')) {
+								showRepliesButton.innerHTML = `<i class="fas fa-chevron-down"></i> Показать ответы (${repliesCount})`;
+							}
+							
+							// Добавляем новые ответы, которых еще нет в DOM
+							const existingRepliesIds = new Set();
+							hiddenRepliesContainer.querySelectorAll('.comment-item').forEach(el => {
+								existingRepliesIds.add(el.dataset.commentId);
+							});
+							
+							// Находим новые ответы, которых еще нет в DOM
+							const newReplies = actualReplies.filter(reply => !existingRepliesIds.has(reply.id));
+							
+							// Добавляем новые ответы в DOM
+							for (const reply of newReplies) {
+								addCommentToList(postId, reply, false);
+							}
+						}
+					});
+					
+					// Обновляем счетчик комментариев
+					const commentCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+					const commentCountElements = document.querySelectorAll(`.news-post-item[data-post-id="${postId}"][data-group-id="${groupId}"] .comment-count`);
+					
+					commentCountElements.forEach(element => {
+						element.textContent = commentCount;
+					});
+					
+					// Обновляем отображение последнего комментария
+					const postElement = document.querySelector(`.news-post-item[data-post-id="${postId}"][data-group-id="${groupId}"]`);
+					if (postElement) {
+						// Проверяем, не отображаются ли уже все комментарии
+						const commentsContainer = postElement.querySelector(`#comments-${postId}`);
+						const lastCommentContainer = postElement.querySelector(`#last-comment-container-${postId}`);
+						
+						// Если уже показаны все комментарии, не показываем последний комментарий
+						if (commentsContainer && commentsContainer.style.display === 'block') {
+							if (lastCommentContainer) {
+								lastCommentContainer.style.display = 'none';
+							}
+						} else {
+							// Иначе обновляем и показываем последний комментарий
+							// Получаем ID группы из атрибута data-group-id элемента поста
+							const groupId = postElement.dataset.groupId;
+							if (groupId) {
+								loadLastComment(postId, groupId, postElement);
+							} else {
+								console.error('Не удалось найти ID группы для поста:', postId);
+							}
+						}
+					}
+				});
+				
+				// Инициализируем обработчики кликов для имен и аватаров комментариев
+				if (typeof window.initCommentProfileLinks === 'function') {
+					window.initCommentProfileLinks();
+				}
+				
+				// Инициализируем обработчики для видео в комментариях
+				initNewElementHandlers();
+				
+			} catch (error) {
+				console.error('Ошибка при загрузке комментариев:', error);
+				commentsList.innerHTML = '<div class="error-loading-comments">Ошибка при загрузке комментариев</div>';
+			}
+		}
+		
+		// Функция для добавления комментария в список
+		async function addCommentToList(postId, comment, isLocalComment = false) {
+			const commentsList = document.getElementById(`comments-list-${postId}`);
+			if (!commentsList) return;
+			
+			// Проверяем, есть ли сообщение "Комментариев пока нет" и удаляем его
+			const noCommentsMessage = commentsList.querySelector('.no-comments');
+			if (noCommentsMessage) {
+				commentsList.removeChild(noCommentsMessage);
+			}
+			
+			// Проверяем, не существует ли уже комментарий с таким ID
+			const existingComment = commentsList.querySelector(`.comment-item[data-comment-id="${comment.id}"]`);
+			if (existingComment) {
+				console.log(`Комментарий с ID ${comment.id} уже существует в списке, пропускаем`);
+				return;
+			}
+			
+			const commentElement = document.createElement('div');
+			commentElement.className = 'comment-item';
+			commentElement.dataset.commentId = comment.id;
+			commentElement.dataset.postId = postId; // Добавляем ID поста в атрибуты
+			
+			// Если есть parentId, значит это ответ на комментарий
+			if (comment.parentId) {
+				commentElement.dataset.parentId = comment.parentId;
+			}
+			
+			// Если это локальный комментарий, добавляем дополнительный атрибут
+			if (isLocalComment) {
+				commentElement.dataset.localComment = "true";
+			}
+			
+			// Форматируем дату комментария
+			const timestamp = typeof comment.timestamp === 'number' ? comment.timestamp : comment.clientTimestamp;
+			const commentDate = new Date(timestamp);
+			const formattedDate = commentDate.toLocaleString('ru-RU', {
+				year: 'numeric',
+				month: 'numeric',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit'
+			});
+			
+			// Определяем ID автора (поддержка обеих структур)
+			const authorId = comment.authorId || comment.userId;
+			
+			// Если есть authorPhotoURL (новая структура), используем его напрямую
+			let avatarHTML = '';
+			if (comment.authorPhotoURL) {
+				avatarHTML = `<img src="${comment.authorPhotoURL}" alt="Аватар пользователя">`;
+			} else {
+				// Для старых комментариев используем заглушку
+				avatarHTML = `<div class="comment-author-avatar-placeholder" data-user-id="${authorId}"></div>`;
+			}
+			
+			// Используем имя из комментария, если оно есть
+			const authorName = comment.authorName || 'Пользователь';
+			
+			// Определяем, принадлежит ли комментарий текущему пользователю
+			const auth = getAuth();
+			const currentUser = auth.currentUser;
+			const isCurrentUserComment = currentUser && currentUser.uid === authorId;
+			
+			// Формируем HTML для информации о родительском комментарии (если это ответ)
+			let replyInfoHTML = '';
+			if (comment.parentId) {
+				let replyToText = '';
+				if (comment.replyToText) {
+					replyToText = comment.replyToText;
+				}
+				
+				const replyToAuthor = comment.replyToAuthor || 'Пользователь';
+				const actualReplyToId = comment.actualReplyToId || comment.parentId;
+
+				replyInfoHTML = `
+					<div class="reply-info" data-reply-to-id="${actualReplyToId}" onclick="scrollToOriginalComment('${actualReplyToId}')">
+						в ответ <span class="reply-author">@${replyToAuthor}</span> ${replyToText ? `<span class="reply-info-divider">|</span> ${replyToText}` : ''}
+					</div>
+				`;
+			}
+			
+			// Формируем HTML для кнопок действий и голосования
+			let votesAndActionsHTML = '';
+			
+			// Только авторизованные пользователи могут голосовать, отвечать и удалять свои комментарии
+			if (currentUser) {
+				const deleteButton = isCurrentUserComment ? `
+					<button class="home-comment-action-btn delete-comment-btn" data-comment-id="${comment.id}" data-post-id="${postId}">
+						<i class="fas fa-trash"></i> Удалить
+					</button>
+				` : '';
+				
+				votesAndActionsHTML = `
+					<div class="votes-actions-container">
+						<div class="home-comment-votes">
+							<button class="home-comment-vote-btn like" data-comment-id="${comment.id}" data-post-id="${postId}" onclick="handleCommentVote('${comment.id}', 1)">
+								<i class="fas fa-thumbs-up"></i> <span class="comment-vote-count comment-like-count">0</span>
+							</button>
+							<button class="home-comment-vote-btn dislike" data-comment-id="${comment.id}" data-post-id="${postId}" onclick="handleCommentVote('${comment.id}', -1)">
+								<i class="fas fa-thumbs-down"></i> <span class="comment-vote-count comment-dislike-count">0</span>
+							</button>
+							<span class="home-author-like-container"></span>
+						</div>
+						
+						<div class="home-comment-actions">
+							<button class="home-comment-action-btn reply-comment-btn" data-comment-id="${comment.id}" data-post-id="${postId}" data-author-id="${authorId}" data-author-name="${authorName}">
+								<i class="fas fa-reply"></i> Ответить
+							</button>
+							${deleteButton}
+						</div>
+					</div>
+				`;
+			}
+			
+			// Отображаем комментарий с новой структурой, включая кнопки действий и голосования
+			commentElement.innerHTML = `
+				<div class="comment-author-avatar" data-user-id="${authorId}">
+					${avatarHTML}
+				</div>
+				<div class="comment-content-wrapper">
+					<div class="comment-author-name" data-user-id="${authorId}">${authorName}</div>
+					<div class="comment-date">${formattedDate}</div>
+					${replyInfoHTML}
+					<div class="comment-text">${comment.text}</div>
+					${comment.imageUrls && comment.imageUrls.length > 0 ? `
+					<div class="comment-images count-${comment.imageUrls.length}">
+						${comment.imageUrls.map((url, index) => {
+							// Проверяем, является ли URL видеофайлом
+							const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg') || 
+								url.includes('.mov') || url.includes('video') || url.includes('comment_videos');
+							
+							return isVideo ? `
+							<div class="comment-image-item">
+								<div class="video-container">
+									<video src="${url}" class="comment-video" preload="metadata"></video>
+									<div class="video-overlay">
+										<i class="fas fa-play"></i>
+									</div>
+								</div>
+							</div>
+							` : `
+							<div class="comment-image-item">
+								<img src="${url}" alt="Изображение ${index + 1}" class="comment-image">
+							</div>
+							`;
+						}).join('')}
+					</div>
+					` : ''}
+					${votesAndActionsHTML}
+				</div>
+				<div class="reply-form" id="reply-form-${comment.id}">
+					<img class="comment-form-avatar" 
+						src="${auth.currentUser ? (auth.currentUser.photoURL || 'https://ui-avatars.com/api/?name=User&background=random') : 'https://ui-avatars.com/api/?name=User&background=random'}" alt="">
+					<div class="comment-form-content">
+						<textarea class="comment-reply-input" placeholder="Напишите ответ..." id="reply-input-${comment.id}"></textarea>
+						<div class="reply-form-buttons">
+							<button class="reply-form-button cancel-reply-btn" data-comment-id="${comment.id}">
+								<i class="fas fa-times"></i> Отмена
+							</button>
+							<button class="reply-form-button submit-reply-btn" data-comment-id="${comment.id}" data-post-id="${postId}">
+								<i class="fas fa-paper-plane"></i> Ответить
+							</button>
+						</div>
+					</div>
+				</div>
+			`;
+			
+			// Если это ответ на комментарий, ищем родительский контейнер для ответов
+			if (comment.parentId) {
+				let repliesContainer = commentsList.querySelector(`.comment-replies[data-parent-id="${comment.parentId}"]`);
+				
+				// Если контейнера для ответов ещё нет, создаем его
+				if (!repliesContainer) {
+					const parentComment = commentsList.querySelector(`.comment-item[data-comment-id="${comment.parentId}"]`);
+					if (parentComment) {
+						repliesContainer = document.createElement('div');
+						repliesContainer.className = 'comment-replies';
+						repliesContainer.dataset.parentId = comment.parentId;
+						parentComment.after(repliesContainer);
+						
+						// Создаем контейнер для скрытых ответов
+						const hiddenRepliesContainer = document.createElement('div');
+						hiddenRepliesContainer.className = 'hidden-replies';
+						repliesContainer.appendChild(hiddenRepliesContainer);
+						
+						// Создаем кнопку "Показать ответы"
+						const showRepliesButton = document.createElement('button');
+						showRepliesButton.className = 'show-more-replies';
+						showRepliesButton.style.width = '250px';
+						showRepliesButton.innerHTML = `<i class="fas fa-chevron-down"></i> Показать ответы (1)`;
+						showRepliesButton.onclick = function() {
+							hiddenRepliesContainer.classList.toggle('expanded');
+							const isExpanded = hiddenRepliesContainer.classList.contains('expanded');
+							this.innerHTML = isExpanded 
+								? `<i class="fas fa-chevron-up"></i> Скрыть ответы` 
+								: `<i class="fas fa-chevron-down"></i> Показать ответы (${hiddenRepliesContainer.querySelectorAll('.comment-item').length})`;
+							
+							// Если разворачиваем список ответов, инициализируем обработчики кликов по профилям
+							if (isExpanded && typeof window.initCommentProfileLinks === 'function') {
+								window.initCommentProfileLinks();
+							}
+						};
+						
+						// Вставляем кнопку перед контейнером скрытых ответов
+						repliesContainer.insertBefore(showRepliesButton, hiddenRepliesContainer);
+					} else {
+						// Если родительский комментарий не найден, добавляем в основной список
+						commentsList.appendChild(commentElement);
+						return;
+					}
+				}
+				
+				// Ищем или создаем контейнер для скрытых ответов
+				let hiddenRepliesContainer = repliesContainer.querySelector('.hidden-replies');
+				if (!hiddenRepliesContainer) {
+					hiddenRepliesContainer = document.createElement('div');
+					hiddenRepliesContainer.className = 'hidden-replies';
+					repliesContainer.appendChild(hiddenRepliesContainer);
+					
+					// Создаем кнопку "Показать ответы" если её ещё нет
+					if (!repliesContainer.querySelector('.show-more-replies')) {
+						const showRepliesButton = document.createElement('button');
+						showRepliesButton.className = 'show-more-replies';
+						showRepliesButton.style.width = '250px';
+						showRepliesButton.innerHTML = `<i class="fas fa-chevron-down"></i> Показать ответы (1)`;
+						showRepliesButton.onclick = function() {
+							hiddenRepliesContainer.classList.toggle('expanded');
+							const isExpanded = hiddenRepliesContainer.classList.contains('expanded');
+							this.innerHTML = isExpanded 
+								? `<i class="fas fa-chevron-up"></i> Скрыть ответы` 
+								: `<i class="fas fa-chevron-down"></i> Показать ответы (${hiddenRepliesContainer.querySelectorAll('.comment-item').length})`;
+							
+							// Если разворачиваем список ответов, инициализируем обработчики кликов по профилям
+							if (isExpanded && typeof window.initCommentProfileLinks === 'function') {
+								window.initCommentProfileLinks();
+							}
+						};
+						
+						// Вставляем кнопку перед контейнером скрытых ответов
+						repliesContainer.insertBefore(showRepliesButton, hiddenRepliesContainer);
+					}
+				}
+				
+				// Добавляем комментарий в контейнер для скрытых ответов
+				hiddenRepliesContainer.appendChild(commentElement);
+				
+				// Обновляем текст кнопки с новым количеством ответов
+				const showRepliesButton = repliesContainer.querySelector('.show-more-replies');
+				if (showRepliesButton) {
+					const repliesCount = hiddenRepliesContainer.querySelectorAll('.comment-item').length;
+					if (!hiddenRepliesContainer.classList.contains('expanded')) {
+						showRepliesButton.innerHTML = `<i class="fas fa-chevron-down"></i> Показать ответы (${repliesCount})`;
+					}
+				}
+			} else {
+				// Это основной комментарий, добавляем его в основной список
+				commentsList.appendChild(commentElement);
+			}
+			
+			// Добавляем обработчики для кнопок ответа и удаления
+			const replyBtn = commentElement.querySelector('.reply-comment-btn');
+			if (replyBtn) {
+				replyBtn.addEventListener('click', () => {
+					const commentId = replyBtn.dataset.commentId;
+					const authorName = replyBtn.dataset.authorName;
+					toggleReplyForm(commentId, true, authorName);
+				});
+			}
+			
+			const deleteBtn = commentElement.querySelector('.delete-comment-btn');
+			if (deleteBtn) {
+				deleteBtn.addEventListener('click', () => {
+					const commentId = deleteBtn.dataset.commentId;
+					const postId = deleteBtn.dataset.postId;
+					deleteComment(commentId, postId);
+				});
+			}
+			
+			const cancelReplyBtn = commentElement.querySelector('.cancel-reply-btn');
+			if (cancelReplyBtn) {
+				cancelReplyBtn.addEventListener('click', () => {
+					const commentId = cancelReplyBtn.dataset.commentId;
+					toggleReplyForm(commentId, false);
+				});
+			}
+			
+			const submitReplyBtn = commentElement.querySelector('.submit-reply-btn');
+			if (submitReplyBtn) {
+				submitReplyBtn.addEventListener('click', () => {
+					const commentId = submitReplyBtn.dataset.commentId;
+					const postId = submitReplyBtn.dataset.postId;
+					submitReply(commentId, postId);
+				});
+			}
+			
+			// Прокручиваем к новому комментарию только если:
+			// 1. Комментарий добавлен текущим пользователем (isLocalComment)
+			// 2. Это не ответ на комментарий (нет parentId)
+			if (isLocalComment && !comment.parentId) {
+				commentsList.scrollTop = commentsList.scrollHeight;
+			}
+			
+			// Если нет аватара в данных комментария, загружаем информацию о пользователе
+			if (!comment.authorPhotoURL) {
+				try {
+					const db = getDatabase();
+					const userRef = ref(db, `users/${authorId}`);
+					const userSnapshot = await get(userRef);
+					
+					if (userSnapshot.exists()) {
+						const userData = userSnapshot.val();
+						
+						// Обновляем аватар
+						const avatarElements = commentElement.querySelectorAll(`.comment-author-avatar[data-user-id="${authorId}"]`);
+						avatarElements.forEach(element => {
+							if (userData.photoURL) {
+								element.innerHTML = `<img src="${userData.photoURL}" alt="${userData.name || userData.email}">`;
+							} else {
+								// Если нет аватара, используем первую букву имени
+								const letter = (userData.name || userData.email || 'A')[0].toUpperCase();
+								element.textContent = letter;
+							}
+						});
+						
+						// Обновляем имя только если оно не указано в комментарии
+						if (!comment.authorName) {
+							const nameElements = commentElement.querySelectorAll(`.comment-author-name[data-user-id="${authorId}"]`);
+							nameElements.forEach(element => {
+								element.textContent = userData.name || userData.email || 'Пользователь';
+							});
+						}
+					}
+				} catch (error) {
+					console.error(`Ошибка при загрузке информации о пользователе ${authorId}:`, error);
+				}
+			} else {
+				// Для комментариев с новой структурой все равно нужно загрузить имя пользователя
+				try {
+					const db = getDatabase();
+					const userRef = ref(db, `users/${authorId}`);
+					const userSnapshot = await get(userRef);
+					
+					if (userSnapshot.exists()) {
+						const userData = userSnapshot.val();
+						
+						// Обновляем только имя
+						const nameElements = commentElement.querySelectorAll(`.comment-author-name[data-user-id="${authorId}"]`);
+						nameElements.forEach(element => {
+							element.textContent = userData.name || userData.email || 'Пользователь';
+						});
+					}
+				} catch (error) {
+					console.error(`Ошибка при загрузке имени пользователя ${authorId}:`, error);
+				}
+			}
+			
+			// Настраиваем слушатель голосов для комментария
+			if (typeof window.setupCommentVotesListener === 'function') {
+				window.setupCommentVotesListener(comment.id, commentElement);
+			} else {
+				console.warn(`Функция setupCommentVotesListener недоступна для комментария ${comment.id}`);
+			}
+			
+			// Инициализируем обработчики кликов по имени и аватару пользователя
+			if (typeof window.initCommentProfileLinks === 'function') {
+				window.initCommentProfileLinks();
+			}
+			
+			// Инициализируем обработчики для видео в комментариях
+			initNewElementHandlers();
+		}
+
+		// Функция для асинхронной загрузки информации об авторе поста
+		async function loadAuthorInfo(authorId, postElement) {
+			try {
+				const db = getDatabase();
+				const authorRef = ref(db, `users/${authorId}`);
+				const authorSnapshot = await get(authorRef);
+				
+				if (authorSnapshot.exists()) {
+					const authorData = authorSnapshot.val();
+					
+					// Обновляем аватар автора (если есть соответствующий элемент - его пока нет в разметке)
+					// const avatarElements = postElement.querySelectorAll(`.post-author-avatar[data-author-id="${authorId}"]`);
+					// ... (логика обновления аватара)
+					
+					// Обновляем имя автора
+					const nameElements = postElement.querySelectorAll(`.post-author-name[data-author-id="${authorId}"]`);
+					nameElements.forEach(element => {
+						element.textContent = authorData.name || authorData.email || 'Пользователь';
+						// Добавляем обработчик клика для перехода на профиль автора
+						element.style.cursor = 'pointer';
+						element.addEventListener('click', (e) => {
+							e.stopPropagation(); // Предотвращаем всплытие события
+							const profileId = authorData.numericId || authorId; // Используем numericId если есть
+							window.location.href = `profile.html?id=${profileId}`;
+						});
+					});
+				}
+			} catch (error) {
+				console.error(`Error loading author info for ${authorId}:`, error);
+			}
+		}
+
+		// Добавляем новую функцию для синхронизации данных между старыми и новыми путями
+		async function syncPostData(post) {
+			if (!post || !post.id || !post.groupId) return;
+			
+			const db = getDatabase();
+			const oldDataPaths = {
+				likes: `groupLikes/${post.groupId}/${post.id}`,
+				dislikes: `groupDislikes/${post.groupId}/${post.id}`,
+				comments: `groupPosts/${post.groupId}/${post.id}/comments`
+			};
+			
+			const newDataPaths = {
+				votes: `groupPostVotes/${post.id}`,
+				comments: `groupComments/${post.groupId}/${post.id}`
+			};
+			
+			try {
+				console.log(`Синхронизация данных для поста ${post.id}`);
+				
+				// Получаем существующие голоса из новой структуры
+				const newVotesRef = ref(db, newDataPaths.votes);
+				const newVotesSnapshot = await get(newVotesRef);
+				let existingVotes = newVotesSnapshot.exists() ? newVotesSnapshot.val() : {};
+				
+				// Синхронизируем лайки из старого пути
+				const oldLikesRef = ref(db, oldDataPaths.likes);
+				const oldLikesSnapshot = await get(oldLikesRef);
+				
+				if (oldLikesSnapshot.exists()) {
+					const likesData = oldLikesSnapshot.val();
+					let updatedVotes = { ...existingVotes };
+					
+					// Для каждого пользователя, поставившего лайк
+					Object.keys(likesData).forEach(userId => {
+						// Если у пользователя нет голоса или текущий голос не -1, добавляем лайк
+						if (!updatedVotes[userId] || updatedVotes[userId] !== -1) {
+							updatedVotes[userId] = 1;
+						}
+					});
+					
+					// Сохраняем обновленные голоса
+					await set(newVotesRef, updatedVotes);
+					existingVotes = updatedVotes;
+					console.log(`Синхронизированы лайки для поста ${post.id}`);
+				}
+				
+				// Синхронизируем дизлайки из старого пути
+				const oldDislikesRef = ref(db, oldDataPaths.dislikes);
+				const oldDislikesSnapshot = await get(oldDislikesRef);
+				
+				if (oldDislikesSnapshot.exists()) {
+					const dislikesData = oldDislikesSnapshot.val();
+					let updatedVotes = { ...existingVotes };
+					
+					// Для каждого пользователя, поставившего дизлайк
+					Object.keys(dislikesData).forEach(userId => {
+						// Если у пользователя нет голоса или текущий голос не 1, добавляем дизлайк
+						if (!updatedVotes[userId] || updatedVotes[userId] !== 1) {
+							updatedVotes[userId] = -1;
+						}
+					});
+					
+					// Сохраняем обновленные голоса
+					await set(newVotesRef, updatedVotes);
+					console.log(`Синхронизированы дизлайки для поста ${post.id}`);
+				}
+				
+				// Синхронизируем комментарии
+				const oldCommentsRef = ref(db, oldDataPaths.comments);
+				const oldCommentsSnapshot = await get(oldCommentsRef);
+				
+				if (oldCommentsSnapshot.exists()) {
+					const oldComments = oldCommentsSnapshot.val();
+					const newCommentsRef = ref(db, newDataPaths.comments);
+					
+					// Проверяем существуют ли комментарии в новой структуре
+					const newCommentsSnapshot = await get(newCommentsRef);
+					
+					if (!newCommentsSnapshot.exists()) {
+						// Преобразуем комментарии из старой структуры в новую
+						const migratedComments = {};
+						
+						for (const [commentId, comment] of Object.entries(oldComments)) {
+							// Получаем фото пользователя
+							let authorPhotoURL = '';
+							try {
+								const userRef = ref(db, `users/${comment.userId}`);
+								const userSnapshot = await get(userRef);
+								if (userSnapshot.exists() && userSnapshot.val().photoURL) {
+									authorPhotoURL = userSnapshot.val().photoURL;
+								}
+							} catch (error) {
+								console.error(`Ошибка при получении данных пользователя для комментария ${commentId}:`, error);
+							}
+							
+							// Создаем новую структуру комментария
+							migratedComments[commentId] = {
+								authorId: comment.userId,
+								authorPhotoURL: authorPhotoURL,
+								text: comment.text,
+								clientTimestamp: comment.timestamp,
+								timestamp: comment.timestamp
+							};
+						}
+						
+						// Сохраняем преобразованные комментарии в новой структуре
+						await set(newCommentsRef, migratedComments);
+						console.log(`Преобразовано и синхронизировано ${Object.keys(oldComments).length} комментариев для поста ${post.id}`);
+					} else {
+						console.log(`Комментарии для поста ${post.id} уже существуют в новой структуре. Пропускаем синхронизацию.`);
+					}
+				}
+			} catch (error) {
+				console.error(`Ошибка при синхронизации данных для поста ${post.id}:`, error);
+			}
+		}
+		
+		// Добавляем функцию для синхронизации всех постов в ленте новостей
+		async function syncAllPostsData(posts) {
+			if (!posts || posts.length === 0) return;
+			
+			console.log(`Начинаем синхронизацию данных для ${posts.length} постов`);
+			
+			try {
+				// Обрабатываем только первые 10 постов для производительности
+				const postsToSync = posts.slice(0, 10);
+				
+				for (const post of postsToSync) {
+					await syncPostData(post);
+				}
+				
+				console.log('Синхронизация данных завершена');
+			} catch (error) {
+				console.error('Ошибка при синхронизации данных постов:', error);
+			}
+		}
+		
+		// Модифицируем функцию loadNewsFeedAlternative, исправляя дублирование
+		async function loadNewsFeedAlternative(db, userId) {
+			try {
+				console.log("=== АЛЬТЕРНАТИВНАЯ ЗАГРУЗКА ЛЕНТЫ НОВОСТЕЙ ===");
+				console.log(`userId: ${userId}`);
+				
+				const newsFeedContainer = document.getElementById('news-posts-list');
+				if (!newsFeedContainer) {
+					console.error("Не найден контейнер для ленты новостей!");
+					return;
+				}
+
+				// Устанавливаем пустой контейнер для постов
+				newsFeedContainer.innerHTML = '';
+
+				// Массив для хранения ID групп пользователя
+				let groups = [];
+				let userGroupsFound = false;
+
+				// ПЕРВЫЙ СПОСОБ: Проверяем путь в структуре пользователя
+				const possibleUserGroupsPaths = [
+					`users/${userId}/groups`,     // стандартный путь
+					`users/${userId}/userGroups`, // альтернативный путь 1
+					`userGroups/${userId}`        // альтернативный путь 2
+				];
+
+				// Проверяем все возможные пути для поиска групп пользователя в его профиле
+				for (const path of possibleUserGroupsPaths) {
+					console.log(`Проверка пути: ${path}`);
+					const userGroupsRef = ref(db, path);
+					const userGroupsSnapshot = await get(userGroupsRef);
+					
+					if (userGroupsSnapshot.exists()) {
+						console.log(`Найдены группы пользователя по пути: ${path}`);
+						userGroupsFound = true;
+						
+						userGroupsSnapshot.forEach(groupSnapshot => {
+							const groupId = groupSnapshot.key;
+							const groupData = groupSnapshot.val();
+							console.log(`ID группы: ${groupId}, данные:`, groupData);
+							
+							// Если данные - это объект с информацией о группе
+							if (typeof groupData === 'object' && groupData !== null) {
+								// Если есть прямое указание ID группы в данных
+								if (groupData.groupId) {
+									groups.push(groupData.groupId);
+								} else {
+									groups.push(groupId);
+								}
+							} else {
+								// Если данные - это просто значение (например, роль пользователя в группе)
+								groups.push(groupId);
+							}
+						});
+						
+						console.log(`Найдено ${groups.length} групп в профиле пользователя`);
+						// Не выходим из цикла, проверим все пути
+					}
+				}
+
+				// ВТОРОЙ СПОСОБ: Проверяем принадлежность пользователя непосредственно в структуре групп
+				console.log("Проверка принадлежности к группам через структуру групп");
+				
+				// Получаем список всех групп
+				const allGroupsRef = ref(db, 'groups');
+				const allGroupsSnapshot = await get(allGroupsRef);
+				
+				if (allGroupsSnapshot.exists()) {
+					allGroupsSnapshot.forEach(groupSnapshot => {
+						const groupId = groupSnapshot.key;
+						const groupData = groupSnapshot.val();
+						
+						console.log(`Проверка группы ${groupId} (${groupData.name || 'без имени'}) на наличие пользователя в списке членов`);
+						
+						// Проверяем разные пути хранения информации о членах в группе
+						let isMember = false;
+						
+						// Проверка 1: стандартный путь members
+						if (groupData.members && groupData.members[userId]) {
+							console.log(`Пользователь ${userId} найден в списке members группы ${groupId}`);
+							isMember = true;
+						}
+						
+						// Проверка 2: путь groupMembers
+						if (groupData.groupMembers && groupData.groupMembers[userId]) {
+							console.log(`Пользователь ${userId} найден в списке groupMembers группы ${groupId}`);
+							isMember = true;
+						}
+						
+						// Проверка 3: nested path members.users
+						if (groupData.members && groupData.members.users && groupData.members.users[userId]) {
+							console.log(`Пользователь ${userId} найден в списке members.users группы ${groupId}`);
+							isMember = true;
+						}
+						
+						// Проверка 4: administrators
+						if (groupData.administrators && groupData.administrators[userId]) {
+							console.log(`Пользователь ${userId} найден в списке administrators группы ${groupId}`);
+							isMember = true;
+						}
+						
+						// Проверка 5: moderators
+						if (groupData.moderators && groupData.moderators[userId]) {
+							console.log(`Пользователь ${userId} найден в списке moderators группы ${groupId}`);
+							isMember = true;
+						}
+						
+						// Если пользователь член группы, добавляем ее в список
+						if (isMember) {
+							console.log(`Пользователь ${userId} входит в группу ${groupId}`);
+							groups.push(groupId);
+							userGroupsFound = true;
+						}
+					});
+				}
+
+				// ТРЕТИЙ СПОСОБ: Прямой доступ к структуре members групп для проверки пользователя
+				console.log("Проверка прямого доступа к спискам участников групп");
+				
+				const groupMembersPromises = [];
+				
+				if (allGroupsSnapshot.exists()) {
+					allGroupsSnapshot.forEach(groupSnapshot => {
+						const groupId = groupSnapshot.key;
+						
+						// Создаем Promise для каждой проверки
+						const checkPromise = get(ref(db, `groups/${groupId}/members/${userId}`))
+							.then(memberSnapshot => {
+								if (memberSnapshot.exists()) {
+									console.log(`Найдено прямое членство в группе ${groupId}, данные:`, memberSnapshot.val());
+									if (!groups.includes(groupId)) {
+										groups.push(groupId);
+										userGroupsFound = true;
+									}
+								}
+							})
+							.catch(error => {
+								console.error(`Ошибка при проверке членства в группе ${groupId}:`, error);
+							});
+						
+						groupMembersPromises.push(checkPromise);
+					});
+				}
+				
+				// Ждем завершения всех проверок
+				await Promise.all(groupMembersPromises);
+				
+				// Если все еще нет групп, выводим сообщение
+				if (groups.length === 0) {
+					console.warn("Группы не найдены ни одним из способов");
+					newsFeedContainer.innerHTML = `
+						<div class="no-posts-message">
+							<i class="fas fa-users-slash"></i>
+							<p>Не удалось найти группы, в которых вы состоите</p>
+							<p>Ваш ID пользователя: ${userId}</p>
+							<p>Проверьте свое членство в группах или попробуйте обновить страницу</p>
+						</div>
+					`;
+					return;
+				}
+
+				console.log(`Найдено ${groups.length} групп, начинаем загрузку постов`);
+
+				// Удаляем дубликаты групп, если они есть
+				groups = [...new Set(groups)];
+				console.log("Уникальные группы после фильтрации:", groups);
+
+				// Загрузка постов для найденных групп
+				const allPosts = await loadPostsForGroups(groups);
+				
+				// Если есть посты, отображаем и подписываемся на обновления
+				if (allPosts.length > 0) {
+					// После загрузки всех постов и перед их отображением, синхронизируем данные для обеспечения совместимости
+					await syncAllPostsData(allPosts);
+					
+					// Очищаем контейнер от индикатора загрузки
+					newsFeedContainer.innerHTML = '';
+					
+					// Отображаем посты
+					for (const post of allPosts) {
+						try {
+							const postElement = await createPostElement(post);
+							newsFeedContainer.appendChild(postElement);
+							
+							// Не нужно здесь вызывать subscribeToPostCounters, 
+							// так как это уже делается в createPostElement
+						} catch (error) {
+							console.error(`Ошибка при создании элемента поста ${post.id}:`, error);
+						}
+					}
+				}
+
+				console.log("=== ЗАВЕРШЕНИЕ АЛЬТЕРНАТИВНОЙ ЗАГРУЗКИ ЛЕНТЫ НОВОСТЕЙ ===");
+				
+				// Проверяем лайки и дизлайки для каждого поста от текущего пользователя
+				const auth = getAuth();
+				if (auth.currentUser) {
+					console.log("Проверка лайков и дизлайков для текущего пользователя...");
+					const currentUserId = auth.currentUser.uid;
+					
+					const likeDislikePromises = allPosts.map(async (post) => {
+						try {
+							// Проверяем голос пользователя в новой структуре данных
+							const voteRef = ref(db, `groupPostVotes/${post.id}/${currentUserId}`);
+							const voteSnapshot = await get(voteRef);
+							
+							if (voteSnapshot.exists()) {
+								const voteValue = voteSnapshot.val();
+								
+								// Сохраняем информацию в объекте поста для использования при отображении
+								post.userLiked = voteValue === 'like';
+								post.userDisliked = voteValue === 'dislike';
+							} else {
+								post.userLiked = false;
+								post.userDisliked = false;
+							}
+							
+							return post;
+						} catch (error) {
+							console.error(`Ошибка при проверке голоса для поста ${post.id}:`, error);
+							return post;
+						}
+					});
+					
+					// Ждем завершения всех проверок
+					
+					await Promise.all(likeDislikePromises);
+					console.log("Проверка лайков и дизлайков завершена");
+				}
+
+				return allPosts; // Возвращаем массив постов для возможного использования
+
+			} catch (error) {
+				console.error('Ошибка при альтернативной загрузке ленты новостей:', error);
+				
+				// Показываем сообщение об ошибке
+				const newsFeedContainer = document.getElementById('news-posts-list');
+				if (newsFeedContainer) {
+					newsFeedContainer.innerHTML = `
+						<div class="no-posts-message">
+							<i class="fas fa-exclamation-triangle"></i>
+							<p>Произошла ошибка при загрузке ленты новостей</p>
+							<p>Пожалуйста, обновите страницу или попробуйте позже</p>
+							<p style="font-size:12px; margin-top:10px; color:#e74c3c;">Детали ошибки: ${error.message}</p>
+							<button id="retry-load-feed" class="retry-btn" style="margin-top: 15px; padding: 8px 16px; background: #4a76a8; color: white; border: none; border-radius: 4px; cursor: pointer;">
+								<i class="fas fa-redo"></i> Попробовать еще раз
+							</button>
+						</div>
+					`;
+					
+					// Добавляем обработчик для кнопки повторной попытки
+					const retryButton = document.getElementById('retry-load-feed');
+					if (retryButton) {
+						retryButton.addEventListener('click', () => {
+							const auth = getAuth();
+							if (auth.currentUser) {
+								loadNewsFeedAlternative(db, auth.currentUser.uid);
+							} else {
+								alert("Вы не авторизованы! Пожалуйста, войдите в систему.");
+							}
+						});
+					}
+				}
+			}
+		}
+
+		// Функция для загрузки постов из групп
+		async function loadPostsForGroups(groupsList) {
+			try {
+				// Получаем ссылку на базу данных
+				const db = getDatabase();
+				
+				// Собираем все посты из всех групп
+				const allPosts = [];
+				const possiblePostsPaths = [
+					'groupPosts',      // стандартный путь
+					'posts',           // альтернативный путь 1
+					'group_posts'      // альтернативный путь 2
+				];
+
+				// Проверяем разные пути хранения постов
+				for (const postsPath of possiblePostsPaths) {
+					console.log(`Проверка пути для постов: ${postsPath}`);
+					
+					// Параллельно загружаем данные по всем группам
+					await Promise.all(groupsList.map(async (groupId) => {
+						try {
+							console.log(`Загрузка постов группы ${groupId} из пути ${postsPath}/${groupId}`);
+							
+							// Загружаем информацию о группе для отображения
+							let groupData = { name: `Группа ${groupId}`, photoURL: '' };
+							try {
+								const groupRef = ref(db, `groups/${groupId}`);
+								const groupSnapshot = await get(groupRef);
+								
+								if (groupSnapshot.exists()) {
+									groupData = groupSnapshot.val();
+									groupData.id = groupId;
+								} else {
+									console.warn(`Информация о группе ${groupId} не найдена, используем заглушку`);
+								}
+							} catch (groupError) {
+								console.error(`Ошибка при загрузке информации о группе ${groupId}:`, groupError);
+							}
+
+							// Загружаем посты группы
+							const postsRef = ref(db, `${postsPath}/${groupId}`);
+							const postsSnapshot = await get(postsRef);
+							
+							if (!postsSnapshot.exists()) {
+								console.log(`В группе ${groupId} нет постов по пути ${postsPath}/${groupId}`);
+								return;
+							}
+							
+							console.log(`Найдены посты в группе ${groupId} по пути ${postsPath}/${groupId}`);
+							let postsCount = 0;
+							
+							postsSnapshot.forEach(postSnapshot => {
+								postsCount++;
+								const post = postSnapshot.val();
+								
+								// Проверяем, что пост содержит необходимые данные
+								if (!post) {
+									console.warn(`Пост ${postSnapshot.key} в группе ${groupId} пустой`);
+									return;
+								}
+								
+								post.id = postSnapshot.key;
+								post.groupId = groupId;
+								post.groupData = {
+									name: groupData.name || `Группа ${groupId}`,
+									photoURL: groupData.photoURL || ''
+								};
+								
+								// Выводим информацию о первых постах в каждой группе
+								if (postsCount <= 3) {
+									console.log(`Пост ${post.id}, контент: ${post.content ? post.content.substring(0, 30) + '...' : '[нет контента]'}, timestamp: ${post.timestamp || '[нет timestamp]'}`);
+								}
+								
+								// Добавляем пост в общий список
+								allPosts.push(post);
+							});
+							
+							console.log(`Всего загружено ${postsCount} постов из группы ${groupId} по пути ${postsPath}/${groupId}`);
+						} catch (error) {
+							console.error(`Ошибка при загрузке постов для группы ${groupId} по пути ${postsPath}:`, error);
+						}
+					}));
+				}
+
+				console.log(`Всего загружено ${allPosts.length} постов из всех групп`);
+
+				// Проверяем, есть ли посты
+				if (allPosts.length === 0) {
+					console.warn("Не найдено ни одного поста в группах пользователя");
+					const newsFeedContainer = document.getElementById('news-posts-list');
+					if (newsFeedContainer) {
+						newsFeedContainer.innerHTML = `
+							<div class="no-posts-message">
+								<i class="fas fa-newspaper"></i>
+								<p>В ваших группах ещё нет опубликованных постов</p>
+								<p>Вы состоите в ${groupsList.length} группах, но в них пока нет публикаций</p>
+								<button id="retry-load-feed" class="retry-btn" style="margin-top: 15px; padding: 8px 16px; background: #4a76a8; color: white; border: none; border-radius: 4px; cursor: pointer;">
+									<i class="fas fa-redo"></i> Попробовать еще раз
+								</button>
+							</div>
+						`;
+						
+						// Добавляем обработчик для кнопки повторной попытки
+						const retryButton = document.getElementById('retry-load-feed');
+						if (retryButton) {
+							retryButton.addEventListener('click', () => {
+								const auth = getAuth();
+								if (auth.currentUser) {
+									loadNewsFeedAlternative(db, auth.currentUser.uid);
+								} else {
+									alert("Вы не авторизованы! Пожалуйста, войдите в систему.");
+								}
+							});
+						}
+					}
+					return [];
+				}
+
+				// Проверка и исправление timestamp постов
+				const postsWithIssues = [];
+				allPosts.forEach(post => {
+					// Если timestamp отсутствует или некорректный
+					if (!post.timestamp) {
+						console.warn(`Пост ${post.id} не имеет временной метки, устанавливаем текущее время`);
+						post.timestamp = Date.now();
+						postsWithIssues.push(post.id);
+					}
+					
+					// Если timestamp представлен в виде строки, конвертируем в число
+					if (typeof post.timestamp === 'string') {
+						console.warn(`Пост ${post.id} имеет строковый timestamp: ${post.timestamp}, конвертируем в число`);
+						const numericTimestamp = Number(post.timestamp);
+						
+						// Проверяем, валидное ли число получилось
+						if (!isNaN(numericTimestamp)) {
+							post.timestamp = numericTimestamp;
+						} else {
+							console.error(`Не удалось конвертировать timestamp для поста ${post.id}, устанавливаем текущее время`);
+							post.timestamp = Date.now();
+							postsWithIssues.push(post.id);
+						}
+					}
+				});
+				
+				if (postsWithIssues.length > 0) {
+					console.warn(`Исправлены проблемы с timestamp у ${postsWithIssues.length} постов:`, postsWithIssues);
+				}
+
+				// Сортируем посты по времени (новые сверху)
+				console.log("Сортировка постов...");
+				allPosts.sort((a, b) => b.timestamp - a.timestamp);
+				console.log("Сортировка завершена");
+				
+				return allPosts;
+			} catch (error) {
+				console.error("Ошибка при загрузке постов:", error);
+				return [];
+			}
+		}
+
+		// Модифицируем функцию подписки на обновления счетчиков, чтобы использовать новую структуру данных
+		function subscribeToPostCounters(post) {
+			if (!post || !post.id || !post.groupId) return;
+			
+			// Создаем уникальный идентификатор поста для отслеживания подписок
+			const postKey = `${post.groupId}_${post.id}`;
+			
+			// Проверяем, не подписаны ли мы уже на обновления для этого поста
+			// Используем глобальное хранилище подписок для отслеживания
+			if (!window.counterSubscriptions) {
+				window.counterSubscriptions = {};
+			}
+			
+			// Если уже есть подписка для этого поста - отменяем ее
+			if (window.counterSubscriptions[postKey]) {
+				console.log(`Отменяем существующую подписку для поста ${post.id}`);
+				window.counterSubscriptions[postKey].forEach(unsubscribe => unsubscribe());
+				delete window.counterSubscriptions[postKey];
+			}
+			
+			// Создаем новый массив для хранения функций отписки
+			window.counterSubscriptions[postKey] = [];
+			
+			console.log(`Подписка на обновления счетчиков для поста ${post.id} в группе ${post.groupId}`);
+			const db = getDatabase();
+			
+			// Формируем селекторы для счетчиков в DOM
+			const likeCountSelector = `.news-post-item[data-post-id="${post.id}"][data-group-id="${post.groupId}"] .like-count`;
+			const dislikeCountSelector = `.news-post-item[data-post-id="${post.id}"][data-group-id="${post.groupId}"] .dislike-count`;
+			const commentCountSelector = `.news-post-item[data-post-id="${post.id}"][data-group-id="${post.groupId}"] .comment-count`;
+			
+			// Подписка на обновления голосов (лайки и дизлайки)
+			const votesRef = ref(db, `groupPostVotes/${post.id}`);
+			const votesUnsubscribe = onValue(votesRef, (snapshot) => {
+				const votes = snapshot.exists() ? snapshot.val() : {};
+				
+				// Подсчитываем количество лайков и дизлайков
+				let likeCount = 0;
+				let dislikeCount = 0;
+				
+				Object.values(votes).forEach(vote => {
+					if (vote === 1) likeCount++;
+					else if (vote === -1) dislikeCount++;
+				});
+				
+				// Обновляем счетчики лайков
+				const likeCountElements = document.querySelectorAll(likeCountSelector);
+				likeCountElements.forEach(element => {
+					element.textContent = likeCount;
+				});
+				
+				// Обновляем счетчики дизлайков
+				const dislikeCountElements = document.querySelectorAll(dislikeCountSelector);
+				dislikeCountElements.forEach(element => {
+					element.textContent = dislikeCount;
+				});
+				
+				console.log(`Обновлены счетчики для поста ${post.id}: лайков: ${likeCount}, дизлайков: ${dislikeCount}`);
+			});
+			
+			// Сохраняем функцию отписки
+			window.counterSubscriptions[postKey].push(votesUnsubscribe);
+			
+			// Подписка на обновления комментариев для счетчика
+			const commentsRef = ref(db, `groupComments/${post.groupId}/${post.id}`);
+			const commentsUnsubscribe = onValue(commentsRef, (snapshot) => {
+				const commentCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+				const commentCountElements = document.querySelectorAll(commentCountSelector);
+				
+				commentCountElements.forEach(element => {
+					element.textContent = commentCount;
+				});
+				
+				console.log(`Обновлен счетчик комментариев для поста ${post.id}: ${commentCount}`);
+				
+				// Обновляем отображение последнего комментария
+				const postElement = document.querySelector(`.news-post-item[data-post-id="${post.id}"][data-group-id="${post.groupId}"]`);
+				if (postElement) {
+					// Проверяем, не отображаются ли уже все комментарии
+					const commentsContainer = postElement.querySelector(`#comments-${post.id}`);
+					const lastCommentContainer = postElement.querySelector(`#last-comment-container-${post.id}`);
+					
+					// Если уже показаны все комментарии, не показываем последний комментарий
+					if (commentsContainer && commentsContainer.style.display === 'block') {
+						if (lastCommentContainer) {
+							lastCommentContainer.style.display = 'none';
+						}
+					} else {
+						// Иначе обновляем и показываем последний комментарий
+						// Получаем ID группы из атрибута data-group-id элемента поста
+						const groupId = postElement.dataset.groupId;
+						if (groupId) {
+							loadLastComment(post.id, groupId, postElement);
+						} else {
+							console.error('Не удалось найти ID группы для поста:', post.id);
+						}
+					}
+				}
+			});
+			
+			// Сохраняем функцию отписки
+			window.counterSubscriptions[postKey].push(commentsUnsubscribe);
+
+			// Добавим подписку на новые комментарии для обновления списка комментариев в реальном времени
+			const newCommentsRef = ref(db, `groupComments/${post.groupId}/${post.id}`);
+			const newCommentsUnsubscribe = onChildAdded(newCommentsRef, (snapshot) => {
+				const commentData = snapshot.val();
+				const commentId = snapshot.key;
+				
+				// Проверяем, показан ли контейнер с комментариями для этого поста
+				const postElement = document.querySelector(`.news-post-item[data-post-id="${post.id}"][data-group-id="${post.groupId}"]`);
+				if (!postElement) return;
+				
+				const commentsContainer = postElement.querySelector(`#comments-${post.id}`);
+				if (!commentsContainer || commentsContainer.style.display !== 'block') return;
+				
+				// Проверяем, не отображается ли уже этот комментарий
+				const existingComment = document.querySelector(`#comments-list-${post.id} .comment-item[data-comment-id="${commentId}"]`);
+				if (existingComment) return;
+				
+				// Проверяем, является ли текущий пользователь автором комментария
+				const auth = getAuth();
+				const isCurrentUserAuthor = auth.currentUser && auth.currentUser.uid === commentData.authorId;
+				
+				// Если комментарий уже добавлен текущим пользователем (localComment), не добавляем его повторно
+				if (isCurrentUserAuthor) {
+					// Проверяем последние комментарии на наличие локального с тем же ID
+					const commentsList = document.getElementById(`comments-list-${post.id}`);
+					if (commentsList) {
+						const localComment = commentsList.querySelector(`.comment-item[data-comment-id="${commentId}"][data-local-comment="true"]`);
+						if (localComment) {
+							console.log(`Локальный комментарий ${commentId} уже существует, пропускаем повторное добавление`);
+							return;
+						}
+					}
+				}
+				
+				// Добавляем комментарий в список, если его еще нет
+				// Устанавливаем isLocalComment=false для предотвращения автоматической прокрутки
+				console.log(`Добавляем новый комментарий ${commentId} в реальном времени (${isCurrentUserAuthor ? 'от текущего пользователя' : 'от другого пользователя'})`);
+				addCommentToList(post.id, {
+					id: commentId,
+					...commentData
+				}, false); // Всегда false для предотвращения автоскролла для других пользователей
+			});
+
+			// Сохраняем функцию отписки
+			window.counterSubscriptions[postKey].push(newCommentsUnsubscribe);
+		}
+
+		// Функция для подсчета лайков и дизлайков из новой структуры данных
+		function countVotes(votes) {
+			if (!votes) return { likes: 0, dislikes: 0 };
+			
+			let likes = 0;
+			let dislikes = 0;
+			
+			Object.values(votes).forEach(vote => {
+				if (vote === 1) likes++;
+				else if (vote === -1) dislikes++;
+			});
+			
+			return { likes, dislikes };
+		}
+
+		// Функция для добавления обработчиков событий к элементам взаимодействия с постом
+		function addPostInteractionHandlers(postElement, post) {
+			const auth = getAuth();
+			const db = getDatabase();
+			
+			// Получаем элементы
+			const likeBtn = postElement.querySelector('.like-btn');
+			const dislikeBtn = postElement.querySelector('.dislike-btn');
+			const commentBtn = postElement.querySelector('.comment-btn');
+			const commentsContainer = postElement.querySelector('.post-comments-container');
+			const commentSubmitBtn = postElement.querySelector('.comment-submit-btn');
+			
+			// Обработчик для кнопки лайка
+			if (likeBtn) {
+				likeBtn.addEventListener('click', async () => {
+					if (!auth.currentUser) {
+						alert('Вы должны войти в систему, чтобы оценивать посты');
+						return;
+					}
+					
+					const userId = auth.currentUser.uid;
+					const postId = post.id;
+					const groupId = post.groupId;
+					
+					// Используем groupPostVotes как должно быть
+					const votePath = `groupPostVotes/${postId}/${userId}`;
+					
+					try {
+						// Проверяем, существует ли уже запись о голосе пользователя
+						const voteRef = ref(db, votePath);
+						const voteSnapshot = await get(voteRef);
+						
+						if (voteSnapshot.exists()) {
+							const currentVote = voteSnapshot.val();
+							
+							if (currentVote === 1) {
+								// Если уже есть лайк, удаляем его (отмена голоса)
+								await set(voteRef, null);
+								console.log('Лайк отменен');
+								likeBtn.classList.remove('active');
+							} else if (currentVote === -1) {
+								// Если был дизлайк, заменяем его на лайк
+								await set(voteRef, 1);
+								console.log('Дизлайк заменен на лайк');
+								likeBtn.classList.add('active');
+								dislikeBtn.classList.remove('active');
+							}
+						} else {
+							// Если голоса нет, добавляем лайк
+							await set(voteRef, 1);
+							console.log('Лайк добавлен');
+							likeBtn.classList.add('active');
+						}
+					} catch (error) {
+						console.error('Ошибка при обработке лайка:', error);
+						alert('Произошла ошибка при оценке поста');
+					}
+				});
+			}
+			
+			// Обработчик для кнопки дизлайка
+			if (dislikeBtn) {
+				dislikeBtn.addEventListener('click', async () => {
+					if (!auth.currentUser) {
+						alert('Вы должны войти в систему, чтобы оценивать посты');
+						return;
+					}
+					
+					const userId = auth.currentUser.uid;
+					const postId = post.id;
+					const groupId = post.groupId;
+					
+					// Используем groupPostVotes как должно быть
+					const votePath = `groupPostVotes/${postId}/${userId}`;
+					
+					try {
+						// Проверяем, существует ли уже запись о голосе пользователя
+						const voteRef = ref(db, votePath);
+						const voteSnapshot = await get(voteRef);
+						
+						if (voteSnapshot.exists()) {
+							const currentVote = voteSnapshot.val();
+							
+							if (currentVote === -1) {
+								// Если уже есть дизлайк, удаляем его (отмена голоса)
+								await set(voteRef, null);
+								console.log('Дизлайк отменен');
+								dislikeBtn.classList.remove('active');
+							} else if (currentVote === 1) {
+								// Если был лайк, заменяем его на дизлайк
+								await set(voteRef, -1);
+								console.log('Лайк заменен на дизлайк');
+								dislikeBtn.classList.add('active');
+								likeBtn.classList.remove('active');
+							}
+						} else {
+							// Если голоса нет, добавляем дизлайк
+							await set(voteRef, -1);
+							console.log('Дизлайк добавлен');
+							dislikeBtn.classList.add('active');
+						}
+					} catch (error) {
+						console.error('Ошибка при обработке дизлайка:', error);
+						alert('Произошла ошибка при оценке поста');
+					}
+				});
+			}
+			
+			// Обработчик для кнопки комментирования
+			if (commentBtn) {
+				commentBtn.addEventListener('click', () => {
+					if (commentsContainer) {
+						// Получаем контейнер с последним комментарием
+						const lastCommentContainer = postElement.querySelector(`#last-comment-container-${post.id}`);
+						
+						// Переключаем видимость контейнера комментариев
+						if (commentsContainer.style.display === 'none') {
+							// Если комментарии были скрыты - показываем их
+							commentsContainer.style.display = 'block';
+							
+							// Скрываем контейнер с последним комментарием
+							if (lastCommentContainer) {
+								lastCommentContainer.style.display = 'none';
+							}
+							
+							// Загружаем комментарии с правильными параметрами
+							loadComments(post.id, post.groupId);
+						} else {
+							// Если комментарии были показаны - скрываем их
+							commentsContainer.style.display = 'none';
+							
+							// Показываем контейнер с последним комментарием (если есть комментарии)
+							if (lastCommentContainer) {
+								// Проверяем, есть ли комментарии, чтобы решить, показывать ли контейнер
+								const commentCount = parseInt(commentBtn.querySelector('.comment-count').textContent);
+								if (commentCount > 0) {
+									lastCommentContainer.style.display = 'block';
+								}
+							}
+						}
+					}
+				});
+			}
+			
+			// Обработчик для формы отправки комментария
+			const commentForm = postElement.querySelector(`.comment-form[data-post-id="${post.id}"]`);
+			if (commentForm) {
+				// Обработчик для подсчета символов
+				const textarea = commentForm.querySelector('.comment-input');
+				const counter = commentForm.querySelector('.character-counter');
+				
+				if (textarea && counter) {
+					textarea.addEventListener('input', () => {
+						const length = textarea.value.length;
+						counter.textContent = `${length}/1000`;
+						
+						// Подсветка предупреждения, если приближаемся к лимиту
+						if (length > 900) {
+							counter.classList.add('warning');
+							if (length > 980) {
+								counter.classList.add('error');
+							} else {
+								counter.classList.remove('error');
+							}
+						} else {
+							counter.classList.remove('warning', 'error');
+						}
+						
+						// Показываем счетчик только когда есть текст
+						if (length > 0) {
+							counter.classList.add('visible');
+						} else {
+							counter.classList.remove('visible');
+						}
+						
+						// Автоматическое изменение высоты текстового поля
+						textarea.style.height = 'auto';
+						textarea.style.height = Math.min(textarea.scrollHeight, 300) + 'px';
+					});
+				}
+				
+				// Обработчик для кнопки отмены
+				const cancelBtn = commentForm.querySelector('.cancel-comment-button');
+				if (cancelBtn) {
+					cancelBtn.addEventListener('click', () => {
+						if (textarea) {
+							textarea.value = '';
+							textarea.style.height = 'auto';
+							counter.textContent = '0/1000';
+							counter.classList.remove('visible', 'warning', 'error');
+						}
+					});
+				}
+				
+				// Обработчик для отправки комментария
+				commentForm.addEventListener('submit', async (e) => {
+					e.preventDefault();
+					
+					if (!auth.currentUser) {
+						alert('Вы должны войти в систему, чтобы комментировать посты');
+						return;
+					}
+					
+					const userId = auth.currentUser.uid;
+					const postId = post.id;
+					const groupId = post.groupId;
+					
+					// Использовать textarea из формы
+					const commentInputId = `comment-input-${postId}`;
+					const commentInput = document.getElementById(commentInputId);
+					
+					if (!commentInput || !commentInput.value.trim()) {
+						alert('Пожалуйста, введите текст комментария');
+						return;
+					}
+					
+					try {
+						const commentText = commentInput.value.trim();
+						
+						// Получаем URL аватара пользователя
+						let authorPhotoURL = '';
+						try {
+							const userRef = ref(db, `users/${userId}`);
+							const userSnapshot = await get(userRef);
+							if (userSnapshot.exists()) {
+								const userData = userSnapshot.val();
+								authorPhotoURL = userData.photoURL || '';
+							}
+						} catch (error) {
+							console.error('Ошибка при получении аватара пользователя:', error);
+						}
+						
+						// Получаем информацию о пользователе для отображения в UI
+						let userName = '';
+						try {
+							const userRef = ref(db, `users/${userId}`);
+							const userSnapshot = await get(userRef);
+							if (userSnapshot.exists()) {
+								const userData = userSnapshot.val();
+								userName = userData.name || userData.email || 'Пользователь';
+							}
+						} catch (error) {
+							console.error('Ошибка при получении данных пользователя:', error);
+						}
+						
+						// Используем клиентскую временную метку для немедленного отображения
+						const clientTimestamp = Date.now();
+						
+						// Сохраняем текст комментария
+						const savedCommentText = commentText;
+						
+						// Очищаем поле ввода ПЕРЕД отправкой комментария
+						commentInput.value = '';
+						commentInput.style.height = 'auto';
+						counter.textContent = '0/1000';
+						counter.classList.remove('visible', 'warning', 'error');
+						
+						// Генерируем уникальный ID для комментария с правильной структурой
+						const commentListRef = ref(db, `groupComments/${groupId}/${postId}`);
+						const newCommentRef = push(commentListRef);
+						
+						// Временно показываем локальную версию комментария до отправки
+						addCommentToList(postId, {
+							id: newCommentRef.key,
+							authorId: userId,
+							authorPhotoURL: authorPhotoURL,
+							authorName: userName, // Только для локального отображения
+							text: savedCommentText,
+							timestamp: clientTimestamp,
+							clientTimestamp: clientTimestamp
+						}, true);
+						
+						// Сохраняем комментарий в базе данных
+						await set(newCommentRef, {
+							authorId: userId,
+							authorPhotoURL: authorPhotoURL,
+							text: savedCommentText,
+							timestamp: serverTimestamp(),
+							clientTimestamp: clientTimestamp
+						});
+						
+						// Счетчик комментариев обновится автоматически через подписку
+						console.log('Комментарий добавлен, ожидаем обновления счетчика');
+						
+					} catch (error) {
+						console.error('Ошибка при добавлении комментария:', error);
+						alert('Произошла ошибка при добавлении комментария');
+					}
+				});
+			}
+		}
+
+		// Добавляем функцию для загрузки последнего комментария
+		async function loadLastComment(postId, groupId, postElement) {
+			const db = getDatabase();
+			const lastCommentContainer = postElement.querySelector(`#last-comment-container-${postId}`);
+			const lastCommentElement = postElement.querySelector(`#last-comment-${postId}`);
+			const commentsContainer = postElement.querySelector(`#comments-${postId}`);
+			
+			// Проверяем, виден ли контейнер со всеми комментариями
+			const allCommentsVisible = commentsContainer && commentsContainer.style.display === 'block';
+			
+			// Если уже отображены все комментарии, не показываем последний комментарий
+			if (allCommentsVisible) {
+				if (lastCommentContainer) {
+					lastCommentContainer.style.display = 'none';
+				}
+				return;
+			}
+			
+			if (!lastCommentContainer || !lastCommentElement) return;
+			
+			try {
+				// Получаем комментарии
+				const commentsRef = ref(db, `groupComments/${groupId}/${postId}`);
+				const commentsSnapshot = await get(commentsRef);
+				
+				// Если комментариев нет, скрываем контейнер
+				if (!commentsSnapshot.exists()) {
+					lastCommentContainer.style.display = 'none';
+					return;
+				}
+				
+				// Получаем все комментарии
+				const comments = [];
+				commentsSnapshot.forEach(commentSnapshot => {
+					comments.push({
+						id: commentSnapshot.key,
+						...commentSnapshot.val()
+					});
+				});
+				
+				// Если комментариев нет, скрываем контейнер
+				if (comments.length === 0) {
+					lastCommentContainer.style.display = 'none';
+					return;
+				}
+				
+				// Сортируем комментарии по времени (новые сверху)
+				comments.sort((a, b) => {
+					const aTime = typeof a.timestamp === 'number' ? a.timestamp : a.clientTimestamp;
+					const bTime = typeof b.timestamp === 'number' ? b.timestamp : b.clientTimestamp;
+					return bTime - aTime;
+				});
+				
+				// Берем последний комментарий
+				const lastComment = comments[0];
+				
+				// Форматируем дату комментария
+				const timestamp = typeof lastComment.timestamp === 'number' ? lastComment.timestamp : lastComment.clientTimestamp;
+				const commentDate = new Date(timestamp);
+				const formattedDate = commentDate.toLocaleString('ru-RU', {
+					day: 'numeric',
+					month: 'short',
+					hour: '2-digit',
+					minute: '2-digit'
+				});
+				
+				// Получаем данные автора комментария
+				let authorName = 'Пользователь';
+				let authorPhotoURL = 'https://ui-avatars.com/api/?name=User&background=random';
+				
+				// Определяем ID автора (поддержка обеих структур)
+				const authorId = lastComment.authorId || lastComment.userId;
+				
+				// Если есть authorPhotoURL (новая структура), используем его напрямую
+				if (lastComment.authorPhotoURL) {
+					authorPhotoURL = lastComment.authorPhotoURL;
+				}
+				
+				// Получаем данные автора, если не указаны в комментарии
+				try {
+					const userRef = ref(db, `users/${authorId}`);
+					const userSnapshot = await get(userRef);
+					
+					if (userSnapshot.exists()) {
+						const userData = userSnapshot.val();
+						authorName = userData.name || userData.email || 'Пользователь';
+						if (!lastComment.authorPhotoURL && userData.photoURL) {
+							authorPhotoURL = userData.photoURL;
+						}
+					}
+				} catch (error) {
+					console.error(`Ошибка при загрузке информации о пользователе ${authorId}:`, error);
+				}
+				
+				// Отображаем последний комментарий
+				lastCommentElement.innerHTML = `
+					<div class="last-comment-avatar">
+						<img src="${authorPhotoURL}" alt="${authorName}">
+					</div>
+					<div class="last-comment-content">
+						<div class="last-comment-header">
+							<div class="last-comment-author">${authorName}</div>
+							<div class="last-comment-date">${formattedDate}</div>
+						</div>
+						<div class="last-comment-text">${lastComment.text}</div>
+					</div>
+				`;
+				
+				// Обновляем текст кнопки
+				const viewAllCommentsBtn = postElement.querySelector('.view-all-comments');
+				if (viewAllCommentsBtn) {
+					viewAllCommentsBtn.textContent = `Просмотреть все комментарии (${comments.length})`;
+				}
+				
+				// Показываем контейнер
+				lastCommentContainer.style.display = 'block';
+			} catch (error) {
+				console.error(`Ошибка при загрузке последнего комментария:`, error);
+				lastCommentContainer.style.display = 'none';
+			}
+		}
+
+		// Функция для управления отображением формы ответа на комментарий
+		function toggleReplyForm(commentId, show, authorName) {
+			// Теперь используем класс .reply-form вместо .comment-reply-form
+			const replyForms = document.querySelectorAll('.reply-form');
+			
+			// Сначала скрываем все формы ответа
+			replyForms.forEach(form => {
+				form.classList.remove('active');
+			});
+			
+			if (show) {
+				const replyForm = document.getElementById(`reply-form-${commentId}`);
+				if (replyForm) {
+					replyForm.classList.add('active');
+					
+					// Устанавливаем фокус на поле ввода
+					const replyInput = document.getElementById(`reply-input-${commentId}`);
+					if (replyInput) {
+						replyInput.focus();
+						
+						// Сохраняем имя пользователя, которому отвечаем
+						replyInput.dataset.replyToName = authorName;
+					}
+				}
+			}
+		}
+		
+		// Функция для отправки ответа на комментарий
+		async function submitReply(commentId, postId) {
+			// Получаем аутентификацию и базу данных
+			const auth = getAuth();
+			const db = getDatabase();
+			
+			// Проверяем авторизацию пользователя
+			if (!auth.currentUser) {
+				alert('Вы должны войти в систему, чтобы отвечать на комментарии');
+				return;
+			}
+			
+			// Получаем текст ответа
+			const replyInput = document.getElementById(`reply-input-${commentId}`);
+			if (!replyInput || !replyInput.value.trim()) {
+				alert('Пожалуйста, введите текст ответа');
+				return;
+			}
+			
+			const replyText = replyInput.value.trim();
+			
+			try {
+				// Находим элемент комментария, чтобы получить данные о группе и родительском комментарии
+				const commentElement = document.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+				if (!commentElement) {
+					console.error('Не удалось найти комментарий для ответа');
+					return;
+				}
+				
+				// Получаем текст родительского комментария для включения в reply-info
+				let replyToText = '';
+				const parentCommentTextElement = commentElement.querySelector('.comment-text');
+				if (parentCommentTextElement) {
+					replyToText = parentCommentTextElement.textContent || '';
+				}
+				
+				// Ограничиваем длину цитируемого текста
+				const maxLength = 30;
+				if (replyToText.length > maxLength) {
+					replyToText = replyToText.substring(0, maxLength) + '...';
+				}
+				
+				// Ищем группу, к которой относится пост
+				// Сначала ищем ближайший контейнер комментариев
+				const commentsContainer = commentElement.closest('.comments-list');
+				if (!commentsContainer) {
+					console.error('Не удалось найти контейнер комментариев');
+					return;
+				}
+				
+				// ID группы может быть в атрибутах поста или в URL параметрах
+				let groupId;
+				
+				// Ищем в атрибутах элемента поста
+				const postElement = commentsContainer.closest('.news-post-item');
+				if (postElement && postElement.dataset.groupId) {
+					groupId = postElement.dataset.groupId;
+				} else {
+					// Ищем в параметрах комментария
+					// Предполагаем, что данные о группе передаются в комментарии
+					const commentBtns = document.querySelectorAll(`.comment-submit-btn[data-post-id="${postId}"]`);
+					if (commentBtns.length > 0 && commentBtns[0].dataset.groupId) {
+						groupId = commentBtns[0].dataset.groupId;
+					} else {
+						console.error('Не удалось определить ID группы для ответа на комментарий');
+						return;
+					}
+				}
+				
+				// Получаем имя автора родительского комментария корректно
+				let replyToAuthor = 'Пользователь';
+				const authorNameElement = commentElement.querySelector('.comment-author-name');
+				if (authorNameElement) {
+					replyToAuthor = authorNameElement.textContent || 'Пользователь';
+				}
+				
+				// Определяем уровень родительского комментария и эффективный parentId
+				let parentLevel = 0;
+				let effectiveParentId = commentId;
+				
+				// Проверяем, является ли комментарий уже ответом
+				if (commentElement.dataset.parentId) {
+					parentLevel = 1; // Если есть parentId, то это уже ответ (уровень 1)
+					// Используем parentId исходного комментария как effectiveParentId
+					effectiveParentId = commentElement.dataset.parentId;
+				}
+				
+				// Получаем информацию о пользователе для аватара
+				const userId = auth.currentUser.uid;
+				let authorPhotoURL = '';
+				
+				try {
+					const userRef = ref(db, `users/${userId}`);
+					const userSnapshot = await get(userRef);
+					if (userSnapshot.exists()) {
+						const userData = userSnapshot.val();
+						authorPhotoURL = userData.photoURL || '';
+					}
+				} catch (error) {
+					console.error('Ошибка при получении данных пользователя:', error);
+				}
+				
+				// Сохраняем текст ответа, чтобы использовать его после скрытия формы
+				const savedReplyText = replyText;
+				
+				// Очищаем поле ввода и скрываем форму ПЕРЕД отправкой комментария
+				replyInput.value = '';
+				toggleReplyForm(commentId, false);
+				
+				// Генерируем уникальный ID для ответа
+				const commentListRef = ref(db, `groupComments/${groupId}/${postId}`);
+				const newReplyRef = push(commentListRef);
+				
+				// Используем клиентскую временную метку для немедленного отображения
+				const clientTimestamp = Date.now();
+				
+				// Для отображения в UI нам нужно получить имя пользователя
+				let userName = '';
+				try {
+					const userRef = ref(db, `users/${userId}`);
+					const userSnapshot = await get(userRef);
+					if (userSnapshot.exists()) {
+						const userData = userSnapshot.val();
+						userName = userData.name || userData.email || 'Пользователь';
+					}
+				} catch (error) {
+					console.error('Ошибка при получении имени пользователя:', error);
+				}
+				
+				// Добавляем локальную версию ответа ДО отправки в базу данных
+				addCommentToList(postId, {
+					id: newReplyRef.key,
+					authorId: userId,
+					authorPhotoURL: authorPhotoURL,
+					authorName: userName, // Только для локального отображения в UI
+					text: savedReplyText,
+					parentId: effectiveParentId,
+					replyToAuthor: replyToAuthor,
+					replyToText: replyToText,
+					timestamp: clientTimestamp,
+					clientTimestamp: clientTimestamp,
+					actualReplyToId: commentId
+				}, true);
+				
+				// Сохраняем ответ в базе данных
+				await set(newReplyRef, {
+					authorId: userId,
+					authorPhotoURL: authorPhotoURL,
+					text: savedReplyText,
+					parentId: effectiveParentId,
+					replyToAuthor: replyToAuthor,
+					replyToText: replyToText,
+					timestamp: serverTimestamp(),
+					clientTimestamp: clientTimestamp,
+					actualReplyToId: commentId
+				});
+				
+				console.log('Ответ на комментарий успешно отправлен');
+				
+			} catch (error) {
+				console.error('Ошибка при отправке ответа на комментарий:', error);
+				alert('Произошла ошибка при отправке ответа');
+			}
+		}
+		
+		// Функция для удаления комментария
+		async function deleteComment(commentId, postId) {
+			try {
+				if (!confirm('Вы уверены, что хотите удалить этот комментарий?')) {
+					return;
+				}
+				
+				const auth = getAuth();
+				const db = getDatabase();
+				
+				// Проверяем авторизацию
+				if (!auth.currentUser) {
+					alert('Вы должны войти в систему, чтобы удалять комментарии');
+					return;
+				}
+				
+				// Находим элемент комментария для получения данных о группе
+				const commentElement = document.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+				if (!commentElement) {
+					console.error('Не удалось найти комментарий для удаления');
+					return;
+				}
+				
+				// Ищем группу, к которой относится пост
+				let groupId;
+				
+				// Ищем в атрибутах элемента поста
+				const postElement = commentElement.closest('.news-post-item');
+				if (postElement && postElement.dataset.groupId) {
+					groupId = postElement.dataset.groupId;
+				} else {
+					// Ищем в параметрах комментария
+					const commentBtns = document.querySelectorAll(`.comment-submit-btn[data-post-id="${postId}"]`);
+					if (commentBtns.length > 0 && commentBtns[0].dataset.groupId) {
+						groupId = commentBtns[0].dataset.groupId;
+					} else {
+						console.error('Не удалось определить ID группы для удаления комментария');
+						return;
+					}
+				}
+				
+				// Удаляем комментарий из базы данных
+				const commentRef = ref(db, `groupComments/${groupId}/${postId}/${commentId}`);
+				await remove(commentRef);
+				
+				// Проверяем, есть ли у комментария дочерние ответы
+				const commentsRef = ref(db, `groupComments/${groupId}/${postId}`);
+				const commentsSnapshot = await get(commentsRef);
+				
+				if (commentsSnapshot.exists()) {
+					// Ищем комментарии, которые являются ответами на удаляемый
+					commentsSnapshot.forEach(childSnapshot => {
+						const childComment = childSnapshot.val();
+						if (childComment.parentId === commentId) {
+							// Удаляем каждый ответ на комментарий
+							const childCommentRef = ref(db, `groupComments/${groupId}/${postId}/${childSnapshot.key}`);
+							remove(childCommentRef);
+							console.log(`Удален ответ на комментарий: ${childSnapshot.key}`);
+						}
+					});
+				}
+				
+				console.log('Комментарий успешно удален');
+				
+				// Удаляем комментарий из DOM
+				if (commentElement) {
+					// Проверяем, является ли комментарий родительским для других ответов
+					const isParentComment = !commentElement.dataset.parentId;
+					
+					if (isParentComment) {
+						// Если это родительский комментарий, удаляем контейнер с ответами
+						const repliesContainer = document.querySelector(`.comment-replies[data-parent-id="${commentId}"]`);
+						if (repliesContainer) {
+							repliesContainer.remove();
+						}
+					} else {
+						// Если это ответ, то уменьшаем счётчик в кнопке "Показать ответы"
+						const parentId = commentElement.dataset.parentId;
+						const repliesContainer = document.querySelector(`.comment-replies[data-parent-id="${parentId}"]`);
+						if (repliesContainer) {
+							const hiddenRepliesContainer = repliesContainer.querySelector('.hidden-replies');
+							const showRepliesButton = repliesContainer.querySelector('.show-more-replies');
+							
+							// Удаляем комментарий
+							commentElement.remove();
+							
+							// Если это был последний ответ, удаляем и контейнер, и кнопку
+							const remainingReplies = hiddenRepliesContainer ? hiddenRepliesContainer.querySelectorAll('.comment-item').length : 0;
+							
+							if (remainingReplies === 0) {
+								if (showRepliesButton) showRepliesButton.remove();
+								if (hiddenRepliesContainer) hiddenRepliesContainer.remove();
+								repliesContainer.remove();
+							} else if (showRepliesButton) {
+								// Иначе обновляем текст на кнопке
+								if (!hiddenRepliesContainer.classList.contains('expanded')) {
+									showRepliesButton.innerHTML = `<i class="fas fa-chevron-down"></i> Показать ответы (${remainingReplies})`;
+								}
+							}
+						}
+					}
+					
+					// Проверяем, остались ли еще комментарии
+					const commentsList = document.getElementById(`comments-list-${postId}`);
+					if (commentsList && !commentsList.querySelector('.comment-item')) {
+						// Если комментариев больше нет, показываем сообщение
+						commentsList.innerHTML = '<div class="no-comments">Комментариев пока нет</div>';
+					}
+				}
+				
+			} catch (error) {
+				console.error('Ошибка при удалении комментария:', error);
+				alert('Произошла ошибка при удалении комментария');
+			}
+		}
+
+		// Функция для прокрутки к оригинальному комментарию
+		window.scrollToOriginalComment = function(commentId) {
+			const originalComment = document.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+			if (originalComment) {
+				// Прокручиваем к комментарию
+				originalComment.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				
+				// Добавляем класс для подсветки комментария
+				originalComment.classList.add('highlighted');
+				
+				// Удаляем класс подсветки через 2 секунды
+				setTimeout(() => {
+					originalComment.classList.remove('highlighted');
+				}, 2000);
+			}
+		}
+
+		// Функция для обработки голосования за комментарии
+		window.handleCommentVote = async function(commentId, value) {
+			const auth = getAuth();
+			const currentUser = auth.currentUser;
+			
+			if (!currentUser) {
+				alert('Вы должны войти в систему, чтобы голосовать');
+				return;
+			}
+			
+			try {
+				const db = getDatabase();
+				const votesRef = ref(db, `groupCommentVotes/${commentId}`);
+				
+				// Получаем текущие голоса
+				const votesSnapshot = await get(votesRef);
+				const votes = votesSnapshot.val() || {};
+				const userVote = votes[currentUser.uid] || 0;
+				
+				// Если пользователь нажимает на ту же кнопку - отменяем голос
+				if (userVote === value) {
+					delete votes[currentUser.uid];
+				} else {
+					// Иначе устанавливаем новый голос
+					votes[currentUser.uid] = value;
+				}
+				
+				// Обновляем голоса в базе данных
+				await set(votesRef, votes);
+				
+				// Обновление UI произойдет автоматически через слушателя
+			} catch (error) {
+				console.error('Ошибка при голосовании:', error);
+				alert('Произошла ошибка при голосовании');
+			}
+		};
+		
+		// Функция для настройки слушателя голосов для комментария
+		function setupCommentVotesListener(commentId, commentElement) {
+			const db = getDatabase();
+			const votesRef = ref(db, `groupCommentVotes/${commentId}`);
+			
+			// Используем onValue для получения обновлений в реальном времени
+			onValue(votesRef, async (votesSnapshot) => {
+				const votes = votesSnapshot.val() || {};
+				
+				// Подсчитываем голоса
+				const likes = Object.values(votes).filter(v => v === 1).length;
+				const dislikes = Object.values(votes).filter(v => v === -1).length;
+				
+				// Определяем голос текущего пользователя
+				const auth = getAuth();
+				const userVote = auth.currentUser ? votes[auth.currentUser.uid] || 0 : 0;
+				
+				// Обновляем UI голосов
+				const likeBtn = commentElement.querySelector('.home-comment-vote-btn.like');
+				const dislikeBtn = commentElement.querySelector('.home-comment-vote-btn.dislike');
+				
+				if (likeBtn && dislikeBtn) {
+					const likeCount = likeBtn.querySelector('.comment-like-count');
+					const dislikeCount = dislikeBtn.querySelector('.comment-dislike-count');
+					
+					// Обновляем классы активности кнопок
+					likeBtn.classList.toggle('active', userVote === 1);
+					dislikeBtn.classList.toggle('active', userVote === -1);
+					
+					// Обновляем счетчики
+					if (likeCount) likeCount.textContent = likes;
+					if (dislikeCount) dislikeCount.textContent = dislikes;
+					
+					// Проверяем лайк создателя группы (опционально)
+					try {
+						// Получаем ID поста и группы из элемента комментария
+						const postId = commentElement.dataset.postId;
+						if (postId) {
+							const postElement = document.querySelector(`.news-post-item[data-post-id="${postId}"]`);
+							if (postElement) {
+								const groupId = postElement.dataset.groupId;
+								
+								if (groupId) {
+									// Получаем информацию о группе
+									const groupRef = ref(db, `groups/${groupId}`);
+									const groupSnapshot = await get(groupRef);
+									
+									if (groupSnapshot.exists()) {
+										const groupData = groupSnapshot.val();
+										const groupCreatorId = groupData.creatorId;
+										
+										// Если создатель группы лайкнул комментарий
+										if (groupCreatorId && votes[groupCreatorId] === 1) {
+											const authorLikeContainer = commentElement.querySelector('.home-author-like-container');
+											
+											// Проверяем, существует ли уже индикатор лайка создателя группы
+											if (authorLikeContainer && !authorLikeContainer.querySelector('.author-like')) {
+												// Получаем данные создателя группы
+												const creatorRef = ref(db, `users/${groupCreatorId}`);
+												const creatorSnapshot = await get(creatorRef);
+												
+												if (creatorSnapshot.exists()) {
+													const creatorData = creatorSnapshot.val();
+													
+													authorLikeContainer.innerHTML = `
+														<span class="author-like">
+															<i class="fas fa-heart"></i>
+															<img src="${creatorData.photoURL || 'https://ui-avatars.com/api/?name=User&background=random'}" 
+																 alt="Создатель группы" 
+																 class="author-like-avatar"
+																 title="Понравилось создателю группы">
+														</span>
+													`;
+												}
+											}
+										} else {
+											// Если создатель группы не лайкнул - убираем индикатор
+											const authorLikeContainer = commentElement.querySelector('.home-author-like-container');
+											if (authorLikeContainer) {
+												authorLikeContainer.innerHTML = '';
+											}
+										}
+									}
+								}
+							}
+						}
+					} catch (error) {
+						console.error('Ошибка при проверке лайка создателя группы:', error);
+					}
+				}
+			});
+		}
+		
+		// Делаем функцию глобально доступной
+		window.setupCommentVotesListener = setupCommentVotesListener;
+
+		// Инициализация обработчиков для новых элементов
+		function initNewElementHandlers() {
+			// Добавляем обработчики для видео в постах
+			document.querySelectorAll('.video-overlay').forEach(overlay => {
+				overlay.addEventListener('click', function(e) {
+					e.stopPropagation();
+					const videoContainer = this.closest('.video-container');
+					const video = videoContainer.querySelector('video');
+					
+					if (video && video.src) {
+						openImageModal(this);
+					}
+				});
+			});
+			
+			// Добавляем обработчики для видео в комментариях
+			document.querySelectorAll('.comment-image-item .video-overlay').forEach(overlay => {
+				overlay.addEventListener('click', function(e) {
+					e.stopPropagation();
+					const videoContainer = this.closest('.video-container');
+					const video = videoContainer.querySelector('video');
+					
+					if (video && video.src) {
+						openImageModal(this);
+					}
+				});
+			});
+			
+			// Добавляем обработчики для изображений в комментариях
+			document.querySelectorAll('.comment-image-item img.comment-image').forEach(img => {
+				img.addEventListener('click', function(e) {
+					e.stopPropagation();
+					openImageModal(this);
+				});
+			});
+		}
+
+		// Отрисовка постов в ленте
+		async function renderPosts(posts) {
+			const feedContainer = document.getElementById('newsfeed-container');
+			
+			// Очищаем контейнер перед добавлением новых постов
+			feedContainer.innerHTML = '';
+			
+			// Создаем и добавляем элементы постов
+			for (const post of posts) {
+				try {
+					const postElement = await createPostElement(post);
+					if (postElement) {
+						feedContainer.appendChild(postElement);
+					}
+				} catch (error) {
+					console.error('Ошибка при создании элемента поста:', error);
+				}
+			}
+			
+			// Инициализируем обработчики для новых элементов
+			initNewElementHandlers();
+		}
+
+		function setupPostCommentListeners(postId, groupId, postElement) {
+			// Проверяем, есть ли контейнер для комментариев
+			const commentsContainer = postElement.querySelector(`#comments-${postId}`);
+			if (!commentsContainer) return;
+			
+			// Получаем контейнер с последним комментарием
+			const lastCommentContainer = postElement.querySelector(`#last-comment-container-${postId}`);
+			
+			// Проверяем существуют ли уже подписки для этого поста
+			const postKey = `${groupId}_${postId}`;
+			if (!window.counterSubscriptions[postKey]) {
+				window.counterSubscriptions[postKey] = [];
+			} else {
+				// Отписываемся от предыдущих подписок, если они есть
+				window.counterSubscriptions[postKey].forEach(unsubscribe => {
+					if (typeof unsubscribe === 'function') {
+						unsubscribe();
+					}
+				});
+				window.counterSubscriptions[postKey] = [];
+			}
+
+			// Добавляем подписку на количество комментариев
+			const db = getDatabase();
+			const commentsRef = ref(db, `groupComments/${groupId}/${postId}`);
+			
+			// Подписываемся на изменения комментариев для обновления счетчика
+			const commentsUnsubscribe = onValue(commentsRef, (snapshot) => {
+				// Обновляем счетчик комментариев
+				const commentCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+				const commentCountElements = document.querySelectorAll(`.news-post-item[data-post-id="${postId}"][data-group-id="${groupId}"] .comment-count`);
+				
+				commentCountElements.forEach(element => {
+					element.textContent = commentCount;
+				});
+				
+				// Проверяем, не отображаются ли уже все комментарии
+				if (commentsContainer && commentsContainer.style.display === 'block') {
+					if (lastCommentContainer) {
+						lastCommentContainer.style.display = 'none';
+					}
+				} else {
+					// Иначе обновляем и показываем последний комментарий
+					// Получаем ID группы из атрибута data-group-id элемента поста
+					const postGroupId = postElement.dataset.groupId;
+					if (postGroupId) {
+						loadLastComment(postId, postGroupId, postElement);
+					} else {
+						console.error('Не удалось найти ID группы для поста:', postId);
+					}
+				}
+			});
+			
+			// Сохраняем функцию отписки
+			window.counterSubscriptions[postKey].push(commentsUnsubscribe);
+
+			// Добавим подписку на новые комментарии для обновления списка комментариев в реальном времени
+			const newCommentsRef = ref(db, `groupComments/${groupId}/${postId}`);
+			const newCommentsUnsubscribe = onChildAdded(newCommentsRef, (snapshot) => {
+				const commentData = snapshot.val();
+				const commentId = snapshot.key;
+				
+				// Проверяем, показан ли контейнер с комментариями для этого поста
+				const postElement = document.querySelector(`.news-post-item[data-post-id="${postId}"][data-group-id="${groupId}"]`);
+				if (!postElement) return;
+				
+				const commentsContainer = postElement.querySelector(`#comments-${postId}`);
+				if (!commentsContainer || commentsContainer.style.display !== 'block') return;
+				
+				// Проверяем, не отображается ли уже этот комментарий
+				const existingComment = document.querySelector(`#comments-list-${postId} .comment-item[data-comment-id="${commentId}"]`);
+				if (existingComment) return;
+				
+				// Проверяем, является ли текущий пользователь автором комментария
+				const auth = getAuth();
+				const isCurrentUserAuthor = auth.currentUser && auth.currentUser.uid === commentData.authorId;
+				
+				// Если комментарий уже добавлен текущим пользователем (localComment), не добавляем его повторно
+				if (isCurrentUserAuthor) {
+					// Проверяем последние комментарии на наличие локального с тем же ID
+					const commentsList = document.getElementById(`comments-list-${postId}`);
+					if (commentsList) {
+						const localComment = commentsList.querySelector(`.comment-item[data-comment-id="${commentId}"][data-local-comment="true"]`);
+						if (localComment) {
+							console.log(`Локальный комментарий ${commentId} уже существует, пропускаем повторное добавление`);
+							return;
+						}
+					}
+				}
+				
+				// Добавляем комментарий в список, если его еще нет
+				// Устанавливаем isLocalComment=false для предотвращения автоматической прокрутки
+				console.log(`Добавляем новый комментарий ${commentId} в реальном времени (${isCurrentUserAuthor ? 'от текущего пользователя' : 'от другого пользователя'})`);
+				addCommentToList(postId, {
+					id: commentId,
+					...commentData
+				}, false); // Всегда false для предотвращения автоскролла для других пользователей
+			});
+
+			// Сохраняем функцию отписки
+			window.counterSubscriptions[postKey].push(newCommentsUnsubscribe);
+		}
 	</script>
 </head>
 
@@ -1032,11 +5355,446 @@
 	<div class="search-container">
 		<div class="search-box">
 			<i class="fas fa-search search-icon"></i>
-			<input type="text" id="search-input" placeholder="Поиск пользователей...">
+			<input type="text" id="main-search-input" placeholder="Поиск пользователей...">
 			<i class="fas fa-times clear-icon" id="clear-search"></i>
 		</div>
 		<div class="search-results" id="search-results"></div>
 	</div>
 
+	<!-- Новая секция для ленты новостей -->
+	<div class="news-feed-container">
+		<h2>Лента новостей 
+			<button id="debug-refresh-feed" class="debug-button" style="font-size: 14px; padding: 2px 8px; background: #4a76a8; color: white; border: none; border-radius: 4px; cursor: pointer; vertical-align: middle;">
+				<i class="fas fa-sync"></i> Обновить
+			</button>
+		</h2>
+		<div class="news-posts-list" id="news-posts-list">
+			<!-- Удаляем индикатор загрузки, оставляем пустой контейнер -->
+		</div>
+	</div>
+</body>
+
+<!-- Модальное окно для просмотра изображений -->
+<div class="image-modal" id="image-modal">
+	<div class="modal-content">
+		<div class="modal-image-container">
+			<img src="" alt="Полный размер" class="modal-image" id="modal-image">
+		</div>
+		<div class="close-modal" id="close-modal">&times;</div>
+		<div class="image-nav-buttons">
+			<button class="image-nav-button prev" id="prev-image-button" style="display: none;">
+				<i class="fas fa-chevron-left"></i>
+			</button>
+			<button class="image-nav-button next" id="next-image-button" style="display: none;">
+				<i class="fas fa-chevron-right"></i>
+			</button>
+		</div>
+		<div class="image-counter-indicator" id="image-counter-indicator" style="display: none;">
+			<span id="current-image">1</span>/<span id="total-images">1</span>
+		</div>
+	</div>
+</div>
+
+<script>
+	// Глобальные переменные для работы с модальным окном
+	let currentImageIndex = 0;
+	let galleryImages = [];
+	let galleryTypes = []; // Массив для хранения типов медиа (image или video)
+	let videoPositions = {}; // Сохраняем позиции воспроизведения видео
+	let videoVolumes = {}; // Сохраняем уровни громкости видео
+
+	// Функция проверки является ли URL видео
+	function isVideoUrl(url) {
+		return url && (url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg') || 
+				url.includes('.mov') || url.includes('video') || url.includes('comment_videos'));
+	}
+
+	// Функция инициализации модального окна
+	function initImageModal() {
+		// Получаем ссылки на элементы модального окна
+		const imageModal = document.getElementById('image-modal');
+		const closeBtn = document.getElementById('close-modal');
+		const prevBtn = document.getElementById('prev-image-button');
+		const nextBtn = document.getElementById('next-image-button');
+		
+		// Обработчик закрытия модального окна
+		if (closeBtn) {
+			closeBtn.addEventListener('click', closeImageModal);
+		}
+		
+		// Добавляем обработчик закрытия при клике на фон
+		if (imageModal) {
+			imageModal.addEventListener('click', function(e) {
+				// Закрываем модальное окно только если клик был непосредственно на фоне
+				if (e.target === imageModal) {
+					closeImageModal();
+				}
+			});
+		}
+		
+		// Обработчики для кнопок навигации
+		if (prevBtn) {
+			prevBtn.addEventListener('click', function(e) {
+				e.stopPropagation();
+				navigateImage(-1);
+			});
+		}
+		
+		if (nextBtn) {
+			nextBtn.addEventListener('click', function(e) {
+				e.stopPropagation();
+				navigateImage(1);
+			});
+		}
+		
+		// Добавляем обработчики для изображений
+		document.addEventListener('click', function(e) {
+			// Проверяем, является ли кликнутый элемент изображением в посте
+			const clickedImage = e.target.closest('.post-image');
+			if (clickedImage) {
+				e.preventDefault();
+				openImageModal(clickedImage);
+				return;
+			}
+			
+			// Проверяем, является ли кликнутый элемент оверлеем видео
+			const videoOverlay = e.target.closest('.video-overlay');
+			if (videoOverlay) {
+				e.preventDefault();
+				openImageModal(videoOverlay);
+				return;
+			}
+			
+			// Проверяем, является ли кликнутый элемент изображением в комментарии
+			if (e.target.tagName === 'IMG' && e.target.classList.contains('comment-image')) {
+				e.preventDefault();
+				openImageModal(e.target);
+				return;
+			}
+		});
+		
+		// Добавляем обработчик клавиатуры
+		document.addEventListener('keydown', function(e) {
+			// Проверяем, открыто ли модальное окно
+			if (imageModal.classList.contains('active')) {
+				if (e.key === 'Escape') {
+					closeImageModal();
+				} else if (e.key === 'ArrowLeft') {
+					navigateImage(-1);
+				} else if (e.key === 'ArrowRight') {
+					navigateImage(1);
+				}
+			}
+		});
+		
+		// Загружаем сохраненные уровни громкости из localStorage
+		try {
+			const savedVolumes = localStorage.getItem('videoVolumes');
+			if (savedVolumes) {
+				videoVolumes = JSON.parse(savedVolumes);
+			}
+		} catch (e) {
+			console.error('Ошибка при загрузке настроек громкости:', e);
+		}
+	}
+
+	// Инициализация обработчиков для новых элементов
+	function initNewElementHandlers() {
+		// Добавляем обработчики для видео в постах
+		document.querySelectorAll('.video-overlay').forEach(overlay => {
+			overlay.addEventListener('click', function(e) {
+				e.stopPropagation();
+				const videoContainer = this.closest('.video-container');
+				const video = videoContainer.querySelector('video');
+				
+				if (video && video.src) {
+					openImageModal(this);
+				}
+			});
+		});
+		
+		// Добавляем обработчики для видео в комментариях
+		document.querySelectorAll('.comment-image-item .video-overlay').forEach(overlay => {
+			overlay.addEventListener('click', function(e) {
+				e.stopPropagation();
+				const videoContainer = this.closest('.video-container');
+				const video = videoContainer.querySelector('video');
+				
+				if (video && video.src) {
+					openImageModal(this);
+				}
+			});
+		});
+		
+		// Добавляем обработчики для изображений в комментариях
+		document.querySelectorAll('.comment-image-item img.comment-image').forEach(img => {
+			img.addEventListener('click', function(e) {
+				e.stopPropagation();
+				openImageModal(this);
+			});
+		});
+	}
+
+	// Инициализируем модальное окно при загрузке страницы
+	document.addEventListener('DOMContentLoaded', function() {
+		initImageModal();
+		// Инициализируем обработчики для уже существующих видео и изображений
+		initNewElementHandlers();
+	});
+
+	// Функция открытия модального окна
+	function openImageModal(clickedElement) {
+		const imageModal = document.getElementById('image-modal');
+		if (!imageModal) {
+			console.error('Модальное окно не найдено');
+			return;
+		}
+		
+		const modalContent = imageModal.querySelector('.modal-image-container');
+		if (!modalContent) {
+			console.error('Контейнер для изображений в модальном окне не найден');
+			return;
+		}
+		
+		// Очищаем предыдущее содержимое
+		const existingVideo = modalContent.querySelector('video');
+		if (existingVideo) {
+			existingVideo.pause();
+			existingVideo.remove();
+		}
+		
+		// Получаем все медиафайлы (изображения и видео) из родительского элемента
+		galleryImages = [];
+		galleryTypes = [];
+		currentImageIndex = 0;
+		
+		// Находим все медиафайлы в родительском контейнере
+		const postImagesContainer = clickedElement.closest('.post-images');
+		const commentImagesContainer = clickedElement.closest('.comment-images');
+		
+		// Определяем, в каком контейнере находится элемент (в посте или в комментарии)
+		const imagesContainer = postImagesContainer || commentImagesContainer;
+		
+		if (!imagesContainer) {
+			console.error('Контейнер с изображениями не найден');
+			return;
+		}
+		
+		// Проверяем, является ли кликнутый элемент видео или изображением
+		const isVideoOverlay = clickedElement.classList && clickedElement.classList.contains('video-overlay');
+		const isVideoContainer = clickedElement.closest('.video-container');
+		
+		// Собираем все изображения и видео из контейнера
+		const imgElements = imagesContainer.querySelectorAll('img.post-image, img.comment-image');
+		const videoElements = imagesContainer.querySelectorAll('.video-container video');
+		
+		// Добавляем изображения
+		imgElements.forEach(img => {
+			galleryImages.push(img.src);
+			galleryTypes.push('image');
+		});
+		
+		// Добавляем видео
+		videoElements.forEach(video => {
+			galleryImages.push(video.src);
+			galleryTypes.push('video');
+		});
+		
+		// Определяем текущий индекс
+		if (isVideoOverlay || isVideoContainer) {
+			// Если кликнули на видео
+			const videoContainer = isVideoOverlay ? 
+				clickedElement.closest('.video-container') : isVideoContainer;
+			
+			const video = videoContainer.querySelector('video');
+			if (video) {
+				const videoIndex = Array.from(videoElements).findIndex(v => v === video);
+				if (videoIndex !== -1) {
+					currentImageIndex = imgElements.length + videoIndex;
+				}
+			}
+		} else if (clickedElement.tagName === 'IMG') {
+			// Если кликнули на изображение
+			const imgIndex = Array.from(imgElements).findIndex(i => i === clickedElement);
+			if (imgIndex !== -1) {
+				currentImageIndex = imgIndex;
+			}
+		} else if (clickedElement.classList && clickedElement.classList.contains('comment-image')) {
+			// Если кликнули на изображение в комментарии
+			const imgIndex = Array.from(imgElements).findIndex(i => i === clickedElement);
+			if (imgIndex !== -1) {
+				currentImageIndex = imgIndex;
+			}
+		}
+		
+		// Обновляем отображение текущего медиа
+		updateMediaDisplay();
+		
+		// Показываем модальное окно
+		imageModal.classList.add('active');
+		document.body.style.overflow = 'hidden'; // Блокируем прокрутку страницы
+	}
+	
+	// Функция закрытия модального окна
+	function closeImageModal() {
+		const imageModal = document.getElementById('image-modal');
+		if (!imageModal) return;
+		
+		const modalContent = imageModal.querySelector('.modal-image-container');
+		if (modalContent) {
+			// Останавливаем видео, если оно воспроизводится
+			const existingVideo = modalContent.querySelector('video');
+			if (existingVideo) {
+				// Сохраняем позицию видео при закрытии
+				const videoSrc = existingVideo.src;
+				videoPositions[videoSrc] = existingVideo.currentTime;
+				
+				existingVideo.pause();
+			}
+		}
+		
+		imageModal.classList.remove('active');
+		document.body.style.overflow = ''; // Разблокируем прокрутку страницы
+	}
+	
+	// Функция навигации между изображениями
+	function navigateImage(direction) {
+		if (galleryImages.length <= 1) return;
+		
+		// Вычисляем новый индекс с учетом зацикливания
+		currentImageIndex = (currentImageIndex + direction + galleryImages.length) % galleryImages.length;
+		
+		// Обновляем медиафайл в модальном окне
+		updateMediaDisplay();
+	}
+	
+	// Функция обновления счетчика изображений и видимости кнопок навигации
+	function updateImageCounter() {
+		const currentImageElement = document.getElementById('current-image');
+		const totalImagesElement = document.getElementById('total-images');
+		const prevBtn = document.getElementById('prev-image-button');
+		const nextBtn = document.getElementById('next-image-button');
+		
+		if (currentImageElement && totalImagesElement) {
+			currentImageElement.textContent = currentImageIndex + 1;
+			totalImagesElement.textContent = galleryImages.length;
+		}
+		
+		// Управляем видимостью кнопок навигации
+		if (prevBtn && nextBtn) {
+			// Скрываем кнопку "назад" если это первое изображение
+			prevBtn.style.display = currentImageIndex === 0 ? 'none' : 'block';
+			
+			// Скрываем кнопку "вперед" если это последнее изображение
+			nextBtn.style.display = currentImageIndex === galleryImages.length - 1 ? 'none' : 'block';
+		}
+	}
+
+	// Функция обновления отображаемого медиафайла
+	function updateMediaDisplay() {
+		if (galleryImages.length === 0) return;
+		
+		const currentUrl = galleryImages[currentImageIndex];
+		const isVideo = galleryTypes[currentImageIndex] === 'video' || isVideoUrl(currentUrl);
+		
+		const modalImage = document.getElementById('modal-image');
+		if (!modalImage) {
+			console.error('Элемент изображения в модальном окне не найден');
+			return;
+		}
+		
+		const imageModal = document.getElementById('image-modal');
+		if (!imageModal) {
+			console.error('Модальное окно не найдено');
+			return;
+		}
+		
+		const modalContent = imageModal.querySelector('.modal-image-container');
+		if (!modalContent) {
+			console.error('Контейнер для изображений в модальном окне не найден');
+			return;
+		}
+		
+		// Очищаем предыдущее содержимое
+		const existingVideo = modalContent.querySelector('video');
+		if (existingVideo) {
+				existingVideo.pause();
+				existingVideo.remove();
+		}
+		
+		if (isVideo) {
+			// Если это видео, создаем видеоэлемент
+			modalImage.style.display = 'none';
+			
+			const videoElement = document.createElement('video');
+			videoElement.src = currentUrl;
+			videoElement.controls = true;
+			videoElement.autoplay = true;
+			videoElement.className = 'modal-video';
+			
+			// Устанавливаем громкость: 50% по умолчанию или сохраненное значение
+			if (videoVolumes[currentUrl] !== undefined) {
+				videoElement.volume = videoVolumes[currentUrl];
+			} else {
+				videoElement.volume = 0.5; // 50% по умолчанию для нового видео
+			}
+			
+			// Проверяем, есть ли сохраненная позиция для этого видео
+			if (videoPositions[currentUrl]) {
+				videoElement.currentTime = videoPositions[currentUrl];
+			}
+			
+			// Сохраняем изменения громкости
+			videoElement.addEventListener('volumechange', function() {
+				videoVolumes[currentUrl] = videoElement.volume;
+				
+				// Сохраняем в localStorage для использования между сессиями
+				try {
+					localStorage.setItem('videoVolumes', JSON.stringify(videoVolumes));
+				} catch (e) {
+					console.error('Ошибка сохранения настроек громкости:', e);
+				}
+			});
+			
+			// Добавляем видео в контейнер
+			modalContent.insertBefore(videoElement, modalImage);
+		} else {
+			// Для изображения используем стандартный процесс
+			modalImage.style.display = 'block';
+			modalImage.style.opacity = '0.3';
+			
+			// Предзагружаем изображение
+			const newImg = new Image();
+			newImg.onload = function() {
+				// Обновляем изображение после загрузки
+				modalImage.src = currentUrl;
+				modalImage.style.opacity = '1';
+			};
+			newImg.onerror = function() {
+				// В случае ошибки загрузки также обновляем, но показываем что-то для индикации ошибки
+				modalImage.src = currentUrl;
+				modalImage.style.opacity = '1';
+			};
+			newImg.src = currentUrl;
+			
+			// Если изображение уже в кэше и загружено мгновенно, применяем изменения сразу
+			if (newImg.complete) {
+				modalImage.src = currentUrl;
+				modalImage.style.opacity = '1';
+			}
+		}
+		
+		// Обновляем счетчик и видимость кнопок навигации
+		updateImageCounter();
+		
+		// Отображаем счетчик изображений, если их больше одного
+		const counterIndicator = document.getElementById('image-counter-indicator');
+		if (counterIndicator) {
+			counterIndicator.style.display = galleryImages.length > 1 ? 'block' : 'none';
+		}
+	}
+</script>
+
+<!-- Скрипт для добавления обработчиков на click для имен и аватаров в комментариях -->
 </body>
 </html>

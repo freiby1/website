@@ -1,0 +1,2683 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сообщения</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preload" href="./sidebar_old.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js" as="script" crossorigin="anonymous">
+  
+  <!-- Добавляем синхронную инициализацию темы -->
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      if (savedTheme === 'system') {
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+          document.documentElement.style.visibility = 'visible';
+        });
+      } else {
+        const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+        document.documentElement.style.visibility = 'hidden';
+        document.documentElement.classList.add(theme);
+
+        document.addEventListener('DOMContentLoaded', () => {
+          document.body.classList.add(theme);
+          document.documentElement.classList.remove(theme);
+          document.documentElement.style.visibility = 'visible';
+        });
+      }
+
+      if (savedTheme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+          document.body.classList.remove('dark-mode', 'light-mode');
+          document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+        });
+      }
+    })();
+  </script>
+
+  <!-- Добавляем импорт и инициализацию сайдбара -->
+  <script type="module">
+    import { initializeSidebar } from './sidebar_old.js';
+    import { initializeMessagingSystem } from './messages.js';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeSidebar();
+      initializeMessagingSystem();
+    });
+  </script>
+
+  <!-- Добавляем скрипт для тестирования функции склонения -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Создаем тестовый массив для проверки склонения
+      const testCounts = [1, 2, 3, 4, 5, 11, 12, 21, 22, 25];
+      
+      // Логируем результаты в консоль для проверки
+      console.log('Тестирование функции склонения слова "изображение":');
+      
+      // Используем глобальную функцию pluralizeImages, если она доступна
+      if (typeof pluralizeImages === 'function') {
+        testCounts.forEach(count => {
+          console.log(pluralizeImages(count));
+        });
+      } else {
+        // Используем локальную реализацию функции
+        function testPluralizeImages(count) {
+          if (count % 10 === 1 && count % 100 !== 11) {
+            return `${count} изображение`;
+          } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+            return `${count} изображения`;
+          } else {
+            return `${count} изображений`;
+          }
+        }
+        
+        testCounts.forEach(count => {
+          console.log(testPluralizeImages(count));
+        });
+      }
+    });
+  </script>
+
+  <style>
+    .messages-container {
+      display: flex;
+      height: calc(100vh - 80px);
+      margin-left: 80px; /* Базовый отступ для collapsed состояния */
+      transition: margin-left 0.3s ease;
+    }
+
+    /* Когда сайдбар развернут */
+    body:has(.sidebar:not(.collapsed)) .messages-container {
+      margin-left: 255px; /* Увеличенный отступ для развернутого состояния */
+    }
+
+    /* Стили для списка друзей */
+    .friends-list {
+      width: 280px;
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      height: 100%;
+      background-color: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Стили для поиска друзей */
+    .friends-search-container {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: var(--bg-secondary);
+      padding: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    
+    #friends-search {
+      width: 100%;
+      padding: 8px 30px 8px 30px;
+      border: 1px solid #7f7f7f7f;
+      border-radius: 20px;
+      font-size: 14px;
+      background-color: var(--bg-primary);
+      color: var(--text-color);
+      transition: all 0.2s ease;
+    }
+    
+    #friends-search:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(64, 128, 255, 0.2);
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    
+    .clear-search-button {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+      display: none;
+    }
+    
+    .clear-search-button:hover {
+      color: var(--text-color);
+    }
+    
+    /* Стили для темной темы */
+    .dark-mode .friends-search-container {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .dark-mode #friends-search {
+      background-color: var(--bg-primary);
+      border-color: #7f7f7f7f;
+    }
+    
+    .dark-mode #friends-search:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(64, 128, 255, 0.3);
+    }
+
+    .friend-item-message {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background-color 0.2s, opacity 0.3s;
+      height: 70px; /* Фиксированная высота */
+      min-height: 70px; /* Минимальная высота */
+      box-sizing: border-box;
+      position: relative; /* Для позиционирования индикатора */
+    }
+
+    /* Анимация для новых элементов в списке */
+    @keyframes slide-down {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .friend-item-message.new-message {
+      animation: slide-down 0.3s ease-out forwards;
+    }
+
+    .friend-item-message:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .friend-item-message.active {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    /* Изменяем цвет для мьютед текста в активном диалоге */
+    .friend-item-message.active .last-message,
+    .friend-item-message.active .last-message-time {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Изменяем цвет для статуса печатания в активном диалоге */
+    .friend-item-message.active .typing-status {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Эффект при наведении на активный диалог */
+    .friend-item-message.active:hover {
+      background-color: var(--primary-color-dark, #1976d2);
+    }
+
+    /* Индикатор для активного элемента */
+    .friend-item-message.active .unread-indicator {
+      display: none !important;
+    }
+
+    .friend-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+      object-fit: cover;
+    }
+
+    .friend-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0; /* Чтобы контент мог сжиматься */
+      position: relative; /* Для абсолютного позиционирования индикатора */
+    }
+
+    .friend-name {
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      width: 100%;
+      gap: 5px;
+    }
+    
+    .friend-name > span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex-shrink: 1;
+    }
+
+    .friend-name .muted-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #666666;
+      margin: 0;
+      flex-shrink: 0;
+      order: 1;
+    }
+    
+    /* Новый контейнер для времени и статуса */
+    .friend-name .time-status-container {
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+      flex-shrink: 0;
+      order: 2;
+      gap: 3px;
+    }
+
+    .friend-name .message-status-wrapper {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .friend-name .last-message-time {
+      flex-shrink: 0;
+    }
+
+    .friend-name .message-status {
+      width: 14px;
+      height: 14px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .friend-name .message-status.sent {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .friend-name .message-status.read {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234CAF50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6L7 17L2 12'%3E%3C/path%3E%3Cpath d='M22 10L13 19L11 17'%3E%3C/path%3E%3C/svg%3E");
+    }
+
+    /* Стили для темного режима */
+    .dark-mode .friend-name .message-status.sent {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .friend-item-message.active .message-status.sent {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.8)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .last-message-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      font-weight: 500;
+      margin-right: 0px; /* Отступ от индикатора непрочитанных */
+    }
+
+    /* Изменяем цвет времени для активного диалога */
+    .friend-item-message.active .last-message-time {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .last-message {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    
+    .typing-status {
+      font-size: 12px;
+      color: var(--accent-color);
+      font-weight: 500;
+			animation: typing-pulse 1.5s infinite;
+    }
+
+    /* Стили для индикатора отключенных уведомлений */
+    .muted-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 5px;
+      margin-right: 5px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .friend-item-message.active .muted-indicator {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Стили для индикатора непрочитанных сообщений */
+    .unread-indicator {
+      background-color: red; /* Красный цвет для всех тем */
+      color: white;
+      font-size: 12px;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      padding: 0 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      position: static; /* Убираем абсолютное позиционирование */
+      margin-left: 8px; /* Добавляем отступ от имени */
+      flex-shrink: 0; /* Предотвращаем сжатие */
+    }
+
+    /* Убираем перезаписывание цвета фона в темной и светлой теме */
+    [data-theme="dark"] .unread-indicator,
+    .dark-mode .unread-indicator,
+    .light-mode .unread-indicator {
+      background-color: red; /* Красный цвет для всех тем */
+    }
+
+    /* Стили для индикатора прочтения сообщений */
+    .message-info {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 5px;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    /* Стили для кнопки уведомлений */
+    .notification-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      border-radius: 50%;
+      margin-left: 10px;
+      transition: background-color 0.2s;
+    }
+
+    .notification-toggle:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .notification-toggle i {
+      font-size: 18px;
+      color: var(--text-color);
+    }
+
+    .notification-toggle i.fa-bell {
+      color: var(--primary-color);
+    }
+
+    .notification-toggle i.fa-bell-slash {
+      color: var(--text-muted);
+    }
+
+    /* Стили для иконок статуса сообщений */
+    .icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .icon-message-succeeded {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .icon-message-read {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234CAF50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6L7 17L2 12'%3E%3C/path%3E%3Cpath d='M22 10L13 19L11 17'%3E%3C/path%3E%3C/svg%3E");
+    }
+
+    /* Разные цвета для разных тем */
+    .light-mode .icon-message-succeeded {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .message-read-status {
+      display: inline-block;
+      margin-left: 5px;     /* Добавляем отступ слева */
+      line-height: 1;       /* Уменьшаем межстрочный интервал */
+    }
+
+    .message-read-status.read {
+      color: #4CAF50;
+    }
+
+    .message-read-status.unread {
+      color: rgba(255, 255, 255, 0.7); /* Для лучшей видимости на цветном фоне */
+    }
+
+    /* Цвет статуса для светлой темы */
+    .light-mode .message-read-status.unread {
+      color: #888;
+    }
+
+    /* Улучшенный цвет времени для исходящих сообщений */
+    .outgoing .message-time {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .outgoing .message-content {
+      padding-right: 5px;
+    }
+
+    /* Изменение цвета индикаторов в темной теме */
+    [data-theme="dark"] .message-read-status.read {
+      color: #8bc34a;
+      text-shadow: 0 0 1px rgba(139, 195, 74, 0.4);
+    }
+
+    [data-theme="dark"] .message-read-status.unread {
+      color: #aaa;
+      opacity: 0.7;
+    }
+
+    .empty-state {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-style: italic;
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-muted);
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .error {
+      padding: 20px;
+      text-align: center;
+      color: #e74c3c;
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .error::before {
+      content: '\f071';
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #e74c3c;
+    }
+
+    /* Стили для чата */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+    }
+
+    /* Стили для заголовка чата - базовое определение */
+    .chat-header {
+			min-height: 70px;
+      padding: 5px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
+    }
+
+    /* Добавляем стили для кликабельных элементов в chat-header */
+    .chat-header .header-avatar-link,
+    .chat-header .friend-name {
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .chat-header .friend-name:hover {
+      text-decoration: underline;
+    }
+
+    .chat-header .header-avatar-link:hover {
+      opacity: 0.9;
+    }
+
+    .chat-header .header-avatar-link {
+      display: flex;
+      align-items: center;
+    }
+
+    .chat-header .friend-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+      margin-left: 5px;
+      object-fit: cover;
+    }
+
+    /* Стили для области сообщений с кастомным скроллбаром */
+    .chat-messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background-color: #ecf0f1;
+      scrollbar-width: thin; /* Firefox */
+      scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Firefox */
+      scroll-behavior: smooth;
+    }
+
+    /* Стили для Webkit (Chrome, Safari, Edge) */
+    .chat-messages::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Стили для разделителя непрочитанных сообщений */
+    .unread-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: var(--primary-color);
+      margin: 15px 0;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease; /* Добавляем плавный переход */
+    }
+
+    .unread-divider::before,
+    .unread-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid var(--primary-color);
+      opacity: 0.5;
+      transition: opacity 0.3s ease; /* Плавный переход для линий */
+    }
+
+    .unread-divider span {
+      margin: 0 10px;
+      padding: 2px 8px;
+      background-color: var(--primary-color);
+      color: white;
+      border-radius: 10px;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: box-shadow 0.3s ease; /* Плавный переход для тени */
+    }
+
+    .highlight-divider {
+      animation: pulse-color 1s ease-in-out 2; /* Только пульсация цвета, без изменения размера */
+    }
+
+    /* Удаляем изменение размера и добавляем только усиление границ */
+    .highlight-divider::before,
+    .highlight-divider::after {
+      opacity: 0.8;
+    }
+
+    /* Убираем transform: scale для избежания изменения размера */
+    .highlight-divider span {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Анимация пульсации цвета без изменения размера */
+    @keyframes pulse-color {
+      0% { opacity: 0.8; }
+      50% { opacity: 1; }
+      100% { opacity: 0.8; }
+    }
+
+    /* Темный стиль для разделителя */
+    [data-theme="dark"] .unread-divider span,
+    .dark-mode .unread-divider span {
+      background-color: var(--primary-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .highlight-divider span,
+    .dark-mode .highlight-divider span {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Стили для темной темы */
+    [data-theme="dark"] .chat-messages,
+    .dark-mode .chat-messages {
+      background-color: #151515;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent; /* Firefox */
+    }
+
+    [data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb,
+    .dark-mode .chat-messages::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    [data-theme="dark"] .chat-messages::-webkit-scrollbar-thumb:hover,
+    .dark-mode .chat-messages::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Для Edge */
+    @supports (-ms-overflow-style: none) {
+      .chat-messages {
+        -ms-overflow-style: -ms-autohiding-scrollbar;
+      }
+    }
+
+    .message {
+      margin-bottom: 8px;
+      display: flex;
+      max-width: 85%;
+    }
+
+    .message.outgoing {
+      margin-left: auto;
+      flex-direction: row-reverse;
+      margin-bottom: 15px;  /* Больший отступ для исходящих сообщений */
+    }
+
+    .message-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      margin: 0 10px;
+      object-fit: cover;
+    }
+
+    .message-content {
+      padding: 8px 12px;
+      border-radius: 18px;
+      background-color: #ecf0f1; /* Светлый фон для светлой темы */
+      position: relative;
+      word-wrap: break-word;          /* Добавляем перенос слов */
+      overflow-wrap: break-word;      /* Дополнительное свойство для переноса */
+      max-width: 500px;               /* Устанавливаем максимальную ширину в 500px */
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .message-text {
+      margin-bottom: 4px; /* Отступ между текстом и временем */
+      line-height: 1.4;   /* Межстрочный интервал */
+    }
+
+    /* Стили для длинных сообщений */
+    .message-text:has(br), 
+    .message-text:has(p),
+    .message-text:has(div) {
+      margin-bottom: 8px; /* Увеличенный отступ для многострочного текста */
+    }
+
+    /* Темная тема для сообщений */
+    [data-theme="dark"] .message-content,
+    .dark-mode .message-content {
+      background-color: #212121; /* Темный фон для темной темы */
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Исходящие сообщения сохраняют цвет темы */
+    .outgoing .message-content {
+      padding-right: 15px;
+      background-color: var(--primary-color);
+      color: #fff;
+      border-radius: 18px 18px 18px 18px; /* Меняем форму пузыря для исходящих */
+    }
+    
+    /* Для входящих сообщений делаем другую форму пузыря */
+    .message:not(.outgoing) .message-content {
+      border-radius: 18px 18px 18px 18px;
+    }
+
+    .chat-input {
+      padding: 10px;
+      border-top: 1px solid var(--border-color);
+      background-color: #ecf0f1; /* Цвет фона для светлой темы */
+      display: flex;
+      align-items: center;
+    }
+    
+    /* Темная тема для поля ввода сообщений */
+    [data-theme="dark"] .chat-input,
+    .dark-mode .chat-input {
+      background-color: #151515; /* Цвет фона для темной темы */
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 10px 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      font-size: 14px;
+    }
+
+    .chat-input button {
+      margin-left: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .no-chat-selected {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px;
+      background-color: var(--bg-primary);
+      position: absolute; 
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+    }
+
+    .no-chat-selected i {
+      font-size: 50px;
+      margin-bottom: 15px;
+      color: var(--primary-color);
+    }
+
+    .empty-chat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px;
+      height: 100%;
+      font-style: italic;
+    }
+
+    .empty-chat:before {
+      content: '\f075';
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 400;
+      font-size: 30px;
+      margin-bottom: 15px;
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    /* Адаптивность для мобильных устройств */
+    @media (max-width: 768px) {
+      .messages-container {
+        margin-left: 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .friends-list {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        transition: transform 0.3s ease;
+        z-index: 2;
+        border-right: none;
+      }
+      
+      .chat-container {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 1;
+      }
+      
+      /* Классы для переключения между списком и чатом */
+      .show-chat .friends-list {
+        transform: translateX(-100%);
+      }
+      
+      .show-chat .chat-container {
+        transform: translateX(0);
+        z-index: 2;
+      }
+      
+      /* Стили для заголовка чата на мобильных устройствах */
+      .chat-header {
+        position: relative;
+        padding: 10px 15px;
+      }
+      
+      .chat-header .header-avatar-link {
+        margin-left: 35px; /* Отступ для кнопки назад */
+      }
+
+      .chat-header .friend-avatar {
+        width: 35px;
+        height: 35px;
+      }
+      
+      .chat-header .friend-info {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      /* Кнопка назад */
+      .back-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: rgba(0, 0, 0, 0.1);
+        margin-right: 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+      }
+      
+      .back-button:hover {
+        background-color: rgba(0, 0, 0, 0.2);
+      }
+      
+      .back-button i {
+        font-size: 16px;
+        color: var(--text-color);
+      }
+      
+      /* Скрываем аватары сообщений на мобильных устройствах */
+      .message-avatar {
+        display: none;
+      }
+      
+      /* Изменяем максимальную ширину сообщений на мобильных устройствах */
+      .message-content {
+        max-width: 300px;
+      }
+    }
+    
+    /* Стили для индикатора "печатает" */
+    .typing-indicator {
+      font-size: 12px;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+    }
+
+    .typing-indicator::after {
+      content: "....";
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: bottom;
+      animation: typingDots 1.5s infinite;
+      width: 15px;
+      height: 1.2em;
+    }
+
+    @keyframes typingDots {
+      0% { width: 2px; }
+      20% { width: 5px; }
+      40% { width: 10px; }
+      60% { width: 15px; }
+      80% { width: 10px; }
+      100% { width: 2px; }
+    }
+
+    .chat-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      position: relative;
+      z-index: 2; /* Выше, чем no-chat-selected */
+      overflow: hidden; /* Предотвращаем увеличение высоты */
+    }
+
+    /* Добавляю глобальный стиль для скрытия кнопки по умолчанию */
+    .back-button {
+      display: none; /* Скрываем кнопку по умолчанию */
+    }
+    
+    /* Показываем кнопку только на мобильных устройствах */
+    @media (max-width: 768px) {
+      .back-button {
+        display: flex; /* Показываем на мобильных */
+      }
+    }
+
+    .friend-item-message.active .typing-inner-status {
+      color: #ffffff;
+    }
+
+    /* Стили для выделения сообщений */
+    .message.selected .message-content {
+      position: relative;
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    .message.selected .message-content::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      width: 20px;
+      height: 20px;
+      background-color: var(--primary-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .message.selected .message-content::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      width: 20px;
+      height: 20px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      z-index: 2;
+    }
+
+    /* Стили для панели инструментов выбора сообщений */
+    .message-selection-toolbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      min-height: 70px;
+      width: 100%;
+      background-color: var(--primary-color);
+      color: white;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      z-index: 1001; /* Выше, чем у chat-header */
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      box-sizing: border-box;
+    }
+
+    .message-selection-toolbar.active {
+      display: flex;
+      animation: slide-down 0.3s ease-out;
+    }
+
+    /* Обеспечиваем правильное позиционирование контейнера чата */
+    .chat-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      position: relative;
+      z-index: 2; /* Выше, чем no-chat-selected */
+      overflow: hidden; /* Предотвращаем увеличение высоты */
+    }
+
+    @keyframes slide-down {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .selection-info {
+      display: flex;
+      align-items: center;
+    }
+
+    .cancel-selection-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 5px;
+      margin-right: 15px;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+
+    .cancel-selection-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .selected-count {
+      font-weight: 500;
+    }
+
+    .selection-actions {
+      display: flex;
+      gap: 15px;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+
+    .action-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      position: relative;
+    }
+    
+    .action-btn:disabled::before {
+      content: attr(title);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 5px 10px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0s, opacity 0.3s;
+      z-index: 1000;
+    }
+    
+    .action-btn:disabled:hover::before {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .delete-btn {
+      color: #ff6b6b;
+    }
+
+    /* Стили для модального окна подтверждения */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    [data-theme="dark"] .modal-overlay,
+    .dark-mode .modal-overlay {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .delete-modal {
+      background-color: rgba(80, 80, 80, 0.85);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      animation: modal-appear 0.3s ease-out;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Стили для светлой темы - белый текст */
+    .light-mode .delete-modal .modal-header h3,
+    .light-mode .delete-modal .modal-body,
+    .light-mode .delete-modal .cancel-btn,
+    .light-mode .delete-modal .modal-body p,
+    :root:not(.dark-mode) .delete-modal .modal-header h3,
+    :root:not(.dark-mode) .delete-modal .modal-body,
+    :root:not(.dark-mode) .delete-modal .cancel-btn,
+    :root:not(.dark-mode) .delete-modal .modal-body p {
+      color: white !important;
+    }
+
+    .light-mode .delete-modal .cancel-btn,
+    :root:not(.dark-mode) .delete-modal .cancel-btn {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .light-mode .delete-modal .cancel-btn:hover,
+    :root:not(.dark-mode) .delete-modal .cancel-btn:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    [data-theme="dark"] .delete-modal,
+    .dark-mode .delete-modal {
+      background-color: rgba(40, 40, 40, 0.9);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes modal-appear {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: var(--text-color);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .modal-body {
+      padding: 24px;
+      color: var(--text-color);
+      font-size: 1.05rem;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      font-size: 1rem;
+      min-width: 100px;
+    }
+
+    .cancel-btn {
+      background-color: var(--bg-primary);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+
+    .cancel-btn:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .delete-confirm-btn {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    .delete-confirm-btn:hover {
+      background-color: #c0392b;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Анимация для кнопок при нажатии */
+    .modal-btn:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 768px) {
+      .message-selection-toolbar {
+        padding: 10px;
+      }
+
+      .selection-actions {
+        gap: 5px;
+      }
+
+      .action-btn {
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+    [data-theme="dark"] .modal-header,
+    .dark-mode .modal-header {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .modal-footer,
+    .dark-mode .modal-footer {
+      border-top-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Стили для панели ответа - полностью переработанная структура */
+    .reply-panel {
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      max-height: 150px;
+      position: relative; /* Контекст позиционирования */
+    }
+
+    /* Скроллируемый контейнер для содержимого */
+    .reply-content-scrollable {
+      overflow-y: auto; /* Добавляем скролл */
+      overflow-x: hidden; /* Без горизонтального скролла */
+      padding: 8px 12px; /* Отступы */
+      max-height: 150px; /* Максимальная высота */
+      position: relative; /* Контекст позиционирования для кнопки */
+    }
+
+    .reply-content {
+      flex: 1;
+      min-width: 0;
+      padding-left: 10px;
+      border-left: 2px solid var(--primary-color);
+      overflow: hidden; /* Скрываем всё, что выходит за границы */
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .cancel-reply-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+      position: absolute; /* Абсолютное позиционирование */
+      top: 8px; /* Отступ сверху */
+      right: 8px; /* Отступ справа */
+      z-index: 10; /* Поверх контента */
+      background-color: var(--bg-secondary); /* Фон как у панели */
+    }
+
+    .cancel-reply-btn:hover {
+      background-color: var(--hover-bg);
+    }
+
+    /* Стили для цитаты в сообщении */
+    .message-reply-to {
+      margin-bottom: 5px;
+      padding: 5px 8px;
+      background-color: rgba(0, 0, 0, 0.05);
+      border-left: 2px solid var(--primary-color);
+      border-radius: 5px;
+    }
+
+    .dark-mode .message-reply-to {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .outgoing .message-reply-to {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-left-color: rgba(255, 255, 255, 0.6);
+    }
+
+    .outgoing .reply-sender {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .outgoing .reply-text {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    /* Стили для индикатора изображений в цитате */
+    .reply-image-indicator {
+      color: var(--primary-color);
+      font-weight: 500;
+      font-size: 0.9em;
+      margin-top: 3px;
+      display: inline-block;
+    }
+    
+    .dark-mode .reply-image-indicator {
+      opacity: 0.95;
+      text-shadow: 0 0 1px rgba(var(--primary-color-rgb, 25, 118, 210), 0.2);
+    }
+    
+    .outgoing .reply-image-indicator {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Стили для плавного перехода при изменении высоты чата из-за панели ответа */
+    .chat-messages {
+      transition: height 0.3s ease;
+    }
+
+    /* Стили для подсветки исходного сообщения при клике на цитату */
+    .message.highlighted .message-content {
+      animation: highlight-pulse 2s ease-out;
+      box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    @keyframes highlight-pulse {
+      0% { box-shadow: 0 0 0 2px var(--primary-color); background-color: rgba(var(--primary-color-rgb, 25, 118, 210), 0.1); }
+      70% { box-shadow: 0 0 0 2px var(--primary-color); background-color: rgba(var(--primary-color-rgb, 25, 118, 210), 0.05); }
+      100% { box-shadow: 0 0 0 2px var(--primary-color); background-color: transparent; }
+    }
+
+    /* Обеспечиваем обнаружение цитаты как кликабельного элемента */
+    .message-reply-to {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .message-reply-to:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .dark-mode .message-reply-to:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .outgoing .message-reply-to:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Стили для индикатора загрузки при поиске исходного сообщения */
+    .loading-indicator {
+      background-color: var(--bg-secondary);
+      color: var(--text-color);
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+      border-radius: 8px;
+      margin: 10px auto;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .loading-indicator::before {
+      content: '';
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-right: 8px;
+      border-radius: 50%;
+      border: 2px solid var(--text-color);
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Стили для индикатора ответа в списке сообщений */
+    .reply-indicator {
+      color: var(--primary-color);
+      font-weight: 500;
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    /* Изменение цвета индикатора ответа для активного элемента в списке друзей */
+    .friend-item-message.active .reply-indicator {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Стили для темной темы */
+    .dark-mode .reply-indicator {
+      opacity: 0.95;
+      text-shadow: 0 0 1px rgba(var(--primary-color-rgb, 25, 118, 210), 0.2);
+    }
+
+    /* Стили для контейнера с несколькими цитатами */
+    .message-replies-container {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 8px;
+      max-width: 100%; /* Ограничиваем ширину */
+      overflow: hidden; /* Скрываем всё, что выходит за границы */
+    }
+
+    /* Стили для индикатора скрытых цитат */
+    .hidden-quotes-indicator {
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.8;
+      padding: 2px 8px;
+      text-align: center;
+      background-color: rgba(0, 0, 0, 0.03);
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+
+    .dark-mode .hidden-quotes-indicator {
+      background-color: rgba(255, 255, 255, 0.07);
+    }
+
+    .outgoing .hidden-quotes-indicator {
+      color: rgba(255, 255, 255, 0.7);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Увеличиваем максимальную высоту панели ответов при множественных цитатах */
+    .reply-panel {
+      max-height: 150px;
+      overflow-y: hidden;
+    }
+
+    /* Стили для контейнера с отдельной цитатой */
+    .reply-quote-container {
+      position: relative;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    /* Стили для индивидуальных цитат в панели ответа */
+    .reply-quote {
+      border-left: 2px solid var(--primary-color);
+      padding-left: 8px;
+      margin-bottom: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+      padding-right: 25px; /* Место для кнопки */
+    }
+
+    /* Стили для кнопки удаления цитаты */
+    .quote-cancel-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 3px;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 5;
+    }
+
+    .quote-cancel-btn:hover {
+      background-color: var(--hover-bg);
+      color: var(--primary-color);
+    }
+
+    /* Стили для панели ответа - обновлённая структура */
+    .reply-panel {
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      max-height: 150px;
+      position: relative;
+    }
+
+    /* Скроллируемый контейнер для содержимого */
+    .reply-content-scrollable {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px 12px;
+      max-height: 150px;
+    }
+
+    /* Стили для загрузки изображений */
+    .attachment-button {
+      margin-left: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--bg-secondary);
+      color: var(--text-color);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .attachment-button:hover {
+      background-color: var(--hover-bg);
+    }
+
+    .attachment-input {
+      display: none;
+    }
+
+    .attachment-preview-container {
+      display: none;
+      flex-direction: column;
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 10px;
+    }
+
+    .attachment-preview-container.active {
+      display: flex;
+    }
+
+    .attachment-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .attachment-item {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .attachment-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .remove-attachment {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+      border: none;
+      z-index: 2;
+    }
+
+    .remove-attachment:hover {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* Новые стили для отображения статуса загрузки */
+    .upload-success-overlay {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: rgba(76, 175, 80, 0.9);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      z-index: 2;
+    }
+
+    .upload-error-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(244, 67, 54, 0.5);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      z-index: 2;
+      animation: pulse-error 1.5s infinite;
+    }
+
+    /* Анимация для ошибки загрузки */
+    @keyframes pulse-error {
+      0% { background-color: rgba(244, 67, 54, 0.3); }
+      50% { background-color: rgba(244, 67, 54, 0.5); }
+      100% { background-color: rgba(244, 67, 54, 0.3); }
+    }
+
+    /* Анимация появления элемента */
+    @keyframes fade-in {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Стили для различных состояний прикрепления */
+    .attachment-item.uploading img {
+      opacity: 0.7;
+    }
+
+    .attachment-item.error img {
+      opacity: 0.8;
+    }
+
+    .attachment-item.uploaded {
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .dark-mode .attachment-item.uploaded {
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.5);
+    }
+
+    /* Подсказка для повторной загрузки при ошибке */
+    .upload-error-overlay::before {
+      content: 'Нажмите для повторной загрузки';
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 9px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 2px 0;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .remove-all-attachments {
+      align-self: flex-end;
+      background-color: transparent;
+      color: var(--text-muted);
+      border: none;
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .remove-all-attachments:hover {
+      color: var(--primary-color);
+    }
+    
+    /* Стили для отображения изображений в сообщениях */
+    /* Удалено, так как теперь всегда используется структура с message-image-wrapper */
+    
+    .message-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 5px;
+      max-width: 300px;
+    }
+    
+    .message-image-wrapper {
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .message-image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.2s;
+    }
+    
+    .message-image-wrapper:hover img {
+      transform: scale(1.03);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .message-image-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0);
+      transition: all 0.2s;
+      z-index: 1;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+    
+    .message-image-wrapper::after {
+      content: '\f00e'; /* Иконка лупы из FontAwesome */
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      color: white;
+      opacity: 0;
+      z-index: 2;
+      transition: all 0.2s ease;
+      text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+      font-size: 1.5rem;
+      pointer-events: none;
+    }
+    
+    .message-image-wrapper:hover::before {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    
+    .message-image-wrapper:hover::after {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    
+    .dark-mode .message-image-wrapper:hover::before {
+      background: rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Показываем курсор pointer для всех элементов в wrapper */
+    .message-image-wrapper,
+    .message-image-wrapper img {
+      cursor: pointer;
+    }
+    
+    /* 1 изображение - большое */
+    .message-images.count-1 {
+      max-width: 280px;
+    }
+    
+    .message-images.count-1 .message-image-wrapper {
+      width: 100%;
+      height: 200px;
+    }
+    
+    /* 2 изображения - одинаковый размер, рядом */
+    .message-images.count-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .message-images.count-2 .message-image-wrapper {
+      width: 140px;
+      height: 140px;
+    }
+    
+    /* 3 изображения - 2 сверху, 1 снизу */
+    .message-images.count-3 {
+      display: grid;
+      grid-template-areas: 
+        "img1 img2"
+        "img3 img3";
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 120px 120px;
+    }
+    
+    .message-images.count-3 .message-image-wrapper:nth-child(1) {
+      grid-area: img1;
+    }
+    
+    .message-images.count-3 .message-image-wrapper:nth-child(2) {
+      grid-area: img2;
+    }
+    
+    .message-images.count-3 .message-image-wrapper:nth-child(3) {
+      grid-area: img3;
+    }
+    
+    /* 4 изображения - сетка 2x2 */
+    .message-images.count-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 120px 120px;
+    }
+    
+    .message-images.count-4 .message-image-wrapper {
+      width: 140px;
+      height: 120px;
+    }
+    
+    /* 5 изображений - 2 сверху, 3 снизу */
+    .message-images.count-5 {
+      display: grid;
+      grid-template-areas: 
+        "img1 img2"
+        "img3 img4"
+        "img5 img5";
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 100px 100px 100px;
+    }
+    
+    .message-images.count-5 .message-image-wrapper:nth-child(5) {
+      grid-area: img5;
+    }
+    
+    /* 6 изображений - сетка 3x2 */
+    .message-images.count-6 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 90px 90px;
+    }
+    
+    .message-images.count-6 .message-image-wrapper {
+      width: 90px;
+      height: 90px;
+    }
+    
+    /* 7-9 изображений - сетка 3x3 */
+    .message-images.count-7,
+    .message-images.count-8,
+    .message-images.count-9 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 80px 80px 80px;
+    }
+    
+    .message-images.count-7 .message-image-wrapper,
+    .message-images.count-8 .message-image-wrapper,
+    .message-images.count-9 .message-image-wrapper {
+      width: 90px;
+      height: 80px;
+    }
+    
+    /* 10 изображений - сетка 3x3 + 1 снизу */
+    .message-images.count-10 {
+      display: grid;
+      grid-template-areas: 
+        "img1 img2 img3"
+        "img4 img5 img6"
+        "img7 img8 img9"
+        "img10 img10 img10";
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 75px 75px 75px 75px;
+    }
+    
+    .message-images.count-10 .message-image-wrapper:nth-child(10) {
+      grid-area: img10;
+    }
+    
+    /* Адаптивные стили для мобильных устройств */
+    @media (max-width: 768px) {
+      .message-images {
+        max-width: 260px;
+      }
+      
+      /* 1 изображение на мобильных */
+      .message-images.count-1 {
+        max-width: 240px;
+      }
+      
+      .message-images.count-1 .message-image-wrapper {
+        height: 180px;
+      }
+      
+      /* 2 изображения на мобильных */
+      .message-images.count-2 .message-image-wrapper {
+        width: 120px;
+        height: 120px;
+      }
+      
+      /* 3 изображения на мобильных */
+      .message-images.count-3 {
+        grid-template-rows: 100px 100px;
+      }
+      
+      /* 4 изображения на мобильных */
+      .message-images.count-4 {
+        grid-template-rows: 100px 100px;
+      }
+      
+      .message-images.count-4 .message-image-wrapper {
+        width: 120px;
+        height: 100px;
+      }
+      
+      /* 5+ изображений на мобильных */
+      .message-images.count-5,
+      .message-images.count-6,
+      .message-images.count-7,
+      .message-images.count-8,
+      .message-images.count-9,
+      .message-images.count-10 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: repeat(auto-fill, 80px);
+        grid-auto-flow: row;
+        grid-template-areas: none;
+      }
+      
+      .message-images.count-5 .message-image-wrapper,
+      .message-images.count-6 .message-image-wrapper,
+      .message-images.count-7 .message-image-wrapper,
+      .message-images.count-8 .message-image-wrapper,
+      .message-images.count-9 .message-image-wrapper,
+      .message-images.count-10 .message-image-wrapper {
+        width: 80px;
+        height: 80px;
+        grid-area: auto !important;
+      }
+    }
+    
+    /* Модальное окно для просмотра изображений */
+    .image-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .image-modal.active {
+      display: flex;
+      opacity: 1;
+    }
+    
+    .modal-image-container {
+      position: relative;
+      max-width: 90%;
+      max-height: 90%;
+    }
+    
+    .modal-image {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 5px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transition: opacity 0.3s, transform 0.3s ease-out;
+      cursor: zoom-in;
+    }
+    
+    .modal-image[data-zoomed="true"] {
+      cursor: zoom-out;
+    }
+    
+    .close-modal {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      border: none;
+      z-index: 2001;
+    }
+    
+    .close-modal:hover {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .image-nav-button {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      border: none;
+      z-index: 2001;
+      transition: background-color 0.2s;
+    }
+    
+    .image-nav-button:hover {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .prev-image {
+      left: 20px;
+    }
+    
+    .next-image {
+      right: 20px;
+    }
+    
+    .image-counter {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 14px;
+      z-index: 10;
+    }
+
+    /* Стили для кнопки поиска в хедере чата */
+    .chat-header .search-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-left: auto;
+      color: var(--text-color);
+      transition: background-color 0.2s;
+    }
+
+    .chat-header .search-button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .dark-mode .chat-header .search-button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Стили для панели поиска сообщений */
+    .search-messages-container {
+      position: absolute;
+      margin-top: 70px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--bg-primary);
+      padding: 10px 15px;
+      display: none;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      animation: slide-down 0.3s ease-out;
+      border-bottom: 1px solid var(--border-color);
+      box-sizing: border-box; /* Добавляем для правильных размеров */
+    }
+
+    .search-messages-container.active {
+      display: flex;
+      background-color: #151515;
+    }
+
+    .search-messages-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+
+    .search-messages-input {
+      flex: 1;
+      padding: 8px 35px 8px 35px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 14px;
+      background-color: var(--bg-secondary);
+      color: var(--text-color);
+    }
+
+    .search-messages-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
+    .search-messages-icon {
+      position: absolute;
+      left: 12px;
+      color: var(--text-muted);
+    }
+
+    .search-messages-clear {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+      display: none;
+    }
+
+    .search-messages-clear.visible {
+      display: block;
+    }
+
+    .search-messages-close {
+      background: none;
+      border: none;
+      font-size: 16px;
+      margin-left: 10px;
+      color: var(--text-color);
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-messages-close:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .dark-mode .search-messages-close:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Стили для результатов поиска */
+    .search-results-container {
+      margin-top: 70px;
+      position: absolute;
+      top: 60px;
+      left: 10px;
+      right: 10px;
+      max-height: 300px;
+      background-color: var(--bg-primary);
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      z-index: 999;
+      overflow-y: auto;
+      display: none;
+      flex-direction: column;
+    }
+
+    .search-results-container.active {
+      display: flex;
+      background-color: #151515;
+    }
+
+    .search-message-result-item {
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      padding: 12px 15px;
+    }
+
+    .search-message-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .search-message-result-item:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .dark-mode .search-message-result-item:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .search-result-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      margin-right: 10px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .search-result-content {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .search-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 5px;
+    }
+
+    .search-result-sender {
+      font-weight: 500;
+      color: var(--text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 70%;
+    }
+
+    .search-result-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .search-result-text {
+      margin-bottom: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      line-height: 1.3;
+    }
+
+    .search-result-text mark {
+      background-color: rgba(255, 213, 79, 0.4);
+      color: inherit;
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    .search-result-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+    }
+
+    .search-result-date {
+      margin-right: 10px;
+    }
+
+    .search-result-highlight {
+      background-color: rgba(255, 213, 79, 0.6);
+      border-radius: 3px;
+    }
+
+    .message.search-highlighted .message-content {
+      box-shadow: 0 0 0 2px rgba(255, 213, 79, 0.7);
+      animation: search-highlight-pulse 2s ease-out;
+    }
+
+    @keyframes search-highlight-pulse {
+      0% { box-shadow: 0 0 0 2px rgba(255, 213, 79, 0.7); }
+      70% { box-shadow: 0 0 0 4px rgba(255, 213, 79, 0.4); }
+      100% { box-shadow: 0 0 0 2px rgba(255, 213, 79, 0.7); }
+    }
+
+    .search-no-results {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    @keyframes slide-down {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    /* Стили для мобильных устройств */
+    @media (max-width: 768px) {
+      /* Фиксируем размер хедера чата на мобильных для предотвращения скачков */
+      .chat-header {
+        min-height: 60px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        box-sizing: border-box;
+      }
+
+      /* Размещаем поисковую панель правильно относительно хедера */
+      .search-messages-container {
+        margin-top: 60px;
+        padding: 8px 12px;
+      }
+      
+      .search-messages-input {
+        padding: 6px 30px 6px 30px;
+        font-size: 13px;
+      }
+      
+      .search-messages-close {
+        width: 26px;
+        height: 26px;
+        font-size: 14px;
+        margin-left: 5px;
+      }
+
+      /* Улучшаем отображение элементов управления */
+      .search-messages-icon {
+        font-size: 12px;
+      }
+
+      /* Корректируем результаты поиска */
+      .search-results-container {
+        margin-top: 60px;
+        top: 50px;
+        left: 5px;
+        right: 5px;
+        max-height: 280px;
+      }
+      
+      .search-message-result-item {
+        padding: 8px 12px;
+        flex-wrap: nowrap; /* Предотвращаем перенос элементов */
+      }
+      
+      .search-result-avatar {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+      }
+      
+      .search-result-content {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .search-result-header {
+        margin-bottom: 2px;
+        flex-wrap: nowrap; /* Предотвращаем перенос элементов */
+      }
+      
+      .search-result-sender {
+        max-width: 60%;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .search-result-time {
+        font-size: 11px;
+        margin-left: auto; /* Прижимаем время к правому краю */
+        padding-left: 5px; /* Отступ от имени */
+      }
+      
+      .search-result-text {
+        font-size: 12px;
+        line-height: 1.2;
+        margin-bottom: 2px;
+        white-space: normal; /* Разрешаем перенос текста */
+        max-height: 2.4em; /* Ограничиваем высоту (2 строки) */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="messages-container">
+    <!-- Список друзей (слева) -->
+    <div class="friends-list" id="friends-list">
+        <div class="friends-search-container">
+            <div class="search-input-wrapper">
+                <input type="text" id="friends-search" placeholder="Поиск друзей..." autocomplete="off">
+                <i class="fas fa-search search-icon"></i>
+                <button type="button" id="clear-search" class="clear-search-button" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div id="friends-items-container">
+          <!-- Друзья будут добавлены динамически здесь -->
+        </div>
+    </div>
+
+    <!-- Контейнер чата (справа) -->
+    <div class="chat-container" id="chat-container">
+      <!-- Заглушка для отображения, когда чат не выбран -->
+      <div class="no-chat-selected" id="no-chat-selected">
+        <i class="fas fa-comments"></i>
+        <h2>Выберите друга, чтобы начать общение</h2>
+        <p>Ваши сообщения зашифрованы и хранятся в безопасности</p>
+      </div>
+
+      <!-- Контент чата (будет показан после выбора друга) -->
+      <div id="chat-content" class="chat-content" style="display: none;">
+        <div class="chat-header" id="chat-header">
+          <div class="back-button" id="back-to-friends">
+            <i class="fas fa-arrow-left"></i>
+          </div>
+          <!-- Информация о собеседнике будет добавлена динамически -->
+        </div>
+        
+        <!-- Панель поиска сообщений -->
+        <div class="search-messages-container" id="search-messages-container">
+          <div class="search-messages-input-wrapper">
+            <i class="fas fa-search search-messages-icon"></i>
+            <input type="text" class="search-messages-input" id="search-messages-input" placeholder="Поиск сообщений...">
+            <button class="search-messages-clear" id="search-messages-clear">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <button class="search-messages-close" id="search-messages-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <!-- Контейнер для результатов поиска -->
+        <div class="search-results-container" id="search-results-container"></div>
+        
+        <!-- Панель действий для выделенных сообщений (перемещена внутрь чата) -->
+        <div class="message-selection-toolbar" id="message-selection-toolbar">
+          <div class="selection-info">
+            <button class="cancel-selection-btn" id="cancel-selection-btn">
+              <i class="fas fa-times"></i>
+            </button>
+            <span class="selected-count" id="selected-count">0 выбрано</span>
+          </div>
+          <div class="selection-actions">
+            <button class="action-btn" id="copy-messages-btn" title="Скопировать">
+              <i class="fas fa-copy"></i>
+            </button>
+            <button class="action-btn" id="reply-messages-btn" title="Ответить">
+              <i class="fas fa-reply"></i>
+            </button>
+            <button class="action-btn delete-btn" id="delete-messages-btn" title="Удалить">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+          <!-- Сообщения будут добавлены динамически -->
+        </div>
+        <div id="reply-panel-container">
+          <!-- Сюда будет добавлена панель ответа -->
+        </div>
+        <!-- Контейнер предпросмотра прикрепленных изображений -->
+        <div class="attachment-preview-container" id="attachment-preview-container">
+          <div class="attachment-preview" id="attachment-preview"></div>
+          <button class="remove-all-attachments" id="remove-all-attachments">
+            <i class="fas fa-trash"></i> Удалить все
+          </button>
+        </div>
+        <div class="chat-input" id="chat-input-container">
+          <input type="text" id="message-input" placeholder="Введите сообщение..." />
+          <button class="attachment-button" id="attachment-button" title="Прикрепить файл">
+            <i class="fas fa-paperclip"></i>
+          </button>
+          <input type="file" id="attachment-input" class="attachment-input" accept="image/*" multiple />
+          <button id="send-button">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно подтверждения удаления -->
+  <div class="modal-overlay" id="delete-modal-overlay">
+    <div class="delete-modal">
+      <div class="modal-header">
+        <h3 id="delete-modal-title">Удаление сообщения</h3>
+      </div>
+      <div class="modal-body">
+        <p id="delete-modal-message">Вы уверены, что хотите удалить это сообщение?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel-btn" id="cancel-delete-btn">Отмена</button>
+        <button class="modal-btn delete-confirm-btn" id="confirm-delete-btn">Удалить</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Модальное окно для просмотра медиафайлов -->
+  <div class="image-modal" id="image-modal">
+    <button class="close-modal" id="close-image-modal">
+      <i class="fas fa-times"></i>
+    </button>
+    <button class="image-nav-button prev-image" id="prev-image" style="display: none;">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    <div class="modal-image-container">
+      <img src="" alt="Просмотр изображения" class="modal-image" id="modal-image">
+    </div>
+    <button class="image-nav-button next-image" id="next-image" style="display: none;">
+      <i class="fas fa-chevron-right"></i>
+    </button>
+    <div class="image-counter" id="image-counter" style="display: none;">1/1</div>
+  </div>
+</body>
+</html> 

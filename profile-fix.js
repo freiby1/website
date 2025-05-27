@@ -127,6 +127,71 @@ function updateSidebarAvatar(newAvatarURL) {
 
 // Настройка наблюдателя за изменениями в DOM для обработки новых комментариев
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Применяем дополнительные исправления...');
+    
+    // Счетчик символов и автовысота textarea
+    const commentInput = document.getElementById('comment-input');
+    const characterCounter = document.getElementById('character-counter');
+    const MAX_CHARS = 1000;
+    
+    if (commentInput && characterCounter) {
+        // Функция для автоматического изменения высоты textarea
+        function autoResizeTextarea() {
+            commentInput.style.height = ''; // Сбрасываем высоту
+            commentInput.style.height = Math.min(commentInput.scrollHeight, 300) + 'px';
+        }
+        
+        // Функция для обновления счетчика символов
+        function updateCharacterCount() {
+            const length = commentInput.value.length;
+            characterCounter.textContent = `${length}/${MAX_CHARS}`;
+            
+            // Показываем счетчик только когда есть текст
+            if (length > 0) {
+                characterCounter.classList.add('visible');
+            } else {
+                characterCounter.classList.remove('visible');
+                commentInput.style.height = ''; // Сбрасываем высоту при пустом поле
+            }
+            
+            // Изменяем стиль в зависимости от количества символов
+            characterCounter.classList.remove('warning', 'error');
+            if (length > MAX_CHARS * 0.8) {
+                characterCounter.classList.add('warning');
+            }
+            if (length > MAX_CHARS * 0.95) {
+                characterCounter.classList.add('error');
+            }
+        }
+        
+        // Применяем обработчики событий
+        commentInput.addEventListener('input', function() {
+            autoResizeTextarea();
+            updateCharacterCount();
+        });
+        
+        commentInput.addEventListener('focus', function() {
+            autoResizeTextarea();
+            updateCharacterCount();
+        });
+        
+        // Сброс при очистке поля
+        const cancelButton = document.getElementById('cancel-comment-button');
+        if (cancelButton) {
+            const originalClickHandler = cancelButton.onclick;
+            
+            cancelButton.onclick = function(e) {
+                if (originalClickHandler) {
+                    originalClickHandler.call(this, e);
+                }
+                
+                // Сбрасываем счетчик и высоту
+                characterCounter.classList.remove('visible');
+                commentInput.style.height = '';
+            };
+        }
+    }
+
     // Вызываем функцию для обработки уже существующих комментариев с классом new-comment
     handleNewComments();
     
@@ -205,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Исправляем кнопку отмены для основного комментария, если она еще не исправлена
+    // Исправляем кнопку отмены для основного комментария
     const cancelCommentButton = document.getElementById('cancel-comment-button');
     if (cancelCommentButton) {
         cancelCommentButton.addEventListener('click', function() {
@@ -214,6 +279,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (commentInput) {
                 commentInput.value = '';
                 commentInput.blur();
+                commentInput.style.height = '55px'; // Возвращаем высоту к исходной
+            }
+            
+            // Скрываем счетчик символов
+            const characterCounter = document.getElementById('character-counter');
+            if (characterCounter) {
+                characterCounter.classList.remove('visible');
             }
             
             // Очищаем загруженные изображения
@@ -375,6 +447,166 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Ошибка при обновлении кеша изображений:', error);
         }
     };
+
+    // Добавляем обработчик отправки формы комментария для сброса высоты поля
+    const commentForm = document.getElementById('comment-form');
+    if (commentForm) {
+        const originalSubmitHandler = commentForm.onsubmit;
+        
+        commentForm.addEventListener('submit', function(e) {
+            // Не предотвращаем отправку формы, а выполняем дополнительные действия
+            
+            // Получаем элементы
+            const commentInput = document.getElementById('comment-input');
+            const characterCounter = document.getElementById('character-counter');
+            
+            // Устанавливаем таймер для сброса формы после отправки
+            setTimeout(() => {
+                if (commentInput) {
+                    commentInput.style.height = '55px'; // Возвращаем высоту к исходной
+                }
+                
+                if (characterCounter) {
+                    characterCounter.classList.remove('visible');
+                }
+            }, 100); // Небольшая задержка, чтобы успела сработать стандартная очистка формы
+        });
+    }
+
+    // Добавляем обработчик для полей ответа
+    document.body.addEventListener('input', function(e) {
+        // Проверяем, является ли элемент textarea с классом reply-input
+        if (e.target.classList.contains('reply-input')) {
+            const replyInput = e.target;
+            const commentId = replyInput.closest('.reply-form').dataset.parentId;
+            const counterElement = document.querySelector(`.reply-character-counter[data-comment-id="${commentId}"]`);
+            
+            // Функция для автоматического изменения высоты textarea
+            function autoResizeReplyTextarea() {
+                replyInput.style.height = ''; // Сбрасываем высоту
+                replyInput.style.height = Math.min(replyInput.scrollHeight, 200) + 'px';
+            }
+            
+            // Функция для обновления счетчика символов
+            function updateReplyCharacterCount() {
+                const length = replyInput.value.length;
+                const MAX_CHARS = 1000;
+                
+                if (counterElement) {
+                    counterElement.textContent = `${length}/${MAX_CHARS}`;
+                    
+                    // Показываем счетчик только когда есть текст
+                    if (length > 0) {
+                        counterElement.classList.add('visible');
+                    } else {
+                        counterElement.classList.remove('visible');
+                        replyInput.style.height = ''; // Сбрасываем высоту при пустом поле
+                    }
+                    
+                    // Изменяем стиль в зависимости от количества символов
+                    counterElement.classList.remove('warning', 'error');
+                    if (length > MAX_CHARS * 0.8) {
+                        counterElement.classList.add('warning');
+                    }
+                    if (length > MAX_CHARS * 0.95) {
+                        counterElement.classList.add('error');
+                    }
+                }
+            }
+            
+            // Выполняем обе функции
+            autoResizeReplyTextarea();
+            updateReplyCharacterCount();
+        }
+    });
+    
+    // Добавляем обработчик для фокуса на полях ответа
+    document.body.addEventListener('focus', function(e) {
+        if (e.target.classList.contains('reply-input')) {
+            const replyInput = e.target;
+            // Получаем родительскую форму и её ID
+            const replyForm = replyInput.closest('.reply-form');
+            if (!replyForm) return;
+            
+            const commentId = replyForm.dataset.parentId;
+            const counterElement = document.querySelector(`.reply-character-counter[data-comment-id="${commentId}"]`);
+            
+            // Обновляем высоту поля и счетчик
+            replyInput.style.height = ''; // Сбрасываем высоту
+            replyInput.style.height = Math.min(replyInput.scrollHeight, 200) + 'px';
+            
+            // Показываем счетчик, если в поле есть текст
+            if (replyInput.value.length > 0 && counterElement) {
+                counterElement.classList.add('visible');
+            }
+        }
+    }, true);
+    
+    // Добавляем обработчик для кнопок отмены в формах ответа
+    document.body.addEventListener('click', function(e) {
+        // Проверяем, была ли нажата кнопка отмены ответа
+        if (e.target.closest('.cancel-reply-button')) {
+            const button = e.target.closest('.cancel-reply-button');
+            const commentId = button.dataset.commentId;
+            if (!commentId) return;
+            
+            // Находим элемент комментария
+            const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+            if (!commentElement) return;
+            
+            // Находим форму ответа
+            const replyForm = commentElement.querySelector('.reply-form');
+            if (!replyForm) return;
+            
+            // Находим текстовое поле и счетчик
+            const replyInput = replyForm.querySelector('.reply-input');
+            const counterElement = document.querySelector(`.reply-character-counter[data-comment-id="${commentId}"]`);
+            
+            // Очищаем текстовое поле и сбрасываем его высоту
+            if (replyInput) {
+                replyInput.value = '';
+                replyInput.blur();
+                replyInput.style.height = '55px'; // Возвращаем исходную высоту
+            }
+            
+            // Скрываем счетчик символов
+            if (counterElement) {
+                counterElement.classList.remove('visible');
+            }
+            
+            // Очищаем загруженные изображения
+            if (commentElement.replyImageUpload && typeof commentElement.replyImageUpload.clearImages === 'function') {
+                commentElement.replyImageUpload.clearImages();
+            }
+            
+            // Скрываем форму ответа
+            replyForm.classList.remove('active');
+        }
+    });
+    
+    // Добавляем обработчик отправки форм ответа
+    document.body.addEventListener('submit', function(e) {
+        // Проверяем, была ли отправлена форма ответа
+        if (e.target.classList.contains('reply-form')) {
+            const replyForm = e.target;
+            const commentId = replyForm.dataset.parentId;
+            
+            // Получаем текстовое поле и счетчик
+            const replyInput = replyForm.querySelector('.reply-input');
+            const counterElement = document.querySelector(`.reply-character-counter[data-comment-id="${commentId}"]`);
+            
+            // Устанавливаем таймер для сброса формы после отправки
+            setTimeout(() => {
+                if (replyInput) {
+                    replyInput.style.height = '55px'; // Возвращаем высоту к исходной
+                }
+                
+                if (counterElement) {
+                    counterElement.classList.remove('visible');
+                }
+            }, 100); // Небольшая задержка, чтобы успела сработать стандартная очистка формы
+        }
+    });
 });
 
 // Функция для обновления аватара во всех комментариях пользователя в базе данных

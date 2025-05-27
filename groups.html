@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+	<title>Группы</title>
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+	<link rel="stylesheet" href="styles.css">
+	<link rel="preload" href="./sidebar_old.js" as="script" crossorigin="anonymous">
+	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script"
+		crossorigin="anonymous">
+	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script"
+		crossorigin="anonymous">
+	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script"
+		crossorigin="anonymous">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+
+	<!-- Добавляем импорт и инициализацию сайдбара -->
+	<script type="module">
+		import { initializeSidebar } from './sidebar_old.js';
+		
+		document.addEventListener('DOMContentLoaded', () => {
+			initializeSidebar();
+		});
+	</script>
+
+	<style>
+		.groups-container {
+			max-width: 1200px;
+			margin: 20px auto;
+			padding: 0 20px;
+			display: flex;
+			flex-wrap: wrap;
+		}
+
+		.main-content {
+			flex: 1;
+			min-width: 300px;
+			margin-right: 20px;
+			padding: 0;
+		}
+
+		.popular-groups {
+			width: 280px;
+			margin-top: 66px; /* Выравнивание с основным контентом после поля поиска */
+		}
+
+		.search-container {
+			margin: 0 0 20px 0;
+			padding: 0;
+			width: 100%;
+			display: block;
+			box-sizing: border-box;
+		}
+
+		.search-input {
+			width: 100%;
+			padding: 12px 15px;
+			border: 1px solid #ddd;
+			border-radius: 8px;
+			font-size: 16px;
+			background-color: #fff;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+			transition: all 0.3s;
+			margin: 0;
+			box-sizing: border-box;
+		}
+
+		.dark-mode .search-input {
+			background-color: #2d2d2d;
+			border-color: #444;
+			color: #f5f5f5;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+		}
+
+		.search-input:focus {
+			outline: none;
+			border-color: #4a76a8;
+			box-shadow: 0 2px 10px rgba(74, 118, 168, 0.2);
+		}
+
+		.section-header {
+			margin-bottom: 20px;
+			font-size: 24px;
+			font-weight: 600;
+			color: #333;
+			border-bottom: 1px solid #eee;
+			padding-bottom: 10px;
+		}
+
+		.dark-mode .section-header {
+			color: #f5f5f5;
+			border-bottom-color: #333;
+		}
+
+		.groups-grid {
+			display: flex;
+			flex-direction: column;
+			gap: 0;
+			margin-bottom: 40px;
+			width: 100%;
+		}
+
+		.group-card {
+			background: transparent;
+			border-radius: 0;
+			box-shadow: none;
+			overflow: hidden;
+			transition: background-color 0.2s ease;
+			cursor: pointer;
+			width: 100%;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			padding: 15px 0;
+			border-bottom: 1px solid #eee;
+			position: relative; /* Для позиционирования кнопки подписки */
+		}
+
+		.dark-mode .group-card {
+			background: transparent;
+			box-shadow: none;
+			border-bottom-color: #333;
+		}
+
+		.group-card:hover {
+			transform: none;
+			box-shadow: none;
+			background-color: rgba(0, 0, 0, 0.03);
+		}
+
+		.dark-mode .group-card:hover {
+			background-color: rgba(255, 255, 255, 0.05);
+		}
+
+		.group-cover {
+			width: 50px;
+			height: 50px;
+			border-radius: 50%;
+			background-color: #eee;
+			position: relative;
+			overflow: hidden;
+			margin-right: 15px;
+			margin-left: 15px;
+			margin-bottom: 0;
+			flex-shrink: 0;
+		}
+
+		.dark-mode .group-cover {
+			background-color: #3d3d3d;
+		}
+
+		.group-cover img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.group-content {
+			padding: 0;
+			text-align: left;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.group-name {
+			font-size: 16px;
+			font-weight: 500;
+			margin-bottom: 5px;
+			color: #333;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.dark-mode .group-name {
+			color: #f5f5f5;
+		}
+
+		.group-description {
+			display: block;
+			font-size: 14px;
+			color: #777;
+			margin-bottom: 5px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.dark-mode .group-description {
+			color: #aaa;
+		}
+
+		.group-meta {
+			display: flex;
+			justify-content: flex-start;
+			font-size: 13px;
+			color: #888;
+		}
+
+		.dark-mode .group-meta {
+			color: #999;
+		}
+		
+		.group-category {
+			display: inline-flex;
+			align-items: center;
+			margin-right: 15px;
+			padding: 3px 8px;
+			background-color: #4a76a81a;
+			border-radius: 12px;
+			font-size: 12px;
+			color: #4a76a8;
+		}
+		
+		.dark-mode .group-category {
+			background-color: #5a86b81a;
+			color: #5a86b8;
+		}
+		
+		.group-category i {
+			margin-right: 5px;
+			font-size: 10px;
+		}
+
+		.group-members {
+			display: flex;
+			align-items: center;
+			justify-content: flex-start;
+		}
+
+		.group-members i {
+			margin-right: 5px;
+		}
+
+		.create-group-btn {
+			display: inline-block;
+			margin-bottom: 20px;
+			padding: 10px 20px;
+			background-color: #4a76a8;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			font-size: 16px;
+			font-weight: 500;
+			cursor: pointer;
+			transition: background-color 0.3s;
+		}
+
+		.create-group-btn:hover {
+			background-color: #3a5b80;
+		}
+
+		.dark-mode .create-group-btn {
+			background-color: #5a86b8;
+		}
+
+		.dark-mode .create-group-btn:hover {
+			background-color: #4a76a8;
+		}
+
+		.empty-state {
+			text-align: center;
+			padding: 30px;
+			background-color: #f8f8f8;
+			border-radius: 8px;
+			margin-bottom: 30px;
+		}
+
+		.dark-mode .empty-state {
+			background-color: #333;
+			color: #ddd;
+		}
+
+		.empty-state i {
+			font-size: 48px;
+			color: #ccc;
+			margin-bottom: 15px;
+		}
+
+		.dark-mode .empty-state i {
+			color: #555;
+		}
+
+		.empty-state p {
+			font-size: 16px;
+			color: #888;
+			margin-bottom: 20px;
+		}
+
+		.dark-mode .empty-state p {
+			color: #aaa;
+		}
+
+		@media (max-width: 768px) {
+			.groups-container {
+				flex-direction: column;
+			}
+			
+			.popular-groups {
+				width: 100%;
+				margin-top: 0;
+				order: 3; /* Перемещаем блок популярных групп вниз на мобильных устройствах */
+			}
+			
+			.main-content {
+				margin-right: 0;
+				width: 100%;
+			}
+		}
+
+		/* Стили для модального окна создания группы */
+		.modal-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background-color: rgba(0, 0, 0, 0.6);
+			z-index: 1000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			opacity: 0;
+			visibility: hidden;
+			transition: opacity 0.3s, visibility 0.3s;
+		}
+
+		.modal-overlay.active {
+			opacity: 1;
+			visibility: visible;
+		}
+
+		.create-group-modal {
+			width: 90%;
+			max-width: 600px;
+			background-color: #fff;
+			border-radius: 10px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+			overflow: hidden;
+			transform: translateY(-20px);
+			transition: transform 0.3s;
+			max-height: 90vh;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.dark-mode .create-group-modal {
+			background-color: #2d2d2d;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+		}
+
+		.modal-overlay.active .create-group-modal {
+			transform: translateY(0);
+		}
+
+		.modal-header {
+			padding: 20px;
+			border-bottom: 1px solid #eee;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			position: sticky;
+			top: 0;
+			background-color: inherit;
+			z-index: 10;
+			flex-shrink: 0;
+		}
+
+		.dark-mode .modal-header {
+			border-bottom-color: #444;
+		}
+
+		.modal-title {
+			font-size: 20px;
+			font-weight: 600;
+			color: #333;
+		}
+
+		.dark-mode .modal-title {
+			color: #f5f5f5;
+		}
+
+		.modal-close {
+			background: none;
+			border: none;
+			font-size: 20px;
+			cursor: pointer;
+			color: #888;
+			padding: 5px;
+		}
+
+		.dark-mode .modal-close {
+			color: #ccc;
+		}
+
+		#create-group-form {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+		}
+
+		.groups-modal-body {
+			padding: 20px;
+			overflow-y: auto;
+			flex: 1;
+			max-height: calc(90vh - 130px);
+		}
+
+		.form-group {
+			margin-bottom: 20px;
+		}
+
+		.form-label {
+			display: block;
+			margin-bottom: 8px;
+			font-weight: 500;
+			color: #555;
+		}
+
+		.dark-mode .form-label {
+			color: #ddd;
+		}
+
+		.form-input {
+			width: 100%;
+			padding: 10px 12px;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			font-size: 16px;
+			color: #333;
+			background-color: #fff;
+		}
+
+		.dark-mode .form-input {
+			background-color: #3d3d3d;
+			border-color: #555;
+			color: #eee;
+		}
+
+		.form-textarea {
+			width: 100%;
+			padding: 10px 12px;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			font-size: 16px;
+			color: #333;
+			background-color: #fff;
+			min-height: 100px;
+			resize: vertical;
+		}
+
+		.dark-mode .form-textarea {
+			background-color: #3d3d3d;
+			border-color: #555;
+			color: #eee;
+		}
+
+		.group-avatar-container,
+		.group-cover-container {
+			position: relative;
+			margin-bottom: 20px;
+		}
+
+		.group-avatar-preview {
+			width: 100px;
+			height: 100px;
+			border-radius: 50%;
+			background-color: #eee;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin: 0 auto 15px;
+			overflow: hidden;
+			cursor: pointer;
+		}
+
+		.dark-mode .group-avatar-preview {
+			background-color: #3d3d3d;
+		}
+
+		.group-cover-preview {
+			width: 100%;
+			height: 150px;
+			background-color: #eee;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 15px;
+			overflow: hidden;
+			cursor: pointer;
+			border-radius: 5px;
+		}
+
+		.dark-mode .group-cover-preview {
+			background-color: #3d3d3d;
+		}
+
+		.preview-placeholder {
+			color: #999;
+			text-align: center;
+			font-size: 14px;
+		}
+
+		.dark-mode .preview-placeholder {
+			color: #888;
+		}
+
+		.preview-placeholder i {
+			font-size: 24px;
+			margin-bottom: 5px;
+		}
+
+		.group-avatar-preview img,
+		.group-cover-preview img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.image-upload-btn {
+			display: none;
+		}
+
+		.upload-hint {
+			text-align: center;
+			font-size: 14px;
+			color: #888;
+			margin-top: 5px;
+		}
+
+		.dark-mode .upload-hint {
+			color: #aaa;
+		}
+
+		.modal-footer {
+			padding: 15px 20px;
+			border-top: 1px solid #eee;
+			display: flex;
+			justify-content: flex-end;
+			position: sticky;
+			bottom: 0;
+			background-color: inherit;
+			z-index: 10;
+			flex-shrink: 0;
+		}
+
+		.dark-mode .modal-footer {
+			border-top-color: #444;
+		}
+
+		.modal-btn {
+			padding: 10px 20px;
+			border-radius: 5px;
+			font-size: 16px;
+			font-weight: 500;
+			cursor: pointer;
+			transition: background-color 0.3s;
+		}
+
+		.modal-btn-primary {
+			background-color: #4a76a8;
+			color: white;
+			border: none;
+		}
+
+		.modal-btn-primary:hover {
+			background-color: #3a5b80;
+		}
+
+		.dark-mode .modal-btn-primary {
+			background-color: #5a86b8;
+		}
+
+		.dark-mode .modal-btn-primary:hover {
+			background-color: #4a76a8;
+		}
+
+		.modal-btn-cancel {
+			background-color: transparent;
+			color: #666;
+			border: 1px solid #ddd;
+			margin-right: 10px;
+		}
+
+		.modal-btn-cancel:hover {
+			background-color: #f5f5f5;
+		}
+
+		.dark-mode .modal-btn-cancel {
+			color: #ddd;
+			border-color: #555;
+		}
+
+		.dark-mode .modal-btn-cancel:hover {
+			background-color: #333;
+		}
+
+		/* Стили для модального окна кадрирования */
+		.crop-modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.7);
+			z-index: 10000;
+			overflow: hidden;
+		}
+
+		.crop-modal.active {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.crop-avatar-modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.7);
+			z-index: 10000;
+			overflow: hidden;
+		}
+
+		.crop-avatar-modal.active {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.crop-avatar-modal .crop-area,
+		.crop-modal .crop-area {
+			width: 100%;
+			height: 400px;
+			max-height: 400px;
+			margin-bottom: 1rem;
+			background-color: #333;
+			overflow: hidden;
+		}
+
+		.crop-avatar-modal .crop-container,
+		.crop-modal .crop-container {
+			width: 90%;
+			max-width: 500px;
+			background-color: #fff;
+			border-radius: 10px;
+			padding: 1rem;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+		}
+		
+		/* Стили для контейнера аватара */
+		#crop-avatar-modal .crop-area {
+			height: 400px;
+			max-height: 400px;
+		}
+		
+		/* Стили для контейнера обложки */
+		#crop-cover-modal .crop-area {
+			height: 300px;
+			max-height: 300px;
+		}
+		
+		#crop-cover-modal .crop-container {
+			max-width: 600px;
+		}
+		
+		.dark-mode .crop-avatar-modal .crop-container,
+		.dark-mode .crop-modal .crop-container {
+			background-color: #2d2d2d;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+		}
+
+		.crop-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 1rem;
+			padding-bottom: 0.5rem;
+			border-bottom: 1px solid #eee;
+		}
+
+		.dark-mode .crop-header {
+			border-bottom-color: #444;
+		}
+
+		.crop-title {
+			font-size: 1.2rem;
+			font-weight: bold;
+			color: #333;
+		}
+
+		.dark-mode .crop-title {
+			color: #f5f5f5;
+		}
+
+		.crop-close {
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			color: #888;
+			cursor: pointer;
+			padding: 0.25rem;
+			line-height: 1;
+		}
+
+		.dark-mode .crop-close {
+			color: #ccc;
+		}
+
+		.crop-close:hover {
+			color: #333;
+		}
+
+		.dark-mode .crop-close:hover {
+			color: #fff;
+		}
+
+		.crop-img {
+			display: block;
+			max-width: 100%;
+		}
+
+		.crop-controls {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.crop-zoom {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+
+		.zoom-slider {
+			width: 150px;
+			margin: 0 10px;
+		}
+
+		.crop-actions {
+			display: flex;
+			gap: 1rem;
+		}
+
+		.crop-btn {
+			padding: 0.5rem 1rem;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 14px;
+			transition: all 0.2s;
+		}
+
+		.crop-btn.cancel {
+			background: transparent;
+			color: #666;
+			border: 1px solid #ddd;
+		}
+
+		.dark-mode .crop-btn.cancel {
+			color: #ddd;
+			border-color: #555;
+		}
+
+		.crop-btn.cancel:hover {
+			background: #f5f5f5;
+		}
+
+		.dark-mode .crop-btn.cancel:hover {
+			background: #333;
+		}
+
+		@media (max-width: 576px) {
+			.crop-avatar-modal .crop-container,
+			.crop-modal .crop-container {
+				width: 95%;
+				padding: 0.75rem;
+			}
+			
+			.crop-avatar-modal .crop-area,
+			.crop-modal .crop-area {
+				height: 300px;
+				max-height: 300px;
+			}
+			
+			.crop-controls {
+				flex-direction: column;
+				gap: 1rem;
+			}
+			
+			.crop-zoom {
+				width: 100%;
+				justify-content: center;
+			}
+			
+			.zoom-slider {
+				width: 100%;
+				max-width: 200px;
+			}
+			
+			.crop-actions {
+				width: 100%;
+				justify-content: space-between;
+			}
+			
+			.crop-btn {
+				flex: 1;
+				text-align: center;
+				padding: 0.5rem 0.75rem;
+				font-size: 13px;
+			}
+		}
+
+		@media (max-width: 360px) {
+			.crop-avatar-modal .crop-area,
+			.crop-modal .crop-area {
+				height: 250px;
+				max-height: 250px;
+			}
+			
+			.crop-title {
+				font-size: 1rem;
+			}
+			
+			.crop-close {
+				font-size: 1.2rem;
+			}
+			
+			.crop-btn {
+				padding: 0.4rem 0.5rem;
+				font-size: 12px;
+			}
+		}
+
+		.popular-groups-card {
+			background: #fff;
+			border-radius: 10px;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+			margin-bottom: 20px;
+			overflow: hidden;
+		}
+
+		.dark-mode .popular-groups-card {
+			background: #2d2d2d;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+		}
+
+		.popular-groups-header {
+			padding: 15px;
+			font-size: 18px;
+			font-weight: 600;
+			color: #333;
+			border-bottom: 1px solid #eee;
+		}
+
+		.dark-mode .popular-groups-header {
+			color: #f5f5f5;
+			border-bottom-color: #444;
+		}
+
+		.popular-groups-list {
+			padding: 10px 0;
+		}
+
+		.popular-group-item {
+			display: flex;
+			align-items: center;
+			padding: 8px 15px;
+			transition: background-color 0.2s;
+			cursor: pointer;
+		}
+
+		.popular-group-item:hover {
+			background-color: #f5f5f5;
+		}
+
+		.dark-mode .popular-group-item:hover {
+			background-color: #3d3d3d;
+		}
+
+		.popular-group-avatar {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			background-color: #eee;
+			margin-right: 10px;
+			overflow: hidden;
+			flex-shrink: 0;
+		}
+
+		.popular-group-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.popular-group-info {
+			flex-grow: 1;
+		}
+
+		.popular-group-name {
+			font-size: 14px;
+			font-weight: 500;
+			margin-bottom: 2px;
+			color: #333;
+		}
+
+		.dark-mode .popular-group-name {
+			color: #f5f5f5;
+		}
+
+		.popular-group-members {
+			font-size: 12px;
+			color: #888;
+		}
+
+		.dark-mode .popular-group-members {
+			color: #aaa;
+		}
+
+		/* Стили для табов групп */
+		.tabs-container {
+			margin-bottom: 20px;
+			border-bottom: 1px solid #ddd;
+			padding: 0;
+			width: 100%;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.dark-mode .tabs-container {
+			border-bottom-color: #444;
+		}
+
+		.tabs {
+			display: flex;
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+
+		.tab-item {
+			padding: 12px 20px;
+			font-size: 16px;
+			font-weight: 500;
+			color: #888;
+			cursor: pointer;
+			position: relative;
+			margin-right: 10px;
+			transition: color 0.2s;
+		}
+
+		.tab-item.active {
+			color: #4a76a8;
+		}
+
+		.dark-mode .tab-item {
+			color: #aaa;
+		}
+
+		.dark-mode .tab-item.active {
+			color: #5a86b8;
+		}
+
+		.tab-item::after {
+			content: '';
+			position: absolute;
+			bottom: -1px;
+			left: 0;
+			width: 100%;
+			height: 3px;
+			background-color: transparent;
+			transition: background-color 0.2s;
+		}
+
+		.tab-item.active::after {
+			background-color: #4a76a8;
+		}
+
+		.dark-mode .tab-item.active::after {
+			background-color: #5a86b8;
+		}
+
+		.tab-content {
+			display: none;
+			padding: 0;
+			width: 100%;
+			box-sizing: border-box;
+			margin: 0;
+		}
+
+		.tab-content.active {
+			display: block;
+		}
+
+		.tab-badge {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			background-color: #eee;
+			color: #777;
+			border-radius: 12px;
+			font-size: 12px;
+			padding: 2px 8px;
+			margin-left: 6px;
+			min-width: 20px;
+		}
+
+		.dark-mode .tab-badge {
+			background-color: #444;
+			color: #aaa;
+		}
+
+		.tab-item.active .tab-badge {
+			background-color: #4a76a8;
+			color: white;
+		}
+
+		.dark-mode .tab-item.active .tab-badge {
+			background-color: #5a86b8;
+		}
+
+		/* Новые стили для поля поиска */
+		.search-wrapper {
+			width: 100%;
+			margin: 0 0 20px 0;
+			padding: 0;
+			display: block;
+			box-sizing: border-box;
+		}
+
+		/* Стили для кнопки подписки */
+		.subscribe-btn,
+		.unsubscribe-btn {
+			background-color: #4a76a8;
+			color: white;
+			border: none;
+			border-radius: 5px;
+			padding: 6px 12px;
+			font-size: 14px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			margin-left: auto;
+			white-space: nowrap;
+			margin-right: 15px;
+		}
+
+		.subscribe-btn:hover,
+		.unsubscribe-btn:hover {
+			background-color: #3a5b80;
+		}
+
+		.dark-mode .subscribe-btn,
+		.dark-mode .unsubscribe-btn {
+			background-color: #5a86b8;
+		}
+
+		.dark-mode .subscribe-btn:hover,
+		.dark-mode .unsubscribe-btn:hover {
+			background-color: #4a76a8;
+		}
+
+		.unsubscribe-btn {
+			display: none;
+			background-color: #e74c3c;
+			margin-right: 15px;
+		}
+
+		.unsubscribe-btn:hover {
+			background-color: #c0392b;
+		}
+
+		.dark-mode .unsubscribe-btn {
+			background-color: #e74c3c;
+		}
+
+		.dark-mode .unsubscribe-btn:hover {
+			background-color: #c0392b;
+		}
+
+		/* Показываем кнопку отписки при наведении */
+		.group-card.subscribed:hover .unsubscribe-btn {
+			display: block;
+		}
+
+		/* Стили для разделителя между группами */
+		.groups-section-title {
+			font-size: 18px;
+			font-weight: 500;
+			color: #333;
+			margin: 20px 0 15px 0;
+			padding-bottom: 10px;
+			border-bottom: 1px solid #eee;
+		}
+
+		.dark-mode .groups-section-title {
+			color: #f5f5f5;
+			border-bottom-color: #333;
+		}
+
+		/* Стили для всплывающих сообщений */
+		.success-message,
+		.error-message {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			padding: 12px 24px;
+			border-radius: 8px;
+			display: flex;
+			align-items: center;
+			color: white;
+			animation: slideIn 0.3s ease forwards;
+			opacity: 0;
+			z-index: 1000;
+		}
+
+		.success-message {
+			background-color: #2ecc71;
+		}
+
+		.error-message {
+			background-color: #e74c3c;
+		}
+
+		@keyframes slideIn {
+			from {
+				opacity: 0;
+				transform: translateX(100%);
+			}
+			to {
+				opacity: 1;
+				transform: translateX(0);
+			}
+		}
+
+		@keyframes slideOut {
+			from {
+				opacity: 1;
+				transform: translateX(0);
+			}
+			to {
+				opacity: 0;
+				transform: translateX(100%);
+			}
+		}
+
+		.message-exit {
+			animation: slideOut 0.3s ease forwards;
+		}
+	</style>
+
+	<script>
+		(function () {
+			const savedTheme = localStorage.getItem('theme');
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+			// Обновляем логику установки темы
+			if (savedTheme === 'system') {
+				document.documentElement.style.visibility = 'hidden';
+				document.documentElement.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+
+				document.addEventListener('DOMContentLoaded', () => {
+					document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+					document.documentElement.classList.remove(prefersDark ? 'dark-mode' : 'light-mode');
+					document.documentElement.style.visibility = 'visible';
+				});
+			} else {
+				const theme = savedTheme || (prefersDark ? 'dark-mode' : 'light-mode');
+				document.documentElement.style.visibility = 'hidden';
+				document.documentElement.classList.add(theme);
+
+				document.addEventListener('DOMContentLoaded', () => {
+					document.body.classList.add(theme);
+					document.documentElement.classList.remove(theme);
+					document.documentElement.style.visibility = 'visible';
+				});
+			}
+
+			// Добавляем слушатель изменения системной темы
+			if (savedTheme === 'system') {
+				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+					document.body.classList.remove('dark-mode', 'light-mode');
+					document.body.classList.add(e.matches ? 'dark-mode' : 'light-mode');
+				});
+			}
+		})();
+	</script>
+
+	<!-- Функции для показа всплывающих сообщений -->
+	<script>
+		// Показываем/прячем всплывающие сообщения (ошибки/успех)
+		const showMessage = (type, message, duration = 5000) => {
+			document.querySelectorAll('.error-message, .success-message').forEach(el => el.remove());
+			const messageBox = document.createElement('div');
+			messageBox.className = `${type}-message`;
+			messageBox.innerHTML = `
+			<svg viewBox="0 0 24 24" style="height:20px;margin-right:8px;">
+				${type === 'error'
+					? `<path fill="white"
+						 d="M11 15h2v2h-2zm0-8h2v6h-2zm1-5C6.47
+						 2 2 6.5 2 12a10 10 0 0 0 10
+						 10a10 10 0 0 0 10-10A10 10
+						 0 0 0 12 2m0 18a8 8 0 0
+						 1-8-8a8 8 0 0 1 8-8a8 8
+						 0 0 1 8 8a8 8 0 0 1-8 8"/>`
+					: `<path fill="white"
+						 d="M12 2C6.5 2 2 6.5 2 12s4.5
+						 10 10 10 10-4.5 10-10S17.5
+						 2 12 2m-2 15l-5-5 1.41-1.41L10
+						 14.17l7.59-7.59L19 8l-9 9z"/>`
+				}
+			</svg>
+			${message}
+			`;
+			document.body.appendChild(messageBox);
+
+			setTimeout(() => {
+				messageBox.classList.add('message-exit');
+				messageBox.addEventListener('animationend', () => messageBox.remove());
+			}, duration);
+		};
+		const showError = (msg, dur) => showMessage('error', msg, dur);
+		const showSuccess = (msg, dur) => showMessage('success', msg, dur);
+	</script>
+
+	<script type="module">
+		import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+		import {
+			getAuth,
+			onAuthStateChanged
+		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
+		import { 
+			getDatabase, 
+			ref, 
+			get, 
+			set,
+			push,
+			query,
+			orderByChild,
+			equalTo 
+		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+		import {
+			getStorage,
+			ref as storageRef,
+			uploadBytes,
+			getDownloadURL
+		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+		import { initializeSidebar } from './sidebar_old.js';
+
+		// Инициализация Firebase
+		const firebaseConfig = {
+			apiKey: "AIzaSyCPQajYeeRG-GyQHhwlZ08nI5-BT36XpaU",
+			authDomain: "ochat-9cfc9.firebaseapp.com",
+			databaseURL: "https://ochat-9cfc9-default-rtdb.europe-west1.firebasedatabase.app",
+			projectId: "ochat-9cfc9",
+			storageBucket: "ochat-9cfc9.appspot.com",
+			messagingSenderId: "190209379577",
+			appId: "1:190209379577:web:a57171ab4b1f55a49f6628",
+			measurementId: "G-KNRXS2ZKZ9"
+		};
+
+		const app = initializeApp(firebaseConfig);
+		const auth = getAuth(app);
+		const db = getDatabase(app);
+		const storage = getStorage(app);
+		
+		// Глобальные переменные для Cropper.js
+		let avatarCropper = null;
+		let coverCropper = null;
+		// Глобальные переменные для хранения обрезанных изображений
+		let croppedAvatarBlob = null;
+		let croppedCoverBlob = null;
+
+		// Проверка авторизации
+		onAuthStateChanged(auth, (user) => {
+			if (user) {
+				// Пользователь авторизован
+				console.log('User is signed in:', user.uid);
+				// Загружаем данные о группах
+				loadGroups(user.uid);
+				// Инициализируем работу табов
+				initTabs();
+			} else {
+				// Пользователь не авторизован, перенаправляем на страницу входа
+				console.log('User is not signed in');
+				window.location.href = 'index.html';
+			}
+		});
+
+		// Глобальная переменная для отслеживания инициализации модального окна
+		let isModalInitialized = false;
+
+		// Инициализация табов
+		function initTabs() {
+			const tabs = document.querySelectorAll('.tab-item');
+			const tabContents = document.querySelectorAll('.tab-content');
+			
+			tabs.forEach(tab => {
+				tab.addEventListener('click', () => {
+					// Убираем класс active у всех табов и их контента
+					tabs.forEach(t => t.classList.remove('active'));
+					tabContents.forEach(content => content.classList.remove('active'));
+					
+					// Добавляем класс active текущему табу
+					tab.classList.add('active');
+					
+					// Показываем соответствующий контент
+					const tabId = tab.getAttribute('data-tab');
+					document.getElementById(tabId).classList.add('active');
+				});
+			});
+		}
+
+		// Функция для загрузки групп
+		async function loadGroups(userId) {
+			try {
+				// Получаем информацию о пользователе
+				const userRef = ref(db, `users/${userId}`);
+				const userSnapshot = await get(userRef);
+				
+				if (!userSnapshot.exists()) {
+					console.error('User data not found');
+					return;
+				}
+				
+				const userData = userSnapshot.val();
+				
+				// Загружаем группы, созданные пользователем (для таба "Управление")
+				const adminGroupsContainer = document.getElementById('admin-groups');
+				
+				// Загружаем все группы для таба "Группы"
+				const allGroupsContainer = document.getElementById('all-groups');
+				
+				let adminGroups = [];
+				let allGroups = [];
+				let userGroups = []; // Группы, в которых пользователь состоит
+				let otherGroups = []; // Группы, в которых пользователь не состоит
+				
+				// Проверяем, есть ли у пользователя созданные группы
+				if (userData.createdGroups) {
+					for (const groupId in userData.createdGroups) {
+						const groupRef = ref(db, `groups/${groupId}`);
+						const groupSnapshot = await get(groupRef);
+						
+						if (groupSnapshot.exists()) {
+							const groupData = groupSnapshot.val();
+							groupData.id = groupId;
+							adminGroups.push(groupData);
+						}
+					}
+				}
+				
+				// Загружаем все группы из базы данных
+				const groupsRef = ref(db, 'groups');
+				const groupsSnapshot = await get(groupsRef);
+				
+				if (groupsSnapshot.exists()) {
+					groupsSnapshot.forEach((childSnapshot) => {
+						const groupData = childSnapshot.val();
+						groupData.id = childSnapshot.key;
+						allGroups.push(groupData);
+						
+						// Проверяем, является ли пользователь участником группы
+						if (groupData.members && groupData.members[userId]) {
+							userGroups.push(groupData);
+						} else {
+							otherGroups.push(groupData);
+						}
+					});
+				}
+				
+				// Отображаем количество групп в табах
+				document.getElementById('all-groups-count').textContent = userGroups.length;
+				document.getElementById('admin-groups-count').textContent = adminGroups.length;
+				
+				// Отображаем группы в табе "Управление"
+				if (adminGroups.length > 0) {
+					renderGroups(adminGroups, adminGroupsContainer);
+				} else {
+					adminGroupsContainer.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><p>У вас пока нет созданных групп</p><button class="create-group-btn">Создать группу</button></div>';
+				}
+				
+				// Очищаем контейнер для таба "Группы"
+				allGroupsContainer.innerHTML = '';
+				
+				// Создаем div-контейнеры для разных типов групп
+				const userGroupsSection = document.createElement('div');
+				userGroupsSection.className = 'user-groups-section';
+				
+				const otherGroupsSection = document.createElement('div');
+				otherGroupsSection.className = 'other-groups-section';
+				
+				// Отображаем группы, в которых пользователь участвует
+				if (userGroups.length > 0) {
+					const sectionTitle = document.createElement('div');
+					sectionTitle.className = 'groups-section-title';
+					sectionTitle.textContent = 'Мои группы';
+					userGroupsSection.appendChild(sectionTitle);
+					
+					renderGroups(userGroups, userGroupsSection);
+					allGroupsContainer.appendChild(userGroupsSection);
+				} else {
+					const emptyState = document.createElement('div');
+					emptyState.className = 'empty-state';
+					emptyState.innerHTML = '<i class="fas fa-users-slash"></i><p>Вы пока не состоите ни в одной группе</p>';
+					userGroupsSection.appendChild(emptyState);
+					allGroupsContainer.appendChild(userGroupsSection);
+				}
+				
+				// Отображаем группы, в которых пользователь не участвует
+				if (otherGroups.length > 0) {
+					const sectionTitle = document.createElement('div');
+					sectionTitle.className = 'groups-section-title';
+					sectionTitle.textContent = 'Рекомендуемые группы';
+					otherGroupsSection.appendChild(sectionTitle);
+					
+					renderGroupsWithSubscribe(otherGroups, otherGroupsSection, userId);
+					allGroupsContainer.appendChild(otherGroupsSection);
+				}
+				
+				// Загружаем популярные группы (топ-10 по количеству участников)
+				loadPopularGroups(allGroups);
+				
+				// Инициализируем поиск для обоих табов
+				initSearch(allGroups, adminGroups, userGroups, otherGroups, userId);
+				
+				// Инициализируем модальное окно создания группы ТОЛЬКО ОДИН РАЗ
+				if (!isModalInitialized) {
+					initCreateGroupModal(userId);
+					isModalInitialized = true;
+				} else {
+					// Переинициализация обработчиков кнопок создания группы
+					// (нужно только для кнопок в динамически созданных элементах)
+					document.querySelectorAll('.create-group-btn').forEach(button => {
+						// Удаляем все обработчики клика
+						const newButton = button.cloneNode(true);
+						button.parentNode.replaceChild(newButton, button);
+						
+						// Добавляем новый обработчик
+						newButton.addEventListener('click', () => {
+							document.getElementById('create-group-modal-overlay').classList.add('active');
+						});
+					});
+				}
+			} catch (error) {
+				console.error('Error loading groups:', error);
+			}
+		}
+		
+		// Функция для загрузки популярных групп (топ-10 по участникам)
+		function loadPopularGroups(groups) {
+			// Контейнер для популярных групп
+			const popularGroupsList = document.getElementById('popular-groups-list');
+			popularGroupsList.innerHTML = '';
+			
+			// Если групп нет, отображаем сообщение
+			if (groups.length === 0) {
+				popularGroupsList.innerHTML = '<div class="empty-popular-groups">Нет доступных групп</div>';
+				return;
+			}
+			
+			// Сортируем группы по количеству участников (от большего к меньшему)
+			const sortedGroups = [...groups].sort((a, b) => {
+				const membersA = a.members ? Object.keys(a.members).length : 0;
+				const membersB = b.members ? Object.keys(b.members).length : 0;
+				return membersB - membersA;
+			});
+			
+			// Берем первые 10 групп (или меньше, если групп меньше 10)
+			const topGroups = sortedGroups.slice(0, 10);
+			
+			// Отображаем популярные группы
+			topGroups.forEach((group, index) => {
+				const memberCount = group.members ? Object.keys(group.members).length : 0;
+				
+				const groupItem = document.createElement('div');
+				groupItem.className = 'popular-group-item';
+				groupItem.onclick = () => {
+					window.location.href = `group.html?id=${group.id}`;
+				};
+				
+				groupItem.innerHTML = `
+					<div class="popular-group-avatar">
+						${group.photoURL ? `<img src="${group.photoURL}" alt="${group.name}">` : ''}
+					</div>
+					<div class="popular-group-info">
+						<div class="popular-group-name">${group.name}</div>
+						<div class="popular-group-members">${memberCount} ${getWordForm(memberCount, ['участник', 'участника', 'участников'])}</div>
+					</div>
+				`;
+				
+				popularGroupsList.appendChild(groupItem);
+			});
+		}
+		
+		// Функция для отображения групп с кнопкой подписки
+		function renderGroupsWithSubscribe(groups, container, userId) {
+			const groupsGrid = document.createElement('div');
+			groupsGrid.className = 'groups-grid';
+			
+			for (const group of groups) {
+				const groupCard = document.createElement('div');
+				groupCard.className = 'group-card';
+				
+				const memberCount = group.members ? Object.keys(group.members).length : 0;
+				
+				// Получаем информацию о категории
+				const categoryName = getCategoryName(group.category || '');
+				const categoryIcon = getCategoryIcon(group.category || '');
+				
+				// Создаем HTML-разметку для карточки группы
+				groupCard.innerHTML = `
+					<div class="group-cover">
+						${group.photoURL ? `<img src="${group.photoURL}" alt="${group.name}">` : ''}
+					</div>
+					<div class="group-content">
+						<h3 class="group-name">${group.name}</h3>
+						${group.description ? `<p class="group-description">${group.description}</p>` : ''}
+						<div class="group-meta">
+							${group.category ? `<div class="group-category"><i class="fas ${categoryIcon}"></i> ${categoryName}</div>` : ''}
+							<div class="group-members">
+								<i class="fas fa-users"></i> ${memberCount} ${getWordForm(memberCount, ['участник', 'участника', 'участников'])}
+							</div>
+						</div>
+					</div>
+					<button class="subscribe-btn" data-group-id="${group.id}">Подписаться</button>
+				`;
+				
+				// Добавляем обработчики событий
+				groupsGrid.appendChild(groupCard);
+				
+				// Получаем только что добавленную кнопку
+				const subscribeBtn = groupCard.querySelector('.subscribe-btn');
+				
+				// Предотвращаем переход на страницу группы при клике на кнопку подписки
+				subscribeBtn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					subscribeToGroup(group.id, userId);
+				});
+				
+				// Добавляем обработчик клика на карточку группы для перехода на страницу группы
+				groupCard.addEventListener('click', () => {
+					window.location.href = `group.html?id=${group.id}`;
+				});
+			}
+			
+			if (groups.length === 0) {
+				container.innerHTML += '<div class="empty-state"><i class="fas fa-users-slash"></i><p>Нет доступных групп для подписки</p></div>';
+				return;
+			}
+			
+			container.appendChild(groupsGrid);
+		}
+		
+		// Функция для подписки на группу
+		async function subscribeToGroup(groupId, userId) {
+			try {
+				// Добавляем пользователя в список участников группы
+				await set(ref(db, `groups/${groupId}/members/${userId}`), {
+					role: 'member',
+					joinedAt: Date.now()
+				});
+				
+				// Добавляем группу в список групп пользователя
+				await set(ref(db, `users/${userId}/groups/${groupId}`), true);
+				
+				// Перезагружаем список групп
+				loadGroups(userId);
+				
+				// Показываем сообщение об успешной подписке
+				showSuccess('Вы успешно подписались на группу!');
+			} catch (error) {
+				console.error('Error subscribing to group:', error);
+				showError('Произошла ошибка при подписке на группу');
+			}
+		}
+		
+		// Функция для отписки от группы
+		async function unsubscribeFromGroup(groupId, userId) {
+			try {
+				// Проверяем, является ли пользователь владельцем группы
+				const groupRef = ref(db, `groups/${groupId}`);
+				const groupSnapshot = await get(groupRef);
+				
+				if (!groupSnapshot.exists()) {
+					throw new Error('Группа не найдена');
+				}
+				
+				const groupData = groupSnapshot.val();
+				
+				// Если пользователь создатель группы, не разрешаем отписаться
+				if (groupData.createdBy === userId) {
+					showError('Вы не можете отписаться от созданной вами группы. Вы можете удалить её в разделе "Управление".');
+					return;
+				}
+				
+				// Удаляем пользователя из списка участников группы
+				await set(ref(db, `groups/${groupId}/members/${userId}`), null);
+				
+				// Удаляем группу из списка групп пользователя
+				await set(ref(db, `users/${userId}/groups/${groupId}`), null);
+				
+				// Перезагружаем список групп
+				loadGroups(userId);
+				
+				// Показываем сообщение об успешной отписке
+				showSuccess('Вы успешно отписались от группы');
+			} catch (error) {
+				console.error('Error unsubscribing from group:', error);
+				showError('Произошла ошибка при отписке от группы');
+			}
+		}
+		
+		// Функция инициализации поиска
+		function initSearch(allGroups, adminGroups, userGroups, otherGroups, userId) {
+			const groupsSearchInput = document.getElementById('groups-search');
+			const adminSearchInput = document.getElementById('admin-search');
+			const allGroupsContainer = document.getElementById('all-groups');
+			const adminGroupsContainer = document.getElementById('admin-groups');
+			
+			// Поиск для групп в табе "Группы"
+			groupsSearchInput.addEventListener('input', function() {
+				const query = this.value.trim().toLowerCase();
+				
+				// Очищаем контейнер
+				allGroupsContainer.innerHTML = '';
+				
+				if (!query) {
+					// Если поле поиска пустое, показываем все группы как обычно
+					const userGroupsSection = document.createElement('div');
+					userGroupsSection.className = 'user-groups-section';
+					
+					const otherGroupsSection = document.createElement('div');
+					otherGroupsSection.className = 'other-groups-section';
+					
+					if (userGroups.length > 0) {
+						const sectionTitle = document.createElement('div');
+						sectionTitle.className = 'groups-section-title';
+						sectionTitle.textContent = 'Мои группы';
+						userGroupsSection.appendChild(sectionTitle);
+						
+						renderGroups(userGroups, userGroupsSection);
+						allGroupsContainer.appendChild(userGroupsSection);
+					} else {
+						const emptyState = document.createElement('div');
+						emptyState.className = 'empty-state';
+						emptyState.innerHTML = '<i class="fas fa-users-slash"></i><p>Вы пока не состоите ни в одной группе</p>';
+						userGroupsSection.appendChild(emptyState);
+						allGroupsContainer.appendChild(userGroupsSection);
+					}
+					
+					if (otherGroups.length > 0) {
+						const sectionTitle = document.createElement('div');
+						sectionTitle.className = 'groups-section-title';
+						sectionTitle.textContent = 'Рекомендуемые группы';
+						otherGroupsSection.appendChild(sectionTitle);
+						
+						renderGroupsWithSubscribe(otherGroups, otherGroupsSection, userId);
+						allGroupsContainer.appendChild(otherGroupsSection);
+					}
+					
+					return;
+				}
+				
+				// Ищем среди групп, в которых пользователь участвует
+				const filteredUserGroups = userGroups.filter(group => {
+					return group.name.toLowerCase().includes(query) || 
+						(group.description && group.description.toLowerCase().includes(query));
+				});
+				
+				// Ищем среди групп, в которых пользователь не участвует
+				const filteredOtherGroups = otherGroups.filter(group => {
+					return group.name.toLowerCase().includes(query) || 
+						(group.description && group.description.toLowerCase().includes(query));
+				});
+				
+				// Отображаем результаты поиска
+				if (filteredUserGroups.length > 0 || filteredOtherGroups.length > 0) {
+					if (filteredUserGroups.length > 0) {
+						const userGroupsSection = document.createElement('div');
+						userGroupsSection.className = 'user-groups-section';
+						
+						const sectionTitle = document.createElement('div');
+						sectionTitle.className = 'groups-section-title';
+						sectionTitle.textContent = 'Мои группы';
+						userGroupsSection.appendChild(sectionTitle);
+						
+						renderGroups(filteredUserGroups, userGroupsSection);
+						allGroupsContainer.appendChild(userGroupsSection);
+					}
+					
+					if (filteredOtherGroups.length > 0) {
+						const otherGroupsSection = document.createElement('div');
+						otherGroupsSection.className = 'other-groups-section';
+						
+						const sectionTitle = document.createElement('div');
+						sectionTitle.className = 'groups-section-title';
+						sectionTitle.textContent = 'Рекомендуемые группы';
+						otherGroupsSection.appendChild(sectionTitle);
+						
+						renderGroupsWithSubscribe(filteredOtherGroups, otherGroupsSection, userId);
+						allGroupsContainer.appendChild(otherGroupsSection);
+					}
+				} else {
+					const emptyState = document.createElement('div');
+					emptyState.className = 'empty-state';
+					emptyState.innerHTML = '<i class="fas fa-search"></i><p>Групп с таким названием не найдено</p>';
+					allGroupsContainer.appendChild(emptyState);
+				}
+			});
+			
+			// Поиск для групп, где пользователь администратор
+			adminSearchInput.addEventListener('input', function() {
+				searchGroups(this.value, adminGroups, adminGroupsContainer);
+			});
+		}
+		
+		// Функция для поиска групп
+		function searchGroups(query, groups, container) {
+			if (!query.trim()) {
+				renderGroups(groups, container);
+				return;
+			}
+			
+			query = query.toLowerCase();
+			const filteredGroups = groups.filter(group => {
+				return group.name.toLowerCase().includes(query) || 
+					(group.description && group.description.toLowerCase().includes(query));
+			});
+			
+			if (filteredGroups.length > 0) {
+				renderGroups(filteredGroups, container);
+			} else {
+				container.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>Групп с таким названием не найдено</p></div>';
+			}
+		}
+
+		// Функция для инициализации модального окна
+		function initCreateGroupModal(userId) {
+			// Добавляем обработчик для кнопки создания группы
+			document.querySelectorAll('.create-group-btn').forEach(button => {
+				button.addEventListener('click', () => {
+					// Показываем модальное окно для создания группы
+					document.getElementById('create-group-modal-overlay').classList.add('active');
+				});
+			});
+
+			// Добавляем обработчики для модального окна
+			const modalOverlay = document.getElementById('create-group-modal-overlay');
+			const modalClose = document.getElementById('modal-close');
+			const cancelBtn = document.getElementById('cancel-create-group');
+			const createGroupForm = document.getElementById('create-group-form');
+			const groupAvatarInput = document.getElementById('group-avatar-input');
+			const groupCoverInput = document.getElementById('group-cover-input');
+			const groupAvatarPreview = document.getElementById('group-avatar-preview');
+			const groupCoverPreview = document.getElementById('group-cover-preview');
+
+			// Закрытие модального окна
+			modalClose.addEventListener('click', () => {
+				modalOverlay.classList.remove('active');
+			});
+
+			cancelBtn.addEventListener('click', () => {
+				modalOverlay.classList.remove('active');
+			});
+
+			// Клик вне модального окна закрывает его
+			modalOverlay.addEventListener('click', (e) => {
+				if (e.target === modalOverlay) {
+					modalOverlay.classList.remove('active');
+				}
+			});
+			
+			// Обработка загрузки аватарки группы
+			groupAvatarPreview.addEventListener('click', () => {
+				groupAvatarInput.click();
+			});
+			
+			groupAvatarInput.addEventListener('change', function() {
+				if (this.files && this.files[0]) {
+					const file = this.files[0];
+					// Проверка типа файла
+					if (!file.type.match('image.*')) {
+						showError('Пожалуйста, выберите изображение');
+						return;
+					}
+					
+					const reader = new FileReader();
+					
+					reader.onload = function(e) {
+						// Открываем модальное окно обрезки аватарки
+						openAvatarCropModal(e.target.result);
+					};
+					
+					reader.readAsDataURL(file);
+				}
+			});
+			
+			// Обработка загрузки обложки группы
+			groupCoverPreview.addEventListener('click', () => {
+				groupCoverInput.click();
+			});
+			
+			groupCoverInput.addEventListener('change', function() {
+				if (this.files && this.files[0]) {
+					const file = this.files[0];
+					// Проверка типа файла
+					if (!file.type.match('image.*')) {
+						showError('Пожалуйста, выберите изображение');
+						return;
+					}
+					
+					const reader = new FileReader();
+					
+					reader.onload = function(e) {
+						// Открываем модальное окно обрезки обложки
+						openCoverCropModal(e.target.result);
+					};
+					
+					reader.readAsDataURL(file);
+				}
+			});
+			
+			// Очищаем форму перед добавлением обработчика submit
+			createGroupForm.removeEventListener('submit', handleFormSubmit);
+			
+			// Обработка отправки формы создания группы
+			createGroupForm.addEventListener('submit', handleFormSubmit);
+			
+			// Выносим обработчик формы в отдельную именованную функцию для возможности удаления
+			function handleFormSubmit(e) {
+				e.preventDefault();
+				
+				const groupName = document.getElementById('group-name').value.trim();
+				const groupDescription = document.getElementById('group-description').value.trim();
+				const groupCategory = document.getElementById('group-category').value;
+				const groupCustomId = document.getElementById('group-id').value.trim();
+				const submitButton = document.querySelector('.modal-btn-primary');
+				
+				if (!groupName) {
+					showError('Пожалуйста, введите название группы');
+					return;
+				}
+				
+				if (!groupCategory) {
+					showError('Пожалуйста, выберите категорию группы');
+					return;
+				}
+				
+				// Блокируем кнопку отправки и показываем индикатор загрузки
+				submitButton.disabled = true;
+				submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Создание...';
+				
+				createGroup(groupName, groupDescription, groupCategory, groupCustomId, userId, croppedAvatarBlob, croppedCoverBlob)
+					.then((groupId) => {
+						// Закрываем модальное окно
+						modalOverlay.classList.remove('active');
+						
+						// Сбрасываем форму и временные переменные
+						createGroupForm.reset();
+						groupAvatarPreview.innerHTML = `
+							<div class="preview-placeholder">
+								<i class="fas fa-camera"></i>
+								<div>Добавить аватарку</div>
+							</div>
+						`;
+						groupCoverPreview.innerHTML = `
+							<div class="preview-placeholder">
+								<i class="fas fa-image"></i>
+								<div>Добавить обложку</div>
+							</div>
+						`;
+						croppedAvatarBlob = null;
+						croppedCoverBlob = null;
+						
+						// Восстанавливаем кнопку
+						submitButton.disabled = false;
+						submitButton.innerHTML = 'Создать группу';
+						
+						// Показываем уведомление об успешном создании группы
+						showSuccess(`Группа "${groupName}" успешно создана!`);
+						
+						// Перезагружаем список групп
+						loadGroups(userId);
+					})
+					.catch(error => {
+						console.error('Error creating group:', error);
+						showError('Ошибка при создании группы: ' + error.message);
+						
+						// Восстанавливаем кнопку
+						submitButton.disabled = false;
+						submitButton.innerHTML = 'Создать группу';
+					});
+			}
+		}
+		
+		// Функция для создания группы - выносим логику создания в отдельную функцию
+		async function createGroup(groupName, groupDescription, groupCategory, groupCustomId, userId, croppedAvatarBlob, croppedCoverBlob) {
+			try {
+				// Проверяем уникальность ID группы, если он указан
+				if (groupCustomId) {
+					const customIdRef = ref(db, `groupIds/${groupCustomId}`);
+					const customIdSnapshot = await get(customIdRef);
+					
+					if (customIdSnapshot.exists()) {
+						throw new Error('Этот ID группы уже занят. Пожалуйста, выберите другой.');
+					}
+				}
+				
+				// Создание новой группы в Firebase
+				const groupData = {
+					name: groupName,
+					description: groupDescription,
+					category: groupCategory,
+					createdBy: userId,
+					createdAt: Date.now(),
+					members: {
+						[userId]: {
+							role: 'admin',
+							joinedAt: Date.now()
+						}
+					}
+				};
+				
+				// Создаем запись в базе данных
+				let groupId;
+				
+				if (groupCustomId) {
+					// Если указан кастомный ID, используем его
+					groupId = groupCustomId;
+					// Создаем группу с кастомным ID
+					const customGroupRef = ref(db, `groups/${groupId}`);
+					await set(customGroupRef, groupData);
+					// Регистрируем ID в отдельной коллекции для проверки уникальности
+					await set(ref(db, `groupIds/${groupId}`), true);
+				} else {
+					// Иначе используем автоматически сгенерированный ID
+					const groupsRef = ref(db, 'groups');
+					const newGroupRef = push(groupsRef);
+					groupId = newGroupRef.key;
+					await set(newGroupRef, groupData);
+				}
+				
+				// Загрузка аватарки в Storage (если есть)
+				if (croppedAvatarBlob) {
+					const avatarRef = storageRef(storage, `groups/${groupId}/avatar.jpg`);
+					const avatarSnapshot = await uploadBytes(avatarRef, croppedAvatarBlob);
+					const avatarURL = await getDownloadURL(avatarRef);
+					groupData.photoURL = avatarURL;
+					// Обновляем данные группы с URL аватарки
+					await set(ref(db, `groups/${groupId}/photoURL`), avatarURL);
+				}
+				
+				// Загрузка обложки в Storage (если есть)
+				if (croppedCoverBlob) {
+					const coverRef = storageRef(storage, `groups/${groupId}/cover.jpg`);
+					const coverSnapshot = await uploadBytes(coverRef, croppedCoverBlob);
+					const coverURL = await getDownloadURL(coverRef);
+					groupData.coverImage = coverURL;
+					// Обновляем данные группы с URL обложки
+					await set(ref(db, `groups/${groupId}/coverImage`), coverURL);
+				}
+				
+				// Добавляем группу в список созданных групп пользователя
+				const userCreatedGroupsRef = ref(db, `users/${userId}/createdGroups/${groupId}`);
+				await set(userCreatedGroupsRef, true);
+				
+				console.log('Группа успешно создана:', groupId);
+				return groupId;
+			} catch (error) {
+				console.error('Ошибка при создании группы:', error);
+				throw error;
+			}
+		}
+
+		// Функция для отображения групп (в которых пользователь уже состоит)
+		function renderGroups(groups, container) {
+			container.innerHTML = '';
+			
+			const groupsGrid = document.createElement('div');
+			groupsGrid.className = 'groups-grid';
+			
+			for (const group of groups) {
+				const groupCard = document.createElement('div');
+				groupCard.className = 'group-card subscribed'; // Добавляем класс subscribed для отображения кнопки отписки при наведении
+				
+				const memberCount = group.members ? Object.keys(group.members).length : 0;
+				
+				// Получаем информацию о категории
+				const categoryName = getCategoryName(group.category || '');
+				const categoryIcon = getCategoryIcon(group.category || '');
+				
+				groupCard.innerHTML = `
+					<div class="group-cover">
+						${group.photoURL ? `<img src="${group.photoURL}" alt="${group.name}">` : ''}
+					</div>
+					<div class="group-content">
+						<h3 class="group-name">${group.name}</h3>
+						${group.description ? `<p class="group-description">${group.description}</p>` : ''}
+						<div class="group-meta">
+							${group.category ? `<div class="group-category"><i class="fas ${categoryIcon}"></i> ${categoryName}</div>` : ''}
+							<div class="group-members">
+								<i class="fas fa-users"></i> ${memberCount} ${getWordForm(memberCount, ['участник', 'участника', 'участников'])}
+							</div>
+						</div>
+					</div>
+					<button class="unsubscribe-btn" data-group-id="${group.id}">Отписаться</button>
+				`;
+				
+				groupsGrid.appendChild(groupCard);
+				
+				// Получаем кнопку отписки
+				const unsubscribeBtn = groupCard.querySelector('.unsubscribe-btn');
+				
+				// Предотвращаем переход на страницу группы при клике на кнопку отписки
+				unsubscribeBtn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					unsubscribeFromGroup(group.id, auth.currentUser.uid);
+				});
+				
+				// Добавляем обработчик клика на карточку группы для перехода на страницу группы
+				groupCard.addEventListener('click', () => {
+					window.location.href = `group.html?id=${group.id}`;
+				});
+			}
+			
+			if (groups.length === 0) {
+				container.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><p>Группы не найдены</p></div>';
+				return;
+			}
+			
+			container.appendChild(groupsGrid);
+		}
+		
+		// Функция для правильного склонения слов
+		function getWordForm(number, words) {
+			const cases = [2, 0, 1, 1, 1, 2];
+			return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[Math.min(number % 10, 5)]];
+		}
+
+		// Получаем словарь категорий для отображения
+		function getCategoryName(categoryCode) {
+			const categories = {
+				'technology': 'Технологии',
+				'programming': 'Программирование',
+				'design': 'Дизайн',
+				'education': 'Образование',
+				'business': 'Бизнес',
+				'entertainment': 'Развлечения',
+				'health': 'Здоровье и спорт',
+				'cooking': 'Кулинария и рецепты',
+				'art': 'Искусство',
+				'music': 'Музыка',
+				'literature': 'Литература',
+				'travel': 'Путешествия',
+				'photography': 'Фотография',
+				'gaming': 'Игры',
+				'science': 'Наука',
+				'hobbies': 'Хобби и творчество',
+				'nature': 'Природа и животные',
+				'languages': 'Языки',
+				'fashion': 'Мода и стиль',
+				'psychology': 'Психология'
+			};
+			return categories[categoryCode] || 'Без категории';
+		}
+		
+		// Получаем иконку для категории
+		function getCategoryIcon(categoryCode) {
+			const icons = {
+				'technology': 'fa-laptop',
+				'programming': 'fa-code',
+				'design': 'fa-palette',
+				'education': 'fa-graduation-cap',
+				'business': 'fa-briefcase',
+				'entertainment': 'fa-theater-masks',
+				'health': 'fa-heartbeat',
+				'cooking': 'fa-utensils',
+				'art': 'fa-paint-brush',
+				'music': 'fa-music',
+				'literature': 'fa-book',
+				'travel': 'fa-plane',
+				'photography': 'fa-camera',
+				'gaming': 'fa-gamepad',
+				'science': 'fa-flask',
+				'hobbies': 'fa-puzzle-piece',
+				'nature': 'fa-leaf',
+				'languages': 'fa-language',
+				'fashion': 'fa-tshirt',
+				'psychology': 'fa-brain'
+			};
+			return icons[categoryCode] || 'fa-tag';
+		}
+
+		// Функция для открытия модального окна обрезки аватарки
+		function openAvatarCropModal(imageUrl) {
+			const cropAvatarModal = document.getElementById('crop-avatar-modal');
+			const avatarCropImg = document.getElementById('avatar-crop-img');
+			
+			// Устанавливаем изображение
+			avatarCropImg.src = imageUrl;
+			
+			// Показываем модальное окно
+			cropAvatarModal.classList.add('active');
+			
+			// Сбрасываем значение input, чтобы можно было выбрать то же изображение повторно
+			document.getElementById('group-avatar-input').value = '';
+			
+			// Инициализируем Cropper.js
+			if (avatarCropper) {
+				avatarCropper.destroy();
+			}
+			
+			// Сбросим обработчики событий перед назначением новых
+			const avatarZoomSlider = document.getElementById('avatar-zoom');
+			const closeAvatarCrop = document.getElementById('close-avatar-crop');
+			const cancelAvatarCrop = document.getElementById('cancel-avatar-crop');
+			const applyAvatarCrop = document.getElementById('apply-avatar-crop');
+			
+			// Удаляем старые обработчики
+			const newAvatarZoomSlider = avatarZoomSlider.cloneNode(true);
+			avatarZoomSlider.parentNode.replaceChild(newAvatarZoomSlider, avatarZoomSlider);
+			
+			const newCloseAvatarCrop = closeAvatarCrop.cloneNode(true);
+			closeAvatarCrop.parentNode.replaceChild(newCloseAvatarCrop, closeAvatarCrop);
+			
+			const newCancelAvatarCrop = cancelAvatarCrop.cloneNode(true);
+			cancelAvatarCrop.parentNode.replaceChild(newCancelAvatarCrop, cancelAvatarCrop);
+			
+			const newApplyAvatarCrop = applyAvatarCrop.cloneNode(true);
+			applyAvatarCrop.parentNode.replaceChild(newApplyAvatarCrop, applyAvatarCrop);
+			
+			// После загрузки изображения инициализируем кроппер
+			avatarCropImg.onload = function() {
+				avatarCropper = new Cropper(avatarCropImg, {
+					aspectRatio: 1, // Квадратная пропорция для аватарки
+					viewMode: 1,
+					dragMode: 'move',
+					autoCropArea: 0.8,
+					restore: false,
+					guides: true,
+					center: true,
+					highlight: false,
+					cropBoxMovable: true,
+					cropBoxResizable: true,
+					toggleDragModeOnDblclick: false
+				});
+				
+				// Обработчик изменения масштаба
+				newAvatarZoomSlider.addEventListener('input', function() {
+					if (avatarCropper) {
+						avatarCropper.zoomTo(parseFloat(this.value));
+					}
+				});
+				
+				// Закрытие модального окна
+				newCloseAvatarCrop.addEventListener('click', closeAvatarCropModal);
+				newCancelAvatarCrop.addEventListener('click', closeAvatarCropModal);
+				
+				// Применение обрезки
+				newApplyAvatarCrop.addEventListener('click', applyAvatarCropping);
+			};
+			
+			// Функция закрытия модального окна
+			function closeAvatarCropModal() {
+				cropAvatarModal.classList.remove('active');
+				if (avatarCropper) {
+					avatarCropper.destroy();
+					avatarCropper = null;
+				}
+			}
+			
+			// Функция применения обрезки
+			function applyAvatarCropping() {
+				if (!avatarCropper) {
+					console.error('Cropper is not initialized');
+					return;
+				}
+				
+				// Получаем обрезанное изображение как Canvas
+				const canvas = avatarCropper.getCroppedCanvas({
+					width: 200,
+					height: 200,
+					imageSmoothingEnabled: true,
+					imageSmoothingQuality: 'high'
+				});
+				
+				// Преобразуем canvas в Data URL
+				const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+				
+				// Обновляем предпросмотр аватарки
+				document.getElementById('group-avatar-preview').innerHTML = `<img src="${croppedImageUrl}" alt="Group avatar">`;
+				
+				// Сохраняем Blob для последующей загрузки
+				canvas.toBlob((blob) => {
+					croppedAvatarBlob = blob;
+				}, 'image/jpeg', 0.9);
+				
+				// Закрываем модальное окно
+				closeAvatarCropModal();
+			}
+		}
+
+		// Функция для открытия модального окна обрезки обложки
+		function openCoverCropModal(imageUrl) {
+			const cropCoverModal = document.getElementById('crop-cover-modal');
+			const coverCropImg = document.getElementById('cover-crop-img');
+			
+			// Устанавливаем изображение
+			coverCropImg.src = imageUrl;
+			
+			// Показываем модальное окно
+			cropCoverModal.classList.add('active');
+			
+			// Сбрасываем значение input, чтобы можно было выбрать то же изображение повторно
+			document.getElementById('group-cover-input').value = '';
+			
+			// Инициализируем Cropper.js
+			if (coverCropper) {
+				coverCropper.destroy();
+			}
+			
+			// Сбросим обработчики событий перед назначением новых
+			const coverZoomSlider = document.getElementById('cover-zoom');
+			const closeCoverCrop = document.getElementById('close-cover-crop');
+			const cancelCoverCrop = document.getElementById('cancel-cover-crop');
+			const applyCoverCrop = document.getElementById('apply-cover-crop');
+			
+			// Удаляем старые обработчики
+			const newCoverZoomSlider = coverZoomSlider.cloneNode(true);
+			coverZoomSlider.parentNode.replaceChild(newCoverZoomSlider, coverZoomSlider);
+			
+			const newCloseCoverCrop = closeCoverCrop.cloneNode(true);
+			closeCoverCrop.parentNode.replaceChild(newCloseCoverCrop, closeCoverCrop);
+			
+			const newCancelCoverCrop = cancelCoverCrop.cloneNode(true);
+			cancelCoverCrop.parentNode.replaceChild(newCancelCoverCrop, cancelCoverCrop);
+			
+			const newApplyCoverCrop = applyCoverCrop.cloneNode(true);
+			applyCoverCrop.parentNode.replaceChild(newApplyCoverCrop, applyCoverCrop);
+			
+			// После загрузки изображения инициализируем кроппер
+			coverCropImg.onload = function() {
+				coverCropper = new Cropper(coverCropImg, {
+					aspectRatio: 16 / 9, // Пропорция для обложки
+					viewMode: 1,
+					dragMode: 'move',
+					autoCropArea: 0.8,
+					restore: false,
+					guides: true,
+					center: true,
+					highlight: false,
+					cropBoxMovable: true,
+					cropBoxResizable: true,
+					toggleDragModeOnDblclick: false
+				});
+				
+				// Обработчик изменения масштаба
+				newCoverZoomSlider.addEventListener('input', function() {
+					if (coverCropper) {
+						coverCropper.zoomTo(parseFloat(this.value));
+					}
+				});
+				
+				// Закрытие модального окна
+				newCloseCoverCrop.addEventListener('click', closeCoverCropModal);
+				newCancelCoverCrop.addEventListener('click', closeCoverCropModal);
+				
+				// Применение обрезки
+				newApplyCoverCrop.addEventListener('click', applyCoverCropping);
+			};
+			
+			// Функция закрытия модального окна
+			function closeCoverCropModal() {
+				cropCoverModal.classList.remove('active');
+				if (coverCropper) {
+					coverCropper.destroy();
+					coverCropper = null;
+				}
+			}
+			
+			// Функция применения обрезки
+			function applyCoverCropping() {
+				if (!coverCropper) {
+					console.error('Cropper is not initialized');
+					return;
+				}
+				
+				// Получаем обрезанное изображение как Canvas
+				const canvas = coverCropper.getCroppedCanvas({
+					width: 800,
+					height: 450,
+					imageSmoothingEnabled: true,
+					imageSmoothingQuality: 'high'
+				});
+				
+				// Преобразуем canvas в Data URL
+				const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.9);
+				
+				// Обновляем предпросмотр обложки
+				document.getElementById('group-cover-preview').innerHTML = `<img src="${croppedImageUrl}" alt="Group cover">`;
+				
+				// Сохраняем Blob для последующей загрузки
+				canvas.toBlob((blob) => {
+					croppedCoverBlob = blob;
+				}, 'image/jpeg', 0.9);
+				
+				// Закрываем модальное окно
+				closeCoverCropModal();
+			}
+		}
+	</script>
+</head>
+
+<body>
+	<div class="groups-container">
+		<div class="main-content">
+			<div class="tabs-container">
+				<ul class="tabs">
+					<li class="tab-item active" data-tab="groups-tab">
+						Группы <span class="tab-badge" id="all-groups-count">0</span>
+					</li>
+					<li class="tab-item" data-tab="admin-tab">
+						Управление <span class="tab-badge" id="admin-groups-count">0</span>
+					</li>
+				</ul>
+				<button class="create-group-btn">
+					<i class="fas fa-plus-circle"></i> Создать группу
+				</button>
+			</div>
+			
+			<div id="groups-tab" class="tab-content active">
+				<div class="search-wrapper">
+					<input type="text" id="groups-search" class="search-input" placeholder="Поиск групп...">
+				</div>
+				<div id="all-groups" class="all-groups">
+					<!-- Здесь будут отображаться все группы -->
+				</div>
+			</div>
+			
+			<div id="admin-tab" class="tab-content">
+				<div class="search-wrapper">
+					<input type="text" id="admin-search" class="search-input" placeholder="Поиск групп...">
+				</div>
+				<div id="admin-groups" class="admin-groups">
+					<!-- Здесь будут отображаться группы, созданные пользователем (админ) -->
+				</div>
+			</div>
+		</div>
+		
+		<div class="popular-groups">
+			<div class="popular-groups-card">
+				<div class="popular-groups-header">
+					<i class="fas fa-fire"></i> Популярные группы
+				</div>
+				<div class="popular-groups-list" id="popular-groups-list">
+					<!-- Здесь будут отображаться популярные группы -->
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Модальное окно создания группы -->
+	<div id="create-group-modal-overlay" class="modal-overlay">
+		<div class="create-group-modal">
+			<div class="modal-header">
+				<h3 class="modal-title">Создание новой группы</h3>
+				<button id="modal-close" class="modal-close"><i class="fas fa-times"></i></button>
+			</div>
+			<form id="create-group-form">
+				<div class="groups-modal-body">
+					<div class="form-group">
+						<label for="group-name" class="form-label">Название группы*</label>
+						<input type="text" id="group-name" class="form-input" placeholder="Введите название группы" required>
+					</div>
+					
+					<div class="form-group">
+						<label for="group-description" class="form-label">Описание группы</label>
+						<textarea id="group-description" class="form-textarea" placeholder="Введите описание группы"></textarea>
+					</div>
+					
+					<div class="form-group">
+						<label for="group-category" class="form-label">Категория группы*</label>
+						<select id="group-category" class="form-input" required>
+							<option value="" disabled selected>Выберите категорию</option>
+							<option value="technology">Технологии</option>
+							<option value="programming">Программирование</option>
+							<option value="design">Дизайн</option>
+							<option value="education">Образование</option>
+							<option value="business">Бизнес</option>
+							<option value="entertainment">Развлечения</option>
+							<option value="health">Здоровье и спорт</option>
+							<option value="cooking">Кулинария и рецепты</option>
+							<option value="art">Искусство</option>
+							<option value="music">Музыка</option>
+							<option value="literature">Литература</option>
+							<option value="travel">Путешествия</option>
+							<option value="photography">Фотография</option>
+							<option value="gaming">Игры</option>
+							<option value="science">Наука</option>
+							<option value="hobbies">Хобби и творчество</option>
+							<option value="nature">Природа и животные</option>
+							<option value="languages">Языки</option>
+							<option value="fashion">Мода и стиль</option>
+							<option value="psychology">Психология</option>
+						</select>
+					</div>
+					
+					<div class="form-group">
+						<label for="group-id" class="form-label">Уникальный ID группы (опционально)</label>
+						<input type="text" id="group-id" class="form-input" placeholder="Например: groupCursor1">
+						<div class="upload-hint">Если не указать, будет сгенерирован автоматически</div>
+					</div>
+					
+					<div class="group-avatar-container">
+						<label class="form-label">Аватарка группы</label>
+						<div id="group-avatar-preview" class="group-avatar-preview">
+							<div class="preview-placeholder">
+								<i class="fas fa-camera"></i>
+								<div>Добавить аватарку</div>
+							</div>
+						</div>
+						<input type="file" id="group-avatar-input" class="image-upload-btn" accept="image/*">
+						<div class="upload-hint">Нажмите на область выше, чтобы загрузить изображение</div>
+					</div>
+					
+					<div class="group-cover-container">
+						<label class="form-label">Обложка группы</label>
+						<div id="group-cover-preview" class="group-cover-preview">
+							<div class="preview-placeholder">
+								<i class="fas fa-image"></i>
+								<div>Добавить обложку</div>
+							</div>
+						</div>
+						<input type="file" id="group-cover-input" class="image-upload-btn" accept="image/*">
+						<div class="upload-hint">Нажмите на область выше, чтобы загрузить изображение</div>
+					</div>
+				</div>
+				
+				<div class="modal-footer">
+					<button type="button" id="cancel-create-group" class="modal-btn modal-btn-cancel">Отмена</button>
+					<button type="submit" class="modal-btn modal-btn-primary">Создать группу</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- Модальное окно обрезки аватарки группы -->
+	<div class="crop-avatar-modal" id="crop-avatar-modal">
+		<div class="crop-container">
+			<div class="crop-header">
+				<div class="crop-title">Обрезка аватарки группы</div>
+				<button class="crop-close" id="close-avatar-crop"><i class="fas fa-times"></i></button>
+			</div>
+			<div class="crop-area" id="avatar-crop-area">
+				<img src="" id="avatar-crop-img" class="crop-img">
+			</div>
+			<div class="crop-controls">
+				<div class="crop-zoom">
+					<i class="fas fa-search-minus"></i>
+					<input type="range" id="avatar-zoom" class="zoom-slider" min="0.5" max="1.5" step="0.1" value="1">
+					<i class="fas fa-search-plus"></i>
+				</div>
+				<div class="crop-actions">
+					<button class="crop-btn cancel" id="cancel-avatar-crop">Отмена</button>
+					<button class="crop-btn apply" id="apply-avatar-crop">Применить</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Модальное окно обрезки обложки группы -->
+	<div class="crop-modal" id="crop-cover-modal">
+		<div class="crop-container">
+			<div class="crop-header">
+				<div class="crop-title">Обрезка обложки группы</div>
+				<button class="crop-close" id="close-cover-crop"><i class="fas fa-times"></i></button>
+			</div>
+			<div class="crop-area" id="cover-crop-area">
+				<img src="" id="cover-crop-img" class="crop-img">
+			</div>
+			<div class="crop-controls">
+				<div class="crop-zoom">
+					<i class="fas fa-search-minus"></i>
+					<input type="range" id="cover-zoom" class="zoom-slider" min="0.5" max="1.5" step="0.1" value="1">
+					<i class="fas fa-search-plus"></i>
+				</div>
+				<div class="crop-actions">
+					<button class="crop-btn cancel" id="cancel-cover-crop">Отмена</button>
+					<button class="crop-btn apply" id="apply-cover-crop">Применить</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+
+</html> 

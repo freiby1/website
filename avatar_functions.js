@@ -183,6 +183,16 @@
         // Обновляем кэш аватаров
         window.userAvatars[userId] = photoURL;
         
+        // Добавляем стабильный идентификатор к URL
+        let avatarUrl = photoURL;
+        if (avatarUrl && userId) {
+            if (avatarUrl.includes('?')) {
+                avatarUrl = `${avatarUrl}&_stable=${userId}`;
+            } else {
+                avatarUrl = `${avatarUrl}?_stable=${userId}`;
+            }
+        }
+        
         // Находим все аватары пользователя в комментариях
         // ИСПРАВЛЕНО: Изменен селектор, чтобы не затрагивать изображения в комментариях
         const userAvatars = document.querySelectorAll(`
@@ -202,7 +212,7 @@
             
             // Через небольшую задержку меняем изображение и возвращаем непрозрачность
             setTimeout(() => {
-                avatar.src = photoURL;
+                avatar.src = avatarUrl;
                 avatar.style.opacity = '1';
             }, 300);
         });
@@ -1316,6 +1326,16 @@
                 return;
             }
             
+            // Добавляем стабильный идентификатор к URL
+            let avatarUrl = newAvatarURL;
+            if (avatarUrl && userId) {
+                if (avatarUrl.includes('?')) {
+                    avatarUrl = `${avatarUrl}&_stable=${userId}`;
+                } else {
+                    avatarUrl = `${avatarUrl}?_stable=${userId}`;
+                }
+            }
+            
             // Показываем уведомление пользователю
             const notification = document.createElement('div');
             notification.className = 'alert alert-info';
@@ -1380,7 +1400,7 @@
                 
                 // Запускаем обновление аватаров в комментариях
                 console.log('Запускаем обновление аватаров в комментариях');
-                const result = await window.updateUserAvatarsInAllComments(userId, newAvatarURL);
+                const result = await window.updateUserAvatarsInAllComments(userId, avatarUrl);
                 
                 // Удаляем уведомление
                 if (document.body.contains(notification)) {
@@ -1540,6 +1560,23 @@
         
         // Интегрируем с кнопкой "Сохранить"
         window.integrateWithSaveButton();
+        
+        // Добавляем обработчик для сброса значения input после выбора файла
+        const avatarUploadInput = document.getElementById('avatar-upload');
+        if (avatarUploadInput) {
+            const originalOnChange = avatarUploadInput.onchange;
+            avatarUploadInput.onchange = function(e) {
+                // Вызываем оригинальный обработчик, если он существует
+                if (typeof originalOnChange === 'function') {
+                    originalOnChange.call(this, e);
+                }
+                
+                // Сбрасываем значение input после небольшой задержки
+                setTimeout(() => {
+                    e.target.value = '';
+                }, 100);
+            };
+        }
         
         // Находим форму профиля
         const profileForm = document.querySelector('#profile-form');
