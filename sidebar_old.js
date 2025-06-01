@@ -2,6 +2,7 @@ import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/9.6.1/fireb
 import { getDatabase, ref, get, onValue, set, push } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, uploadBytesResumable } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+import { initializeFriendRequestsNotifications } from './friends.js';
 
 // Определение глобальных переменных для музыкального плеера
 let DEFAULT_ALBUM_COVER = 'https://cdn-icons-png.flaticon.com/512/5349/5349958.png'; // Временное значение, будет заменено из Firebase
@@ -391,6 +392,9 @@ function loadCSS(href) {
   }
 }
 
+// Экспортируем функцию showFriendRequestNotification для использования в других модулях
+export { showFriendRequestNotification };
+
 export function initializeSidebar() {
   // Проверяем, находимся ли мы на странице messages.html
   if (window.location.pathname.includes('messages.html')) {
@@ -447,6 +451,9 @@ export function initializeSidebar() {
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const auth = getAuth(app);
+
+  // Инициализация уведомлений о заявках в друзья
+  initializeFriendRequestsNotifications();
 
   // Добавляем слушатель события storage для синхронизации между вкладками
   window.addEventListener('storage', (event) => {
@@ -2492,7 +2499,6 @@ export function initializeSidebar() {
 				position: absolute;
 				right: 3%;
 				bottom: calc(100vh - 57px); /* Исходное значение: 610px. Рассчитано для сохранения отступа от верха как на iPhone SE (экран ~667px): 57px = 667px - 610px. */
-        border: 1px solid white; /* Новая обводка */
       }
       
       /* Скрываем на странице сообщений */
@@ -5970,6 +5976,79 @@ function closeNotification(notification) {
   }, 300); // Время анимации
 }
 
+// Функция для создания и показа уведомления о новой заявке в друзья
+function showFriendRequestNotification(senderData) {
+  // Инициализируем контейнер, если его еще нет
+  initializeNotificationsContainer();
+  
+  // Получаем контейнер уведомлений
+  const container = document.getElementById('notifications-container');
+  
+  // Создаем элемент уведомления
+  const notification = document.createElement('div');
+  notification.className = 'message-notification friend-request-notification';
+  
+  // Определяем URL аватарки
+  const avatarUrl = senderData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(senderData.name || senderData.email || 'User')}&background=random`;
+  
+  // Создаем HTML для уведомления
+  notification.innerHTML = `
+    <img src="${avatarUrl}" alt="Avatar" class="notification-avatar" title="Просмотреть профиль">
+    <div class="notification-content">
+      <div class="notification-name">${senderData.name || senderData.email || 'Пользователь'}</div>
+      <div class="notification-message">
+        Отправил вам заявку в друзья
+      </div>
+    </div>
+    <div class="notification-close">✕</div>
+  `;
+  
+  // Добавляем обработчик клика на уведомление
+  notification.addEventListener('click', (e) => {
+    // Исключаем клик по кнопке закрытия
+    if (e.target.closest('.notification-close')) {
+      return;
+    }
+    
+    // Переходим на страницу профиля отправителя
+    const numericId = senderData.numericId;
+    if (numericId) {
+      window.location.href = `profile.html?id=${numericId}`;
+    } else {
+      console.error('Не удалось получить numericId отправителя:', senderData);
+    }
+  });
+  
+  // Добавляем обработчик для кнопки закрытия
+  const closeBtn = notification.querySelector('.notification-close');
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Предотвращаем всплытие события
+    closeNotification(notification);
+  });
+  
+  // Добавляем уведомление в контейнер
+  container.appendChild(notification);
+  
+  // Добавляем в массив активных уведомлений
+  activeNotifications.push(notification);
+  
+  // Ограничиваем количество одновременных уведомлений
+  if (activeNotifications.length > 3) {
+    // Закрываем самое старое уведомление
+    closeNotification(activeNotifications[0]);
+  }
+  
+  // Воспроизводим звук уведомления
+  playNotificationSound();
+  
+  // Автоматически закрываем уведомление через 5 секунд
+  setTimeout(() => {
+    if (notification.parentNode) {
+      closeNotification(notification);
+    }
+  }, 5000);
+}
+
 // Функция для загрузки звука уведомления
 async function loadNotificationSound() {
   try {
@@ -6469,7 +6548,6 @@ function initializeUnreadIndicator() {
   				position: absolute;
   				right: 3%;
   				bottom: calc(100vh - 57px); /* Исходное значение: 610px. Рассчитано для сохранения отступа от верха как на iPhone SE (экран ~667px): 57px = 667px - 610px. */
-          border: 1px solid white; /* Новая обводка */
         }
       }
   }

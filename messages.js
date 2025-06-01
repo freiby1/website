@@ -28,6 +28,7 @@ let newMessageRef = null; // Ссылка на путь новых сообще�
 let typingStatusListener = null; // Слушатель статуса "печатает"
 let typingStatusRef = null; // Ссылка на путь статуса "печатает"
 let typingUsers = {}; // Объект для хранения состояний "печатает" для каждого пользователя
+let typingHandlers = {}; // Объект для хранения обработчиков событий "печатает"
 let chatMessagesListener = null; // Слушатель сообщений в чате
 let chatMessagesRef = null; // Ссылка на сообщения чата
 let lastMessageListeners = {}; // Слушатели последних сообщений
@@ -225,8 +226,8 @@ export function initializeMessagingSystem() {
   });
 
   // Настройка обработчика отправки сообщений с улучшенной обратной связью
-  document.getElementById('send-button').addEventListener('click', () => {
-    sendMessageWithOptimisticUI(db);
+  document.getElementById('send-button').addEventListener('click', async () => {
+    await sendMessageWithOptimisticUI(db);
     // Обновляем индикаторы после отправки сообщения
     setTimeout(() => {
       updateNavUnreadIndicator();
@@ -234,7 +235,7 @@ export function initializeMessagingSystem() {
   });
 
   // Отправка сообщения по нажатию Enter с оптимистичным UI
-  document.getElementById('message-input').addEventListener('keypress', (e) => {
+  document.getElementById('message-input').addEventListener('keypress', async (e) => {
     if (e.key === 'Enter') {
       // Проверяем, есть ли прикрепленные изображения
       const imageAttachmentsContainer = document.getElementById('attachment-preview-container');
@@ -247,7 +248,7 @@ export function initializeMessagingSystem() {
           document.getElementById('send-button').click();
         } else {
           // Если только текст, используем стандартную функцию
-          sendMessageWithOptimisticUI(db);
+          await sendMessageWithOptimisticUI(db);
         }
         
         // Обновляем индикаторы после отправки сообщения
@@ -324,42 +325,85 @@ export function initializeMessagingSystem() {
   
   // Инициализируем функциональность поиска
   initializeSearchMessages();
+
+// Проверяем, есть ли сохраненный ID друга в localStorage (переход из профиля)
+const selectedChatFriend = localStorage.getItem('selectedChatFriend');
+if (selectedChatFriend) {
+    console.log('Найден ID друга в localStorage:', selectedChatFriend);
+    
+    // Функция для поиска и активации чата с повторными попытками
+    function findAndActivateChat(attempt = 1, maxAttempts = 5) {
+        console.log(`Попытка ${attempt} из ${maxAttempts} найти элемент для друга: ${selectedChatFriend}`);
+        
+        const friendElement = document.querySelector(`.friend-item-message[data-friend-id="${selectedChatFriend}"]`);
+        if (friendElement) {
+            console.log('Найден элемент чата, активируем его');
+            // Имитируем клик по другу для открытия чата
+            friendElement.click();
+            
+            // Удаляем сохраненный ID, чтобы он не использовался при следующей загрузке страницы
+            localStorage.removeItem('selectedChatFriend');
+            return true;
+        } else {
+            console.log('Элемент чата не найден');
+            
+            if (attempt < maxAttempts) {
+                // Увеличиваем задержку с каждой попыткой (500мс, 1000мс, 2000мс, 4000мс)
+                const delay = Math.min(500 * Math.pow(2, attempt - 1), 5000);
+                console.log(`Повторная попытка через ${delay}мс`);
+                
+                setTimeout(() => {
+                    findAndActivateChat(attempt + 1, maxAttempts);
+                }, delay);
+            } else {
+                console.error(`Не удалось найти элемент чата после ${maxAttempts} попыток`);
+                // Сохраняем ID на случай, если пользователь обновит страницу
+                // localStorage оставляем, не удаляем
+            }
+            return false;
+        }
+    }
+    
+    // Запускаем процесс поиска и активации чата
+    setTimeout(() => {
+        findAndActivateChat();
+    }, 500); // Начальная задержка
+}
 }
 
 // Функция для инициализации поиска друзей
 function initializeFriendsSearch() {
   const searchInput = document.getElementById('friends-search');
-  const clearButton = document.getElementById('clear-search');
+  const clearButton = document.querySelector('.clear-search-button'); // Изменено с getElementById на querySelector
   
-  if (!searchInput || !clearButton) return;
+  if (!searchInput || !clearButton) {
+    console.error('Не найдены элементы для поиска друзей:', {
+      searchInput: !!searchInput,
+      clearButton: !!clearButton
+    });
+    return;
+  }
   
   // Функция поиска друзей
   function searchFriends(query) {
     query = query.toLowerCase().trim();
     const friendItems = document.querySelectorAll('.friend-item-message');
+    let visibleCount = 0;
     
     friendItems.forEach(item => {
-      const friendName = item.querySelector('.friend-name')?.textContent?.toLowerCase() || '';
-      const lastMessage = item.querySelector('.last-message')?.textContent?.toLowerCase() || '';
+      const friendName = item.querySelector('.friend-name span')?.textContent?.toLowerCase() || '';
+      const lastMessage = item.querySelector('.last-message-text')?.textContent?.toLowerCase() || '';
       
       // Проверяем совпадение по имени друга или тексту последнего сообщения
       if (friendName.includes(query) || lastMessage.includes(query)) {
         item.style.display = 'flex';
+        visibleCount++;
       } else {
         item.style.display = 'none';
       }
     });
     
     // Показываем сообщение, если ничего не найдено
-    // Вместо поиска по стилю, проверяем каждый элемент
-    let visibleCount = 0;
-    document.querySelectorAll('.friend-item-message').forEach(item => {
-      if (item.style.display !== 'none') {
-        visibleCount++;
-      }
-    });
-    
-    // Всегда удаляем предыдущее сообщение "Ничего не найдено"
     const existingEmptyState = document.querySelector('.empty-search-state');
     if (existingEmptyState) {
       existingEmptyState.remove();
@@ -385,7 +429,7 @@ function initializeFriendsSearch() {
     const query = this.value;
     
     // Показываем кнопку очистки, если есть запрос
-    clearButton.style.display = query ? 'block' : 'none';
+    clearButton.style.display = query ? 'flex' : 'none';
     
     searchFriends(query);
   });
@@ -397,6 +441,9 @@ function initializeFriendsSearch() {
     searchFriends('');
     searchInput.focus();
   });
+  
+  // Инициализация: скрываем кнопку очистки
+  clearButton.style.display = 'none';
   
   // Добавляем стили для пустого состояния
   const style = document.createElement('style');
@@ -410,6 +457,8 @@ function initializeFriendsSearch() {
     }
   `;
   document.head.appendChild(style);
+  
+  console.log('Инициализация поиска друзей успешно завершена');
 }
 
 // Функция для инициализации прикрепления медиафайлов
@@ -807,6 +856,15 @@ function initializeMediaAttachments() {
       // Получаем текст сообщения
       const text = messageInput.value.trim();
       
+      // Удаляем unread-divider, если он есть
+      const messagesContainer = document.getElementById('chat-messages');
+      if (messagesContainer) {
+        const unreadDivider = messagesContainer.querySelector('.unread-divider');
+        if (unreadDivider) {
+          unreadDivider.remove();
+        }
+      }
+      
       // Отключаем кнопку отправки и показываем индикатор загрузки
       sendButton.disabled = true;
       sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -912,7 +970,7 @@ function initializeMediaAttachments() {
     }
   };
   
-  // Инициализация модального окна для просмотра медиафайлов
+  // Инициализируем модальное окно для просмотра медиафайлов
   initializeImageViewer();
 }
 
@@ -1278,7 +1336,7 @@ async function loadFriendsList(db, userId) {
   return new Promise(async (resolve, reject) => {
     try {
       const friendsItemsContainer = document.getElementById('friends-items-container');
-      friendsItemsContainer.innerHTML = '<div class="loading"><i class="fas fa-circle-notch fa-spin"></i><br>Загрузка списка друзей...</div>';
+      friendsItemsContainer.innerHTML = '<div class="loading"><i class="fas fa-circle-notch fa-spin"></i><br>Загрузка списка переписок...</div>';
 
     // Попробуем получить numericId из localStorage для ускорения загрузки
     let currentUserNumericId = null;
@@ -1340,7 +1398,7 @@ async function loadFriendsList(db, userId) {
     
     console.log(`Текущий пользователь numericId: ${currentUserNumericId}`);
 
-    // Получаем друзей из таблицы friendships
+    // 1. Получаем друзей из таблицы friendships
     const friendshipsRef = ref(db, `friendships/${currentUserNumericId}`);
     console.log(`Запрос friendships по пути: friendships/${currentUserNumericId}`);
     const friendshipsSnapshot = await get(friendshipsRef);
@@ -1350,121 +1408,194 @@ async function loadFriendsList(db, userId) {
       ? Object.keys(friendshipsSnapshot.val()).length + ' записей' 
       : 'нет данных');
     
-    let friendIds = []; // Для Firebase UID друзей
+    let friendNumericIds = new Set(); // Для numericId друзей
+    let friendIds = []; // Для Firebase UID 
+    let contactNumericIds = new Set(); // Для хранения numericId всех контактов (и друзей, и собеседников)
 
+    // 2. Добавляем друзей в список контактов
     if (friendshipsSnapshot.exists()) {
       const friendships = friendshipsSnapshot.val();
       // Фильтруем друзей и получаем их numericId
-      const friendNumericIds = Object.entries(friendships)
+      const friendshipEntries = Object.entries(friendships)
         .filter(([_, data]) => data && data.status === 'friends')
         .map(([friendNumericId, _]) => friendNumericId);
       
-      console.log('Найдены numericIds друзей:', friendNumericIds);
+      console.log('Найдены numericIds друзей:', friendshipEntries);
       
-      // Получаем Firebase UID друзей по их numericId
-      if (friendNumericIds.length > 0) {
-        // Для оптимизации запрашиваем данные всех пользователей за один запрос
-        const usersRef = ref(db, 'users');
-        const usersSnapshot = await get(usersRef);
-        
-        if (usersSnapshot.exists()) {
-          const usersData = usersSnapshot.val();
+      // Добавляем numericId друзей в общий набор контактов
+      friendshipEntries.forEach(id => {
+        friendNumericIds.add(id);
+        contactNumericIds.add(id);
+      });
+    }
+
+    // 3. Теперь получаем все чаты пользователя для дополнения списка контактов
+    // Сначала получим все чаты
+    const chatsRef = ref(db, 'chats');
+    const chatsSnapshot = await get(chatsRef);
+    
+    if (chatsSnapshot.exists()) {
+      const chats = chatsSnapshot.val();
+      
+      // Перебираем все чаты
+      for (const [chatId, chatData] of Object.entries(chats)) {
+        // Проверяем, есть ли сообщения в чате
+        if (chatData && chatData.messages && Object.keys(chatData.messages).length > 0) {
+          // Проверяем, является ли пользователь участником чата
+          const chatParticipants = chatId.split('_');
+          if (chatParticipants.includes(userId)) {
+            // Находим ID другого участника чата
+            const otherParticipantId = chatParticipants[0] === userId ? chatParticipants[1] : chatParticipants[0];
+            
+            console.log(`Найден чат с пользователем: ${otherParticipantId}`);
+            
+            // Добавляем пользователя в список, если у нас была с ним переписка
+            friendIds.push(otherParticipantId);
+          }
+        }
+      }
+    }
+    
+    console.log(`Всего найдено собеседников: ${friendIds.length}`);
+    
+    // 4. Получаем данные всех пользователей
+    // Для оптимизации запрашиваем данные всех пользователей за один запрос
+    const usersRef = ref(db, 'users');
+    const usersSnapshot = await get(usersRef);
+    
+    if (usersSnapshot.exists()) {
+      const usersData = usersSnapshot.val();
+      
+      // Создаем массивы для различных категорий пользователей
+      const friendsWithLastMessage = []; // Для пользователей с чатами
+      const friendsWithoutMessages = []; // Для друзей без сообщений
+      
+      // Сначала добавляем всех пользователей из чатов
+      for (const [firebaseUid, userData] of Object.entries(usersData)) {
+        // Проверяем, есть ли этот пользователь в списке собеседников
+        if (friendIds.includes(firebaseUid)) {
+          // Сохраняем данные друга в глобальную переменную для быстрого доступа
+          friendsData[firebaseUid] = userData;
           
-          // Создаем массив друзей и оптимизируем сортировку
-          const friendsList = [];
-          const friendsWithLastMessage = [];
-          
-          // Сначала добавляем всех друзей в локальный кэш
-          for (const [firebaseUid, userData] of Object.entries(usersData)) {
-            if (userData && userData.numericId && friendNumericIds.includes(String(userData.numericId))) {
-              friendIds.push(firebaseUid);
-              
-              // Сохраняем данные друга в глобальную переменную для быстрого доступа
-              friendsData[firebaseUid] = userData;
-              
-              // Создаем объект для сортировки
-              friendsWithLastMessage.push({
-                id: firebaseUid,
-                numericId: userData.numericId,
-                name: userData.name || userData.displayName || userData.email || 'Пользователь',
-                photoURL: userData.photoURL || '',
-                email: userData.email || '',
-                lastMessageTime: 0, // Изначально 0, будет обновлено позже
-                element: null // Элемент будет создан позже
-              });
-            }
+          // Создаем объект для сортировки
+          friendsWithLastMessage.push({
+            id: firebaseUid,
+            numericId: userData.numericId,
+            name: userData.name || userData.displayName || userData.email || 'Пользователь',
+            photoURL: userData.photoURL || '',
+            email: userData.email || '',
+            lastMessageTime: 0, // Изначально 0, будет обновлено позже
+            element: null // Элемент будет создан позже
+          });
+        }
+      }
+      
+      // Теперь добавляем друзей без сообщений
+      for (const [firebaseUid, userData] of Object.entries(usersData)) {
+        // Проверяем, является ли пользователь другом (по numericId)
+        if (userData.numericId && friendNumericIds.has(String(userData.numericId))) {
+          // Если этот пользователь уже добавлен в список с сообщениями, пропускаем
+          if (friendsWithLastMessage.some(f => f.id === firebaseUid)) {
+            continue;
           }
           
-          // Запрашиваем последние сообщения для сортировки
-          const lastMessagePromises = friendsWithLastMessage.map(async (friend) => {
-            try {
-              const chatId = getChatId(userId, friend.id);
-              const messagesRef = ref(db, `chats/${chatId}/messages`);
-              const messagesSnapshot = await get(messagesRef);
-              
-              if (messagesSnapshot.exists()) {
-                const messages = messagesSnapshot.val();
-                
-                // Находим самое последнее сообщение
-                let latestTimestamp = 0;
-                
-                Object.values(messages).forEach(message => {
-                  const timestamp = getTimestampValue(message.timestamp) || message.clientTimestamp || 0;
-                  if (timestamp > latestTimestamp) {
-                    latestTimestamp = timestamp;
-                  }
-                });
-                
-                // Обновляем время последнего сообщения
-                friend.lastMessageTime = latestTimestamp;
-              }
-            } catch (error) {
-              console.error(`Ошибка при получении последнего сообщения для ${friend.id}:`, error);
-            }
+          // Сохраняем данные друга в глобальную переменную для быстрого доступа
+          friendsData[firebaseUid] = userData;
+          
+          // Добавляем друга без сообщений
+          friendsWithoutMessages.push({
+            id: firebaseUid,
+            numericId: userData.numericId,
+            name: userData.name || userData.displayName || userData.email || 'Пользователь',
+            photoURL: userData.photoURL || '',
+            email: userData.email || '',
+            lastMessageTime: 0, // Нет сообщений
+            element: null, // Элемент будет создан позже
+            hasNoMessages: true // Специальный флаг для идентификации друзей без сообщений
           });
+        }
+      }
+      
+      // Запрашиваем последние сообщения для сортировки
+      const lastMessagePromises = friendsWithLastMessage.map(async (friend) => {
+        try {
+          const chatId = getChatId(userId, friend.id);
+          const messagesRef = ref(db, `chats/${chatId}/messages`);
+          const messagesSnapshot = await get(messagesRef);
           
-          // Ждем завершения всех запросов последних сообщений
-          await Promise.all(lastMessagePromises);
-          
-          // Сортируем друзей по времени последнего сообщения (сначала новые)
-          friendsWithLastMessage.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
-          
-          // Создаем элементы и добавляем их в список
-          if (friendsWithLastMessage.length > 0) {
-            // Очищаем контейнер
-            friendsItemsContainer.innerHTML = '';
+          if (messagesSnapshot.exists()) {
+            const messages = messagesSnapshot.val();
             
-            // Создаем и добавляем элементы друзей
-            friendsWithLastMessage.forEach(friend => {
-              const friendElement = createFriendElement(friend);
-              friendsItemsContainer.appendChild(friendElement);
-              
-              // Загружаем последнее сообщение
-              loadLastMessage(friend.id);
+            // Находим самое последнее сообщение
+            let latestTimestamp = 0;
+            
+            Object.values(messages).forEach(message => {
+              const timestamp = getTimestampValue(message.timestamp) || message.clientTimestamp || 0;
+              if (timestamp > latestTimestamp) {
+                latestTimestamp = timestamp;
+              }
             });
             
-            // Обновляем индикаторы непрочитанных сообщений
-            updateUnreadIndicator(selectedFriendId);
+            // Обновляем время последнего сообщения
+            friend.lastMessageTime = latestTimestamp;
           } else {
-            friendsItemsContainer.innerHTML = '<div class="empty-state">У вас пока нет друзей.<br>Добавьте друзей в своем профиле.</div>';
+            // Если нет сообщений, помечаем этот чат
+            friend.hasNoMessages = true;
           }
-        } else {
-          friendsItemsContainer.innerHTML = '<div class="empty-state">Ошибка загрузки пользователей</div>';
+        } catch (error) {
+          console.error(`Ошибка при получении последнего сообщения для ${friend.id}:`, error);
+          // В случае ошибки также помечаем как чат без сообщений
+          friend.hasNoMessages = true;
         }
+      });
+      
+      // Ждем завершения всех запросов последних сообщений
+      await Promise.all(lastMessagePromises);
+      
+      // Сортируем друзей по времени последнего сообщения (сначала новые)
+      friendsWithLastMessage.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+      
+      // Объединяем списки: сначала с сообщениями, потом без сообщений
+      const allFriends = [...friendsWithLastMessage, ...friendsWithoutMessages];
+      
+      // Создаем элементы и добавляем их в список
+      if (allFriends.length > 0) {
+        // Очищаем контейнер
+        friendsItemsContainer.innerHTML = '';
+        
+        // Создаем и добавляем элементы друзей
+        allFriends.forEach(friend => {
+          const friendElement = createFriendElement(friend);
+          friendsItemsContainer.appendChild(friendElement);
+          
+          // Для друзей без сообщений сразу устанавливаем текст "Нет сообщений"
+          if (friend.hasNoMessages) {
+            const lastMessageText = friendElement.querySelector('.last-message-text');
+            if (lastMessageText) {
+              lastMessageText.textContent = 'Нет сообщений';
+            }
+          } else {
+            // Загружаем последнее сообщение для тех, у кого есть чаты
+            loadLastMessage(friend.id);
+          }
+        });
+        
+        // Обновляем индикаторы непрочитанных сообщений
+        updateUnreadIndicator(selectedFriendId);
       } else {
         friendsItemsContainer.innerHTML = '<div class="empty-state">У вас пока нет друзей.<br>Добавьте друзей в своем профиле.</div>';
       }
     } else {
-      friendsItemsContainer.innerHTML = '<div class="empty-state">У вас пока нет друзей.<br>Добавьте друзей в своем профиле.</div>';
+      friendsItemsContainer.innerHTML = '<div class="empty-state">Ошибка загрузки пользователей</div>';
     }
     
-    console.log("Настраиваем слушатели для активных чатов после загрузки списка друзей");
+    console.log("Настраиваем слушатели для активных чатов после загрузки списка переписок");
     // Настраиваем слушатели для активных чатов
     setupActiveChatsListeners(userId);
     
   } catch (error) {
-    console.error('Ошибка загрузки списка друзей:', error);
-    document.getElementById('friends-list').innerHTML = '<div class="error">Ошибка загрузки друзей.<br>Пожалуйста, обновите страницу.</div>';
+    console.error('Ошибка загрузки списка переписок:', error);
+    document.getElementById('friends-list').innerHTML = '<div class="error">Ошибка загрузки переписок.<br>Пожалуйста, обновите страницу.</div>';
     reject(error);
   }
   resolve(); // Успешное завершение
@@ -1482,7 +1613,9 @@ function createFriendElement(friend) {
   
   // Оптимизированная структура HTML с элементами для адаптивного отображения текста
   friendElement.innerHTML = `
-    <img src="${avatarUrl}" alt="${friend.name || friend.email || 'User'}" class="friend-avatar" loading="lazy">
+    <div class="friend-avatar-container" data-status="offline">
+      <img src="${avatarUrl}" alt="${friend.name || friend.email || 'User'}" class="friend-avatar" loading="lazy">
+    </div>
     <div class="friend-info">
       <div class="friend-name">
         <span title="${friend.name || friend.email || 'User'}">${friend.name || friend.email || 'User'}</span>
@@ -1543,12 +1676,15 @@ function createFriendElement(friend) {
       mutedIndicator.style.display = isMuted ? 'block' : 'none';
     }
   });
+
+  // Обновляем статус пользователя
+  updateFriendStatus(friend.id, friendElement);
   
   return friendElement;
 }
 
 // Загрузка чата с выбранным другим
-function loadChat(friendId) {
+async function loadChat(friendId) {
   // Проверяем, не выбран ли уже этот чат
   if (selectedFriendId === friendId) {
     console.log('Этот чат уже выбран');
@@ -1593,10 +1729,35 @@ function loadChat(friendId) {
   // Показываем содержимое чата и скрываем заглушку
   document.getElementById('no-chat-selected').style.display = 'none';
   document.getElementById('chat-content').style.display = 'flex';
-  document.getElementById('chat-input-container').style.display = 'flex'; // Показываем поле ввода
+  
+// Проверяем статус дружбы
+const isFriend = await checkFriendshipStatus(currentUser.uid, friendId);
+const chatInputContainer = document.getElementById('chat-input-container');
+
+if (isFriend) {
+  // Если это друг, показываем поле ввода и скрываем уведомление
+  chatInputContainer.style.display = 'flex';
+  toggleFriendshipNotification(false);
+} else {
+  // Если не друг, скрываем поле ввода и показываем уведомление
+  chatInputContainer.style.display = 'none';
+  toggleFriendshipNotification(true, friendId);
+}
   
   // Обновляем заголовок чата
   updateChatHeader(friend);
+
+// Очищаем слушатель статуса дружбы
+if (window.friendshipStatusListener) {
+  try {
+    off(window.friendshipStatusListener.ref, window.friendshipStatusListener.listener);
+    window.friendshipStatusListener = null;
+  } catch (error) {
+    console.error('Ошибка при очистке слушателя статуса дружбы:', error);
+  }
+}
+	// Устанавливаем слушатель статуса дружбы
+	setupFriendshipStatusListener(friendId);
   
   // Очищаем контейнер сообщений и показываем индикатор загрузки
   const messagesContainer = document.getElementById('chat-messages');
@@ -1625,7 +1786,7 @@ function loadChat(friendId) {
     updateNavUnreadIndicator();
   }, 500);
   
-  // Начинаем отслеживание статуса "печатает" для собеседника
+  // Начинаем отслеживать статус "печатает" для собеседника
   listenForTypingStatus(friendId);
   
   // Устанавливаем слушатель новых сообщений
@@ -1654,8 +1815,12 @@ function updateChatHeader(friend) {
       <a href="profile.html?id=${profileId}" class="header-avatar-link">
         <img src="${avatarUrl}" alt="${friend.name || friend.email || 'User'}" class="friend-avatar">
       </a>
-      <div class="friend-info">
-        <a href="profile.html?id=${profileId}" class="friend-name">${friend.name || friend.email || 'User'}</a>
+      <div class="friend-info-header">
+        <a href="profile.html?id=${profileId}" class="friend-name-header">${friend.name || friend.email || 'User'}</a>
+        <div id="user-status-indicator" class="user-status-indicator" style="display: flex;">
+          <span class="status-dot offline"></span>
+          <span class="status-text">оффлайн</span>
+        </div>
         <div id="typing-indicator" class="typing-indicator" style="display: none;">печатает</div>
       </div>
       <div class="search-button" id="chat-search-button" title="Поиск сообщений">
@@ -1709,7 +1874,88 @@ function updateChatHeader(friend) {
         toggleSearchMessages();
       });
     }
+    
+    // Инициализируем отображение статуса пользователя
+    updateFriendStatusInHeader(friendId);
   });
+}
+
+// Функция для мониторинга и обновления статуса пользователя в заголовке чата
+function updateFriendStatusInHeader(friendId) {
+  if (!friendId) return;
+  
+  const db = getDatabase();
+  const userStatusRef = ref(db, `status/${friendId}`);
+  
+  // Отслеживаем изменения статуса пользователя
+  onValue(userStatusRef, (snapshot) => {
+    const status = snapshot.exists() ? snapshot.val() : { state: 'offline' };
+    const userStatusIndicator = document.getElementById('user-status-indicator');
+    
+    if (!userStatusIndicator) return;
+    
+    const statusDot = userStatusIndicator.querySelector('.status-dot');
+    const statusText = userStatusIndicator.querySelector('.status-text');
+    
+    if (status.state === 'online') {
+      statusDot.className = 'status-dot online';
+      statusText.textContent = 'онлайн';
+    } else if (status.state === 'away') {
+      statusDot.className = 'status-dot away';
+      statusText.textContent = 'отошел';
+    } else if (status.state === 'do_not_disturb') {
+      statusDot.className = 'status-dot dnd';
+      statusText.textContent = 'не беспокоить';
+    } else {
+      statusDot.className = 'status-dot offline';
+      
+      if (status.last_changed) {
+        statusText.textContent = formatLastSeen(status.last_changed);
+      } else {
+        statusText.textContent = 'оффлайн';
+      }
+    }
+    
+    // Если пользователь печатает, скрываем индикатор статуса
+    if (typingUsers[friendId]) {
+      userStatusIndicator.style.display = 'none';
+      document.getElementById('typing-indicator').style.display = 'block';
+    } else {
+      userStatusIndicator.style.display = 'flex';
+      document.getElementById('typing-indicator').style.display = 'none';
+    }
+  });
+}
+
+// Функция для форматирования времени "был в сети"
+function formatLastSeen(timestamp) {
+  if (!timestamp) return 'оффлайн';
+  
+  const lastSeenTime = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - lastSeenTime;
+  
+  // Проверяем, что разница не отрицательная (возможно из-за разницы времени сервера и клиента)
+  if (diffMs < 0) return 'только что';
+  
+  const diffSecs = Math.floor(diffMs / 1000);
+  
+  if (diffSecs < 60) {
+    return `был в сети ${diffSecs} сек. назад`;
+  }
+  
+  const diffMins = Math.floor(diffSecs / 60);
+  if (diffMins < 60) {
+    return `был в сети ${diffMins} мин. назад`;
+  }
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) {
+    return `был в сети ${diffHours} ч. назад`;
+  }
+  
+  const diffDays = Math.floor(diffHours / 24);
+  return `был в сети ${diffDays} д. назад`;
 }
 
 // Функция для форматирования даты разделителя
@@ -1746,6 +1992,32 @@ function formatMessageDateDivider(timestamp) {
     // Для сообщений из прошлых лет показываем полную дату
     return `${messageDate.getDate()} ${months[messageDate.getMonth()]} ${messageDate.getFullYear()}`;
   }
+}
+
+// Функция для обновления статуса пользователя в списке друзей
+function updateFriendStatus(friendId, friendElement) {
+  if (!friendId) return;
+  
+  const db = getDatabase();
+  const userStatusRef = ref(db, `status/${friendId}`);
+  
+  // Отслеживаем изменения статуса пользователя
+  onValue(userStatusRef, (snapshot) => {
+    const status = snapshot.exists() ? snapshot.val() : { state: 'offline' };
+    const avatarContainer = friendElement.querySelector('.friend-avatar-container');
+    
+    if (!avatarContainer) return;
+    
+    // Устанавливаем статус как data-атрибут
+    avatarContainer.setAttribute('data-status', status.state || 'offline');
+    
+    // Если пользователь печатает, скрываем индикатор статуса
+    if (typingUsers[friendId]) {
+      avatarContainer.setAttribute('data-typing', 'true');
+    } else {
+      avatarContainer.removeAttribute('data-typing');
+    }
+  });
 }
 
 // Улучшенная загрузка истории сообщений с проверкой приватности и пагинацией
@@ -3341,12 +3613,18 @@ function listenForTypingStatus(friendId) {
   typingStatusListener = onValue(typingStatusRef, (snapshot) => {
     const typingStatus = snapshot.val();
     const typingIndicator = document.getElementById('typing-indicator');
+    const userStatusIndicator = document.getElementById('user-status-indicator');
     
     // Уменьшаем таймаут до 5 секунд для более быстрого сброса
     if (typingStatus && Date.now() - typingStatus < 5000) {
       // Показываем индикатор "печатает" в заголовке чата
       if (typingIndicator) {
         typingIndicator.style.display = 'block';
+      }
+      
+      // Скрываем статус пользователя, когда он печатает
+      if (userStatusIndicator) {
+        userStatusIndicator.style.display = 'none';
       }
       
       // Устанавливаем флаг печати для этого пользователя
@@ -3359,6 +3637,11 @@ function listenForTypingStatus(friendId) {
       // Скрываем индикатор
       if (typingIndicator) {
         typingIndicator.style.display = 'none';
+      }
+      
+      // Показываем статус пользователя, когда он перестает печатать
+      if (userStatusIndicator) {
+        userStatusIndicator.style.display = 'flex';
       }
       
       // Сбрасываем флаг печати
@@ -3378,25 +3661,22 @@ function listenForTypingStatus(friendId) {
 function setupGlobalTypingListeners() {
   const db = getDatabase();
   
-  // Для каждого друга настраиваем слушатель статуса печати с единым обработчиком
-  const typingHandlers = {};
-  
-  // Очищаем существующие обработчики, чтобы не было дублей
-  if (window.typingHandlers) {
-    Object.values(window.typingHandlers).forEach(handler => {
-      try {
-        if (handler && handler.ref) {
-          off(handler.ref, null, handler.handler);
-        }
-      } catch (error) {
-        console.error('Ошибка при очистке обработчика статуса печати:', error);
-      }
-    });
+  // Очищаем существующие обработчики
+  for (const friendId in typingHandlers) {
+    if (typingHandlers[friendId] && typingHandlers[friendId].handler) {
+      off(typingHandlers[friendId].ref, 'value', typingHandlers[friendId].handler);
+    }
   }
+  
+  // Сбрасываем обработчики
+  typingHandlers = {};
+  
+  // Сбрасываем состояния печати
+  typingUsers = {};
+  window.typingUsers = typingUsers;
   
   Object.keys(friendsData).forEach(friendId => {
     // Настраиваем слушатели для всех друзей, включая активный чат
-    // (раньше мы пропускали активный чат: if (friendId === selectedFriendId) return;)
     
     const chatId = getChatId(currentUser.uid, friendId);
     if (!chatId) return; // Пропускаем, если не удалось создать chatId
@@ -3419,8 +3699,15 @@ function setupGlobalTypingListeners() {
         // Если это активный чат, обновляем также индикатор в заголовке
         if (friendId === selectedFriendId) {
           const typingIndicator = document.getElementById('typing-indicator');
+          const userStatusIndicator = document.getElementById('user-status-indicator');
+          
           if (typingIndicator) {
             typingIndicator.style.display = 'block';
+          }
+          
+          // Скрываем статус пользователя, когда он печатает
+          if (userStatusIndicator) {
+            userStatusIndicator.style.display = 'none';
           }
         }
       } else {
@@ -3435,8 +3722,15 @@ function setupGlobalTypingListeners() {
           // Если это активный чат, скрываем индикатор в заголовке
           if (friendId === selectedFriendId) {
             const typingIndicator = document.getElementById('typing-indicator');
+            const userStatusIndicator = document.getElementById('user-status-indicator');
+            
             if (typingIndicator) {
               typingIndicator.style.display = 'none';
+            }
+            
+            // Показываем статус пользователя, когда он перестает печатать
+            if (userStatusIndicator) {
+              userStatusIndicator.style.display = 'flex';
             }
           }
         }
@@ -4763,8 +5057,64 @@ function formatDateTimeForDB(date) {
   return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}:${milliseconds}`;
 }
 
+// Функция для проверки статуса дружбы между пользователями
+async function checkFriendshipStatus(userId, friendId) {
+  try {
+    const db = getDatabase();
+    
+    // Сначала нужно получить numericId обоих пользователей
+    const currentUserRef = ref(db, `users/${userId}`);
+    const userSnapshot = await get(currentUserRef);
+    
+    if (!userSnapshot.exists()) {
+      console.error('Не удалось найти данные текущего пользователя');
+      return false;
+    }
+    
+    const userData = userSnapshot.val();
+    const currentUserNumericId = userData.numericId;
+    
+    if (!currentUserNumericId) {
+      console.error('У текущего пользователя отсутствует numericId');
+      return false;
+    }
+    
+    // Получаем numericId друга
+    const friendUserRef = ref(db, `users/${friendId}`);
+    const friendSnapshot = await get(friendUserRef);
+    
+    if (!friendSnapshot.exists()) {
+      console.error('Не удалось найти данные пользователя-друга');
+      return false;
+    }
+    
+    const friendData = friendSnapshot.val();
+    const friendNumericId = friendData.numericId;
+    
+    if (!friendNumericId) {
+      console.error('У пользователя-друга отсутствует numericId');
+      return false;
+    }
+    
+    // Теперь проверяем статус дружбы в таблице friendships
+    const friendshipRef = ref(db, `friendships/${currentUserNumericId}/${friendNumericId}`);
+    const friendshipSnapshot = await get(friendshipRef);
+    
+    if (friendshipSnapshot.exists()) {
+      const friendshipData = friendshipSnapshot.val();
+      // Возвращаем true, если статус дружбы "friends"
+      return friendshipData.status === 'friends';
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Ошибка при проверке статуса дружбы:', error);
+    return false;
+  }
+}
+
 // Функция для отправки сообщения с проверкой корректности chatId
-function sendMessageWithOptimisticUI(db) {
+async function sendMessageWithOptimisticUI(db) {
   const messageInput = document.getElementById('message-input');
   const messagesContainer = document.getElementById('chat-messages');
   
@@ -4772,6 +5122,14 @@ function sendMessageWithOptimisticUI(db) {
   
   const messageText = messageInput.value.trim();
   if (!messageText) return;
+  
+  // Проверка статуса дружбы
+  const isFriend = await checkFriendshipStatus(currentUser.uid, selectedFriendId);
+  if (!isFriend) {
+    // Если пользователь не является другом, показываем уведомление и не отправляем сообщение
+    showErrorNotification('Вы не можете отправлять сообщения пользователям, которые не являются вашими друзьями');
+    return;
+  }
   
   // Очищаем поле ввода
   messageInput.value = '';
@@ -5052,7 +5410,7 @@ function addLastMessageStyles() {
       overflow: hidden;
     }
     
-    .friend-info {
+    .friend-info-header {
       flex: 1;
       min-width: 0; /* Важно для работы text-overflow в flex-потомках */
       overflow: hidden;
@@ -5091,7 +5449,6 @@ function addLastMessageStyles() {
     /* Новый стиль для внутреннего div с анимацией */
     .typing-inner-status {
       color: var(--primary-color, #5d33f6);
-      font-style: italic;
       display: flex;
       align-items: center;
       width: 100%;
@@ -5449,7 +5806,7 @@ function addLastMessageStyles() {
     
     /* Адаптация для разных размеров экрана */
     @media (max-width: 480px) {
-      .friend-name span {
+      .friend-name-header span {
         max-width: 120px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -5482,7 +5839,7 @@ function addLastMessageStyles() {
     }
     
     @media (max-width: 320px) {
-      .friend-name span {
+      .friend-name-header span {
         max-width: 100px;
       }
       
@@ -6620,6 +6977,330 @@ function formatMessageDate(timestamp) {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
     return `${day}.${month}.${year}`;
+  }
+}
+
+// Функция для управления контейнером уведомления о дружбе
+async function toggleFriendshipNotification(show, friendId) {
+  const container = document.getElementById('friendship-notification-container');
+  if (!container) return;
+  
+  if (show) {
+    container.style.display = 'flex';
+    
+    // Настраиваем обработчик для кнопки "Добавить в друзья"
+    const addFriendButton = document.getElementById('add-friend-button');
+    if (addFriendButton) {
+      // Удаляем предыдущие обработчики, если они были
+      addFriendButton.replaceWith(addFriendButton.cloneNode(true));
+      
+      try {
+        const db = getDatabase();
+        // Получаем numericId текущего пользователя
+        const currentUserRef = ref(db, `users/${currentUser.uid}`);
+        const currentUserSnapshot = await get(currentUserRef);
+        
+        if (!currentUserSnapshot.exists()) {
+          throw new Error('Не удалось найти данные текущего пользователя');
+        }
+        
+        const currentUserData = currentUserSnapshot.val();
+        const currentUserNumericId = currentUserData.numericId;
+        
+        // Получаем numericId друга
+        const friendUserRef = ref(db, `users/${friendId}`);
+        const friendSnapshot = await get(friendUserRef);
+        
+        if (!friendSnapshot.exists()) {
+          throw new Error('Не удалось найти данные пользователя-друга');
+        }
+        
+        const friendData = friendSnapshot.val();
+        const friendNumericId = friendData.numericId;
+        
+        // Проверяем существующий статус дружбы
+        const friendshipRef = ref(db, `friendships/${currentUserNumericId}/${friendNumericId}`);
+        const friendshipSnapshot = await get(friendshipRef);
+        
+        const button = document.getElementById('add-friend-button');
+        let friendshipStatus = 'none';
+        
+        if (friendshipSnapshot.exists()) {
+          friendshipStatus = friendshipSnapshot.val().status;
+          
+          if (friendshipStatus === 'pending_sent') {
+            // Если заявка уже отправлена, меняем текст кнопки
+            button.innerHTML = '<i class="fas fa-user-clock"></i> Заявка отправлена';
+          } else if (friendshipStatus === 'pending_received') {
+            // Если мы получили заявку, показываем кнопку "Принять заявку"
+            button.innerHTML = '<i class="fas fa-user-check"></i> Принять заявку';
+          } else {
+            button.innerHTML = '<i class="fas fa-user-plus"></i> Добавить в друзья';
+          }
+        } else {
+          button.innerHTML = '<i class="fas fa-user-plus"></i> Добавить в друзья';
+        }
+        
+        // Добавляем новый обработчик
+        button.addEventListener('click', async () => {
+          if (friendshipStatus === 'pending_sent') {
+            // Если заявка уже отправлена, отменяем её
+            try {
+              await cancelFriendRequest(friendNumericId);
+              button.innerHTML = '<i class="fas fa-user-plus"></i> Добавить в друзья';
+              friendshipStatus = 'none';
+              showStatusNotification('Заявка в друзья отменена');
+            } catch (error) {
+              console.error('Ошибка при отмене заявки в друзья:', error);
+              showErrorNotification('Не удалось отменить заявку в друзья');
+            }
+          } else if (friendshipStatus === 'pending_received') {
+            // Если мы получили заявку, принимаем её
+            try {
+              await acceptFriendRequest(friendNumericId);
+              // Обновляем интерфейс - показываем поле ввода и скрываем уведомление
+              document.getElementById('chat-input-container').style.display = 'flex';
+              container.style.display = 'none';
+              showStatusNotification('Заявка в друзья принята!');
+            } catch (error) {
+              console.error('Ошибка при принятии заявки в друзья:', error);
+              showErrorNotification('Не удалось принять заявку в друзья');
+            }
+          } else {
+            // Отправляем заявку в друзья
+            try {
+              await addUserAsFriend(friendId);
+              
+              // Обновляем текст кнопки
+              button.innerHTML = '<i class="fas fa-user-clock"></i> Заявка отправлена';
+              friendshipStatus = 'pending_sent';
+              
+              // Показываем сообщение о статусе
+              showStatusNotification('Заявка в друзья отправлена');
+              
+              // Поле ввода всё ещё недоступно, пока заявка не принята
+              document.getElementById('chat-input-container').style.display = 'none';
+            } catch (error) {
+              console.error('Ошибка при отправке заявки в друзья:', error);
+              showErrorNotification('Не удалось отправить заявку в друзья');
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Ошибка при настройке кнопки добавления в друзья:', error);
+      }
+    }
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+// Функция для отмены заявки в друзья
+async function cancelFriendRequest(friendNumericId) {
+  const db = getDatabase();
+  
+  if (!currentUser) {
+    throw new Error('Пользователь не авторизован');
+  }
+  
+  try {
+    // Получаем numericId текущего пользователя
+    const currentUserRef = ref(db, `users/${currentUser.uid}`);
+    const currentUserSnapshot = await get(currentUserRef);
+    
+    if (!currentUserSnapshot.exists()) {
+      throw new Error('Не удалось найти данные текущего пользователя');
+    }
+    
+    const currentUserData = currentUserSnapshot.val();
+    const currentUserNumericId = currentUserData.numericId;
+    
+    // Создаем объект обновлений
+    const updates = {};
+    updates[`friendships/${currentUserNumericId}/${friendNumericId}`] = null;
+    updates[`friendships/${friendNumericId}/${currentUserNumericId}`] = null;
+    
+    // Удаляем записи о заявке
+    await update(ref(db), updates);
+    
+    return true;
+  } catch (error) {
+    console.error('Ошибка при отмене заявки в друзья:', error);
+    throw error;
+  }
+}
+
+// Функция для добавления пользователя в друзья (отправка заявки)
+async function addUserAsFriend(friendId) {
+  const db = getDatabase();
+  
+  if (!currentUser || !friendId) {
+    throw new Error('Отсутствуют данные пользователя или друга');
+  }
+  
+  try {
+    // Получаем numericId текущего пользователя
+    const currentUserRef = ref(db, `users/${currentUser.uid}`);
+    const currentUserSnapshot = await get(currentUserRef);
+    
+    if (!currentUserSnapshot.exists()) {
+      throw new Error('Не удалось найти данные текущего пользователя');
+    }
+    
+    const currentUserData = currentUserSnapshot.val();
+    const currentUserNumericId = currentUserData.numericId;
+    
+    if (!currentUserNumericId) {
+      throw new Error('У текущего пользователя отсутствует numericId');
+    }
+    
+    // Получаем numericId друга
+    const friendUserRef = ref(db, `users/${friendId}`);
+    const friendSnapshot = await get(friendUserRef);
+    
+    if (!friendSnapshot.exists()) {
+      throw new Error('Не удалось найти данные пользователя-друга');
+    }
+    
+    const friendData = friendSnapshot.val();
+    const friendNumericId = friendData.numericId;
+    
+    if (!friendNumericId) {
+      throw new Error('У пользователя-друга отсутствует numericId');
+    }
+    
+    // Создаем записи о заявке в друзья
+    const currentUserFriendshipRef = ref(db, `friendships/${currentUserNumericId}/${friendNumericId}`);
+    const friendFriendshipRef = ref(db, `friendships/${friendNumericId}/${currentUserNumericId}`);
+    
+    const timestamp = Date.now();
+    
+    // Вместо прямого добавления в друзья, создаем запись о заявке
+    const updates = {};
+    updates[`friendships/${currentUserNumericId}/${friendNumericId}`] = {
+      status: 'pending_sent',
+      timestamp: timestamp
+    };
+    updates[`friendships/${friendNumericId}/${currentUserNumericId}`] = {
+      status: 'pending_received',
+      timestamp: timestamp
+    };
+    
+    // Обновляем записи о дружбе с соответствующими статусами
+    await update(ref(db), updates);
+    
+    return true;
+  } catch (error) {
+    console.error('Ошибка при отправке заявки в друзья:', error);
+    throw error;
+  }
+}
+
+// Функция для отслеживания изменений статуса дружбы в реальном времени
+function setupFriendshipStatusListener(friendId) {
+  if (!currentUser || !friendId) return;
+  
+  const db = getDatabase();
+  
+  // Получаем numericId текущего пользователя и друга
+  Promise.all([
+    get(ref(db, `users/${currentUser.uid}`)),
+    get(ref(db, `users/${friendId}`))
+  ]).then(([currentUserSnapshot, friendSnapshot]) => {
+    if (!currentUserSnapshot.exists() || !friendSnapshot.exists()) {
+      console.error('Не удалось найти данные пользователей');
+      return;
+    }
+    
+    const currentUserData = currentUserSnapshot.val();
+    const friendData = friendSnapshot.val();
+    const currentUserNumericId = currentUserData.numericId;
+    const friendNumericId = friendData.numericId;
+    
+    if (!currentUserNumericId || !friendNumericId) {
+      console.error('У пользователей отсутствует numericId');
+      return;
+    }
+    
+    // Отписываемся от предыдущего слушателя, если он существует
+    if (window.friendshipStatusListener) {
+      off(window.friendshipStatusListener.ref, window.friendshipStatusListener.listener);
+    }
+    
+    // Устанавливаем слушатель на изменение статуса дружбы
+    const friendshipRef = ref(db, `friendships/${currentUserNumericId}/${friendNumericId}`);
+    const listener = onValue(friendshipRef, async (snapshot) => {
+      const chatInputContainer = document.getElementById('chat-input-container');
+      
+      if (snapshot.exists()) {
+        const status = snapshot.val().status;
+        
+        if (status === 'friends') {
+          // Если статус изменился на "друзья", показываем поле ввода и скрываем уведомление
+          chatInputContainer.style.display = 'flex';
+          toggleFriendshipNotification(false);
+        } else if (status === 'pending_sent' || status === 'pending_received') {
+          // Если есть заявка, показываем соответствующее уведомление
+          chatInputContainer.style.display = 'none';
+          toggleFriendshipNotification(true, friendId);
+        }
+      } else {
+        // Если записи о дружбе нет, показываем уведомление о добавлении в друзья
+        chatInputContainer.style.display = 'none';
+        toggleFriendshipNotification(true, friendId);
+      }
+    });
+    
+    // Сохраняем ссылку на слушатель для последующей очистки
+    window.friendshipStatusListener = {
+      ref: friendshipRef,
+      listener: listener
+    };
+  }).catch(error => {
+    console.error('Ошибка при настройке слушателя статуса дружбы:', error);
+  });
+}
+
+// Функция для принятия заявки в друзья
+async function acceptFriendRequest(friendNumericId) {
+  const db = getDatabase();
+  
+  if (!currentUser) {
+    throw new Error('Пользователь не авторизован');
+  }
+  
+  try {
+    // Получаем numericId текущего пользователя
+    const currentUserRef = ref(db, `users/${currentUser.uid}`);
+    const currentUserSnapshot = await get(currentUserRef);
+    
+    if (!currentUserSnapshot.exists()) {
+      throw new Error('Не удалось найти данные текущего пользователя');
+    }
+    
+    const currentUserData = currentUserSnapshot.val();
+    const currentUserNumericId = currentUserData.numericId;
+    
+    const timestamp = Date.now();
+    
+    // Создаем объект обновлений для изменения статуса на "friends"
+    const updates = {};
+    updates[`friendships/${currentUserNumericId}/${friendNumericId}`] = {
+      status: 'friends',
+      timestamp: timestamp
+    };
+    updates[`friendships/${friendNumericId}/${currentUserNumericId}`] = {
+      status: 'friends',
+      timestamp: timestamp
+    };
+    
+    // Обновляем записи о дружбе
+    await update(ref(db), updates);
+    
+    return true;
+  } catch (error) {
+    console.error('Ошибка при принятии заявки в друзья:', error);
+    throw error;
   }
 }
 

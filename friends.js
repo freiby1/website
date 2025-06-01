@@ -26,6 +26,7 @@ import {
     getDownloadURL,
     uploadBytes
 } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
+import { showFriendRequestNotification } from './sidebar_old.js';
 
 // Firebase конфигурация
 const firebaseConfig = {
@@ -51,6 +52,85 @@ let friendsListener = null;
 let requestsListener = null;
 let isInitialLoad = true;
 let userToDeleteId = null;
+let isFriendRequestNotificationsInitialized = false; // Флаг для отслеживания инициализации уведомлений
+
+// Функция фильтрации списка друзей/заявок
+function filterFriendsList(searchTerm) {
+    // Определяем активную вкладку
+    const activeTab = document.querySelector('.friends-tab.active');
+    if (!activeTab) return; // Выходим, если вкладка не найдена
+    
+    const activeTabName = activeTab.dataset.tab;
+    const activeListId = activeTabName === 'friends' ? 'friendsList' : 'requestsList';
+    const friendItems = document.querySelectorAll(`#${activeListId} .friend-item`);
+    const modalBody = document.querySelector('.friends-modal-body');
+    
+    let hasVisibleItems = false;
+    
+    // Удаляем предыдущее сообщение о результатах поиска, если оно есть
+    const existingNoResults = modalBody.querySelector('.no-search-results');
+    if (existingNoResults) {
+        existingNoResults.remove();
+    }
+    
+    // Получаем сообщения об отсутствии друзей/заявок
+    const existingNoFriends = modalBody.querySelector('.no-friends');
+    const existingNoRequests = modalBody.querySelector('.no-requests');
+    
+    // Скрываем оба сообщения по умолчанию
+    if (existingNoFriends) existingNoFriends.style.display = 'none';
+    if (existingNoRequests) existingNoRequests.style.display = 'none';
+    
+    // Если есть элементы для фильтрации
+    if (friendItems.length > 0) {
+        // Показываем соответствующий список
+        document.getElementById(activeListId).style.display = 'grid';
+        
+        // Проходим по всем элементам списка и фильтруем их
+        let visibleCount = 0;
+        friendItems.forEach(item => {
+            const friendName = item.querySelector('.friend-name').textContent.toLowerCase();
+            
+            if (searchTerm === '' || friendName.includes(searchTerm)) {
+                item.classList.remove('hidden');
+                hasVisibleItems = true;
+                visibleCount++;
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+        
+        // Если нет видимых элементов и есть поисковый запрос, показываем сообщение
+        if (visibleCount === 0) {
+            // Скрываем грид и показываем сообщение
+            document.getElementById(activeListId).style.display = 'none';
+            
+            if (searchTerm) {
+                // Если есть поисковый запрос, показываем сообщение "Ничего не найдено"
+                const noResultsDiv = document.createElement('div');
+                noResultsDiv.className = 'no-search-results';
+                noResultsDiv.innerHTML = '<i class="far fa-sad-tear"></i><span>Ничего не найдено</span>';
+                modalBody.appendChild(noResultsDiv);
+            } else {
+                // Если поиск очищен, показываем соответствующее сообщение о пустом списке
+                if (activeTabName === 'friends' && existingNoFriends) {
+                    existingNoFriends.style.display = 'flex';
+                } else if (activeTabName === 'requests' && existingNoRequests) {
+                    existingNoRequests.style.display = 'flex';
+                }
+            }
+        }
+    } else {
+        // Если элементов нет вообще, показываем соответствующее сообщение
+        document.getElementById(activeListId).style.display = 'none';
+        
+        if (activeTabName === 'friends' && existingNoFriends) {
+            existingNoFriends.style.display = 'flex';
+        } else if (activeTabName === 'requests' && existingNoRequests) {
+            existingNoRequests.style.display = 'flex';
+        }
+    }
+}
 
 // Инициализация функционала друзей
 export function initializeFriends() {
@@ -111,110 +191,291 @@ function initializeFriendsAfterLoad() {
 
 // Настройка кнопки добавления в друзья
 function setupFriendsButton() {
-    const friendButton = document.getElementById('friendButton');
-    
-    // Проверяем, существует ли элемент
-    if (!friendButton) {
-        console.error('Не найдена кнопка добавления в друзья');
-        return;
-    }
+	const friendButton = document.getElementById('friendButton');
+	const messageButton = document.getElementById('messageButton');
+	
+	// Проверяем, существуют ли элементы
+	if (!friendButton) {
+			console.error('Не найдена кнопка добавления в друзья');
+			return;
+	}
 
-    // Показываем кнопку добавления в друзья только если это не наш профиль
-    if (currentProfileId !== currentUserData.numericId.toString()) {
-        friendButton.style.display = 'flex';
-        updateFriendButtonState();
-    } else {
-        friendButton.style.display = 'none';
-    }
+	// Показываем кнопку добавления в друзья только если это не наш профиль
+	if (currentProfileId !== currentUserData.numericId.toString()) {
+			friendButton.style.display = 'flex';
+			updateFriendButtonState();
+	} else {
+			friendButton.style.display = 'none';
+			
+			// Скрываем кнопку сообщений на своем профиле
+			if (messageButton) {
+					messageButton.style.display = 'none';
+			}
+	}
 
-    friendButton.addEventListener('click', handleFriendButtonClick);
+	friendButton.addEventListener('click', handleFriendButtonClick);
+	
+// Добавляем обработчик для кнопки сообщений
+if (messageButton) {
+	messageButton.addEventListener('click', async () => {
+			try {
+					// Находим Firebase UID пользователя по его numericId
+					const db = getDatabase();
+					const usersRef = ref(db, 'users');
+					const usersSnapshot = await get(usersRef);
+					
+					console.log('currentProfileId:', currentProfileId);
+					
+					if (usersSnapshot.exists()) {
+							const usersData = usersSnapshot.val();
+							console.log('Все пользователи:', Object.values(usersData).map(u => ({
+									numericId: u.numericId,
+									uid: u.uid,
+									firebaseId: u.firebaseId
+							})));
+							
+							// Ищем пользователя по numericId
+							const targetUser = Object.values(usersData).find(
+									user => user.numericId && user.numericId.toString() === currentProfileId.toString()
+							);
+							
+							console.log('Найденный пользователь:', targetUser);
+							
+							if (targetUser) {
+									// Используем любой доступный идентификатор
+									const uid = targetUser.uid || targetUser.firebaseId || Object.keys(usersData).find(key => usersData[key] === targetUser);
+									
+									if (uid) {
+											console.log('Найден UID:', uid);
+											// Сохраняем UID в localStorage
+											localStorage.setItem('selectedChatFriend', uid);
+											// Переходим на страницу сообщений
+											window.location.href = 'messages.html';
+									} else {
+											console.error('Пользователь найден, но не имеет UID');
+											console.log('Полные данные пользователя:', targetUser);
+											alert('Не удалось открыть чат. Пожалуйста, попробуйте позже.');
+									}
+							} else {
+									console.error('Не удалось найти пользователя с numericId:', currentProfileId);
+									// Попробуем поискать по другим полям
+									const userByOtherField = Object.values(usersData).find(
+											user => (user.id && user.id.toString() === currentProfileId.toString()) ||
+														(user.userId && user.userId.toString() === currentProfileId.toString())
+									);
+									
+									if (userByOtherField) {
+											console.log('Найден пользователь по другому полю:', userByOtherField);
+											const uid = userByOtherField.uid || userByOtherField.firebaseId || 
+																 Object.keys(usersData).find(key => usersData[key] === userByOtherField);
+											
+											if (uid) {
+													localStorage.setItem('selectedChatFriend', uid);
+													window.location.href = 'messages.html';
+											} else {
+													console.error('Пользователь найден по другому полю, но не имеет UID');
+													alert('Не удалось открыть чат. Пожалуйста, попробуйте позже.');
+											}
+									} else {
+											// Последняя попытка - поиск ключа в объекте users
+											const userKeyMatch = Object.keys(usersData).find(key => {
+													const user = usersData[key];
+													return user && typeof user === 'object' && 
+																(user.numericId && user.numericId.toString() === currentProfileId.toString());
+											});
+											
+											if (userKeyMatch) {
+													console.log('Найден ключ пользователя:', userKeyMatch);
+													localStorage.setItem('selectedChatFriend', userKeyMatch);
+													window.location.href = 'messages.html';
+											} else {
+													console.error('Не удалось найти пользователя никаким способом');
+													alert('Не удалось открыть чат. Пожалуйста, попробуйте позже.');
+											}
+									}
+							}
+					} else {
+							console.error('Не удалось получить данные пользователей');
+							alert('Не удалось открыть чат. Пожалуйста, попробуйте позже.');
+					}
+			} catch (error) {
+					console.error('Ошибка при переходе в чат:', error);
+					alert('Не удалось открыть чат. Пожалуйста, попробуйте позже.');
+			}
+	});
+}
 }
 
 // Обновление состояния кнопки добавления в друзья
 async function updateFriendButtonState() {
-    const db = getDatabase();
-    const friendButton = document.getElementById('friendButton');
-    const friendButtonText = document.getElementById('friendButtonText');
-    
-    try {
-        // Проверяем статус дружбы
-        const friendshipRef = ref(db, `friendships/${currentUserData.numericId}/${currentProfileId}`);
-        const friendshipSnapshot = await get(friendshipRef);
-        
-        if (friendshipSnapshot.exists()) {
-            const status = friendshipSnapshot.val().status;
-            
-            switch (status) {
-                case 'friends':
-                    friendButtonText.textContent = 'Удалить из друзей';
-                    friendButton.querySelector('i').className = 'fas fa-user-minus';
-                    break;
-                case 'pending_sent':
-                    friendButtonText.textContent = 'Заявка отправлена';
-                    friendButton.querySelector('i').className = 'fas fa-user-clock';
-                    break;
-                case 'pending_received':
-                    friendButtonText.textContent = 'Принять заявку';
-                    friendButton.querySelector('i').className = 'fas fa-user-check';
-                    break;
-            }
-        } else {
-            friendButtonText.textContent = 'Добавить в друзья';
-            friendButton.querySelector('i').className = 'fas fa-user-plus';
-        }
-    } catch (error) {
-        console.error('Ошибка при обновлении состояния кнопки:', error);
-    }
+	const db = getDatabase();
+	const friendButton = document.getElementById('friendButton');
+	const friendButtonText = document.getElementById('friendButtonText');
+	const messageButton = document.getElementById('messageButton');
+	
+	try {
+			// Проверяем статус дружбы
+			const friendshipRef = ref(db, `friendships/${currentUserData.numericId}/${currentProfileId}`);
+			const friendshipSnapshot = await get(friendshipRef);
+			
+			if (friendshipSnapshot.exists()) {
+					const status = friendshipSnapshot.val().status;
+					
+					switch (status) {
+							case 'friends':
+									friendButtonText.textContent = 'Удалить из друзей';
+									friendButton.querySelector('i').className = 'fas fa-user-minus';
+									
+									// Показываем кнопку сообщений только если пользователи являются друзьями
+									if (messageButton) {
+											messageButton.style.display = 'flex';
+									}
+									break;
+							case 'pending_sent':
+									friendButtonText.textContent = 'Заявка отправлена';
+									friendButton.querySelector('i').className = 'fas fa-user-clock';
+									
+									// Скрываем кнопку сообщений
+									if (messageButton) {
+											messageButton.style.display = 'none';
+									}
+									break;
+							case 'pending_received':
+									friendButtonText.textContent = 'Принять заявку';
+									friendButton.querySelector('i').className = 'fas fa-user-check';
+									
+									// Скрываем кнопку сообщений
+									if (messageButton) {
+											messageButton.style.display = 'none';
+									}
+									break;
+					}
+			} else {
+					friendButtonText.textContent = 'Добавить в друзья';
+					friendButton.querySelector('i').className = 'fas fa-user-plus';
+					
+					// Скрываем кнопку сообщений
+					if (messageButton) {
+							messageButton.style.display = 'none';
+					}
+			}
+	} catch (error) {
+			console.error('Ошибка при обновлении состояния кнопки:', error);
+	}
 }
 
 // Обработка клика по кнопке добавления/удаления из друзей
 async function handleFriendButtonClick() {
-    const db = getDatabase();
-    const friendshipRef = ref(db, `friendships/${currentUserData.numericId}/${currentProfileId}`);
-    const friendshipSnapshot = await get(friendshipRef);
-    
-    try {
-        if (friendshipSnapshot.exists()) {
-            const status = friendshipSnapshot.val().status;
-            
-            switch (status) {
-                case 'friends':
-                    // Удаляем из друзей
-                    console.log('Удаляем из друзей:', currentProfileId);
-                    const updates = {};
-                    updates[`friendships/${currentUserData.numericId}/${currentProfileId}`] = null;
-                    updates[`friendships/${currentProfileId}/${currentUserData.numericId}`] = null;
+	const db = getDatabase();
+	const friendshipRef = ref(db, `friendships/${currentUserData.numericId}/${currentProfileId}`);
+	const friendshipSnapshot = await get(friendshipRef);
+	
+	try {
+			if (friendshipSnapshot.exists()) {
+					const status = friendshipSnapshot.val().status;
+					
+					switch (status) {
+							case 'friends':
+									// Получаем имя пользователя для отображения в модальном окне
+									const usersRef = ref(db, 'users');
+									const usersSnapshot = await get(usersRef);
+									let friendName = "этого пользователя";
+									
+									if (usersSnapshot.exists()) {
+											const users = usersSnapshot.val();
+											const friend = Object.values(users).find(user => 
+													user.numericId && user.numericId.toString() === currentProfileId.toString()
+											);
+											if (friend && friend.name) {
+													friendName = friend.name;
+											}
+									}
+									
+									// Показываем модальное окно подтверждения
+									const confirmModal = document.getElementById('confirmDeleteModal');
+									if (confirmModal) {
+											// Устанавливаем текст сообщения в модальном окне
+											const messageElement = confirmModal.querySelector('.confirm-delete-body p');
+											if (messageElement) {
+													messageElement.textContent = `Вы действительно хотите удалить ${friendName} из друзей?`;
+											}
+											
+											// Показываем модальное окно
+											confirmModal.style.display = 'flex';
+											
+											// Настраиваем обработчики для кнопок
+											const confirmBtn = document.getElementById('confirmDeleteBtn');
+											const cancelBtn = document.getElementById('cancelDeleteBtn');
+											
+											// Удаляем предыдущие обработчики
+											const newConfirmBtn = confirmBtn.cloneNode(true);
+											const newCancelBtn = cancelBtn.cloneNode(true);
+											confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+											cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+											
+											// Добавляем новые обработчики
+											newConfirmBtn.addEventListener('click', async () => {
+													// Скрываем модальное окно
+													confirmModal.style.display = 'none';
+													
+													// Удаляем из друзей
+													console.log('Удаляем из друзей:', currentProfileId);
+													const updates = {};
+													updates[`friendships/${currentUserData.numericId}/${currentProfileId}`] = null;
+													updates[`friendships/${currentProfileId}/${currentUserData.numericId}`] = null;
 
-                    await update(ref(db), updates);
-                    
-                    // Обновляем только локальный UI
-                    updateFriendButtonUI('none');
-                    loadFriendsPreview();
-                    if (typeof window.showSuccess === 'function') {
-                        window.showSuccess('Пользователь удален из друзей');
-                    }
-                    break;
+													await update(ref(db), updates);
+													
+													// Обновляем UI
+													updateFriendButtonUI('none');
+													loadFriendsPreview();
+													if (typeof window.showSuccess === 'function') {
+															window.showSuccess(`${friendName} удален(а) из друзей`);
+													}
+											});
+											
+											newCancelBtn.addEventListener('click', () => {
+													// Просто скрываем модальное окно
+													confirmModal.style.display = 'none';
+											});
+									} else {
+											// Если модальное окно не найдено, удаляем без подтверждения
+											console.warn('Модальное окно подтверждения не найдено. Удаляем без подтверждения.');
+											
+											const updates = {};
+											updates[`friendships/${currentUserData.numericId}/${currentProfileId}`] = null;
+											updates[`friendships/${currentProfileId}/${currentUserData.numericId}`] = null;
 
-                case 'pending_sent':
-                    // Отменяем заявку
-                    await cancelFriendRequest(currentProfileId);
-                    break;
+											await update(ref(db), updates);
+											
+											updateFriendButtonUI('none');
+											loadFriendsPreview();
+											if (typeof window.showSuccess === 'function') {
+													window.showSuccess('Пользователь удален из друзей');
+											}
+									}
+									break;
 
-                case 'pending_received':
-                    // Принимаем заявку
-                    await acceptFriendRequest(currentProfileId);
-                    break;
-            }
-        } else {
-            // Отправляем заявку в друзья
-            await sendFriendRequest();
-        }
-    } catch (error) {
-        console.error('Ошибка при обработке действия с другом:', error);
-        if (typeof window.showError === 'function') {
-            window.showError('Произошла ошибка при выполнении действия');
-        }
-    }
+							case 'pending_sent':
+									// Отменяем заявку
+									await cancelFriendRequest(currentProfileId);
+									break;
+
+							case 'pending_received':
+									// Принимаем заявку
+									await acceptFriendRequest(currentProfileId);
+									break;
+					}
+			} else {
+					// Отправляем заявку в друзья
+					await sendFriendRequest();
+			}
+	} catch (error) {
+			console.error('Ошибка при обработке действия с другом:', error);
+			if (typeof window.showError === 'function') {
+					window.showError('Произошла ошибка при выполнении действия');
+			}
+	}
 }
 
 // Отправка заявки в друзья
@@ -256,12 +517,73 @@ function setupFriendsModal() {
     const tabs = document.querySelectorAll('.friends-tab');
     const requestsTab = document.querySelector('.friends-tab[data-tab="requests"]');
     const closeButton = document.querySelector('.friends-modal-close');
+    const searchInput = document.getElementById('friendsSearchInput');
+    const clearSearchButton = document.getElementById('clearSearchButton');
     
     // Скрываем вкладку заявок если это не наш профиль
     if (currentProfileId !== currentUserData.numericId.toString()) {
         requestsTab.style.display = 'none';
     } else {
         requestsTab.style.display = 'flex';
+    }
+    
+    // Настройка функционала поиска
+    if (searchInput && clearSearchButton) {
+        // Обработчик ввода в поле поиска
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            // Показываем/скрываем кнопку очистки
+            clearSearchButton.style.display = searchTerm ? 'flex' : 'none';
+            
+            // Фильтруем текущий активный список (друзья или заявки)
+            filterFriendsList(searchTerm);
+        });
+        
+        // Обработчик кнопки очистки поиска
+        clearSearchButton.addEventListener('click', function() {
+            searchInput.value = '';
+            this.style.display = 'none';
+            
+            // Сбрасываем фильтрацию списка с пустым поисковым запросом
+            filterFriendsList('');
+            
+            // Определяем активную вкладку
+            const activeTab = document.querySelector('.friends-tab.active');
+            if (activeTab) {
+                const activeTabName = activeTab.dataset.tab;
+                const activeListId = activeTabName === 'friends' ? 'friendsList' : 'requestsList';
+                const friendsList = document.getElementById('friendsList');
+                const requestsList = document.getElementById('requestsList');
+                const modalBody = document.querySelector('.friends-modal-body');
+                
+                // Скрываем оба списка
+                friendsList.style.display = 'none';
+                requestsList.style.display = 'none';
+                
+                // Показываем только активный список
+                document.getElementById(activeListId).style.display = 'grid';
+                
+                // Проверяем количество элементов в списке
+                const items = document.querySelectorAll(`#${activeListId} .friend-item`);
+                if (items.length === 0) {
+                    // Если список пуст, показываем соответствующее сообщение
+                    const existingNoFriends = modalBody.querySelector('.no-friends');
+                    const existingNoRequests = modalBody.querySelector('.no-requests');
+                    
+                    if (activeTabName === 'friends' && existingNoFriends) {
+                        document.getElementById(activeListId).style.display = 'none';
+                        existingNoFriends.style.display = 'flex';
+                    } else if (activeTabName === 'requests' && existingNoRequests) {
+                        document.getElementById(activeListId).style.display = 'none';
+                        existingNoRequests.style.display = 'flex';
+                    }
+                }
+            }
+            
+            // Фокусируемся на поле ввода
+            searchInput.focus();
+        });
     }
     
     // Используем заголовок вместо кнопки для открытия модального окна
@@ -281,11 +603,26 @@ function setupFriendsModal() {
         document.getElementById('friendsList').style.display = 'grid';
         document.getElementById('requestsList').style.display = 'none';
         
+        // Скрываем все сообщения об отсутствии элементов
+        const modalBody = document.querySelector('.friends-modal-body');
+        const existingNoFriends = modalBody.querySelector('.no-friends');
+        const existingNoRequests = modalBody.querySelector('.no-requests');
+        
+        if (existingNoFriends) existingNoFriends.style.display = 'none';
+        if (existingNoRequests) existingNoRequests.style.display = 'none';
+        
         loadFriendsList();
         // Загружаем заявки только если это наш профиль
         if (currentProfileId === currentUserData.numericId.toString()) {
             loadRequestsList();
         }
+        
+        // Фокусируемся на поле поиска после открытия модального окна
+        setTimeout(() => {
+            if (searchInput) {
+                searchInput.focus();
+            }
+        }, 300);
     });
     
     // Добавляем обработчик клика для кнопки закрытия
@@ -319,6 +656,14 @@ function setupFriendsModal() {
             const friendsList = document.getElementById('friendsList');
             const requestsList = document.getElementById('requestsList');
             
+            // Скрываем все сообщения об отсутствии элементов
+            const modalBody = document.querySelector('.friends-modal-body');
+            const existingNoFriends = modalBody.querySelector('.no-friends');
+            const existingNoRequests = modalBody.querySelector('.no-requests');
+            
+            if (existingNoFriends) existingNoFriends.style.display = 'none';
+            if (existingNoRequests) existingNoRequests.style.display = 'none';
+            
             if (tabName === 'friends') {
                 friendsList.style.display = 'grid';
                 requestsList.style.display = 'none';
@@ -328,6 +673,13 @@ function setupFriendsModal() {
                 requestsList.style.display = 'grid';
                 loadRequestsList();
             }
+            
+            // Применяем текущий поисковый запрос к новой вкладке после загрузки данных
+            if (searchInput && searchInput.value.trim()) {
+                setTimeout(() => {
+                    filterFriendsList(searchInput.value.toLowerCase().trim());
+                }, 300);
+            }
         });
     });
 }
@@ -336,12 +688,26 @@ function setupFriendsModal() {
 async function loadFriendsList() {
     const db = getDatabase();
     const friendsList = document.getElementById('friendsList');
+    const modalBody = document.querySelector('.friends-modal-body');
+    
+    // Очищаем список друзей
     friendsList.innerHTML = '';
     
     try {
         const friendshipsRef = ref(db, `friendships/${currentProfileId}`);
         const snapshot = await get(friendshipsRef);
 
+        // Скрываем все сообщения об отсутствии элементов
+        let existingNoFriends = modalBody.querySelector('.no-friends');
+        let existingNoRequests = modalBody.querySelector('.no-requests');
+        
+        if (existingNoFriends) existingNoFriends.style.display = 'none';
+        if (existingNoRequests) existingNoRequests.style.display = 'none';
+        
+        // Проверяем, активна ли вкладка друзей
+        const friendsTab = document.querySelector('.friends-tab[data-tab="friends"]');
+        const isActiveFriendsTab = friendsTab && friendsTab.classList.contains('active');
+        
         if (snapshot.exists()) {
             const friendships = snapshot.val();
             const confirmedFriends = Object.entries(friendships)
@@ -349,6 +715,11 @@ async function loadFriendsList() {
                 .sort((a, b) => b[1].timestamp - a[1].timestamp); // Сортируем по времени добавления
 
             if (confirmedFriends.length > 0) {
+                // Показываем грид только если активна вкладка друзей
+                if (isActiveFriendsTab) {
+                    friendsList.style.display = 'grid';
+                }
+                
                 // Получаем данные всех пользователей одним запросом
                 const userRef = ref(db, 'users');
                 const usersSnapshot = await get(userRef);
@@ -365,14 +736,59 @@ async function loadFriendsList() {
                     }
                 }
             } else {
-                friendsList.innerHTML = '<div class="no-friends">Список друзей пуст</div>';
+                // Скрываем грид и показываем сообщение о пустом списке
+                if (isActiveFriendsTab) {
+                    friendsList.style.display = 'none';
+                }
+                
+                if (!existingNoFriends) {
+                    existingNoFriends = document.createElement('div');
+                    existingNoFriends.className = 'no-friends';
+                    existingNoFriends.innerHTML = '<i class="far fa-sad-tear"></i><span>Список друзей пуст</span>';
+                    modalBody.appendChild(existingNoFriends);
+                }
+                
+                // Показываем сообщение только если активна вкладка друзей
+                existingNoFriends.style.display = isActiveFriendsTab ? 'flex' : 'none';
             }
         } else {
-            friendsList.innerHTML = '<div class="no-friends">Список друзей пуст</div>';
+            // Скрываем грид и показываем сообщение о пустом списке
+            if (isActiveFriendsTab) {
+                friendsList.style.display = 'none';
+            }
+            
+            if (!existingNoFriends) {
+                existingNoFriends = document.createElement('div');
+                existingNoFriends.className = 'no-friends';
+                existingNoFriends.innerHTML = '<i class="far fa-sad-tear"></i><span>Список друзей пуст</span>';
+                modalBody.appendChild(existingNoFriends);
+            }
+            
+            // Показываем сообщение только если активна вкладка друзей
+            existingNoFriends.style.display = isActiveFriendsTab ? 'flex' : 'none';
+        }
+        
+        // Применяем текущий поисковый запрос после загрузки списка
+        const searchInput = document.getElementById('friendsSearchInput');
+        if (searchInput && searchInput.value.trim()) {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            filterFriendsList(searchTerm);
         }
     } catch (error) {
         console.error('Ошибка при загрузке списка друзей:', error);
-        friendsList.innerHTML = '<div class="error-message">Ошибка при загрузке списка друзей</div>';
+        
+        // Скрываем грид и показываем сообщение об ошибке
+        const friendsTab = document.querySelector('.friends-tab[data-tab="friends"]');
+        const isActiveFriendsTab = friendsTab && friendsTab.classList.contains('active');
+        
+        if (isActiveFriendsTab) {
+            friendsList.style.display = 'none';
+        }
+        
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = 'Ошибка при загрузке списка друзей';
+        modalBody.appendChild(errorMessage);
     }
 }
 
@@ -380,11 +796,25 @@ async function loadFriendsList() {
 async function loadRequestsList() {
     const db = getDatabase();
     const requestsList = document.getElementById('requestsList');
+    const modalBody = document.querySelector('.friends-modal-body');
+    
+    // Очищаем список заявок
     requestsList.innerHTML = '';
 
     try {
         console.log('Начинаем загрузку заявок в друзья');
         console.log('ID текущего пользователя:', currentUserData.numericId);
+
+        // Скрываем все сообщения об отсутствии элементов
+        let existingNoFriends = modalBody.querySelector('.no-friends');
+        let existingNoRequests = modalBody.querySelector('.no-requests');
+        
+        if (existingNoFriends) existingNoFriends.style.display = 'none';
+        if (existingNoRequests) existingNoRequests.style.display = 'none';
+        
+        // Проверяем, активна ли вкладка заявок
+        const requestsTab = document.querySelector('.friends-tab[data-tab="requests"]');
+        const isActiveRequestsTab = requestsTab && requestsTab.classList.contains('active');
 
         const friendshipsRef = ref(db, `friendships/${currentUserData.numericId}`);
         const snapshot = await get(friendshipsRef);
@@ -424,15 +854,64 @@ async function loadRequestsList() {
 
             if (!hasRequests) {
                 console.log('Нет входящих заявок');
-                requestsList.innerHTML = '<div class="no-requests">Нет новых заявок в друзья</div>';
+                // Скрываем грид и показываем сообщение об отсутствии заявок, только если активна вкладка заявок
+                if (isActiveRequestsTab) {
+                    requestsList.style.display = 'none';
+                }
+                
+                if (!existingNoRequests) {
+                    existingNoRequests = document.createElement('div');
+                    existingNoRequests.className = 'no-requests';
+                    existingNoRequests.innerHTML = '<i class="far fa-sad-tear"></i><span>Нет новых заявок в друзья</span>';
+                    modalBody.appendChild(existingNoRequests);
+                }
+                
+                // Показываем сообщение только если активна вкладка заявок
+                existingNoRequests.style.display = isActiveRequestsTab ? 'flex' : 'none';
+            } else {
+                // Показываем грид, только если активна вкладка заявок
+                if (isActiveRequestsTab) {
+                    requestsList.style.display = 'grid';
+                }
             }
         } else {
             console.log('Нет данных о дружбе');
-            requestsList.innerHTML = '<div class="no-requests">Нет новых заявок в друзья</div>';
+            // Скрываем грид и показываем сообщение об отсутствии заявок, только если активна вкладка заявок
+            if (isActiveRequestsTab) {
+                requestsList.style.display = 'none';
+            }
+            
+            if (!existingNoRequests) {
+                existingNoRequests = document.createElement('div');
+                existingNoRequests.className = 'no-requests';
+                existingNoRequests.innerHTML = '<i class="far fa-sad-tear"></i><span>Нет новых заявок в друзья</span>';
+                modalBody.appendChild(existingNoRequests);
+            }
+            
+            // Показываем сообщение только если активна вкладка заявок
+            existingNoRequests.style.display = isActiveRequestsTab ? 'flex' : 'none';
+        }
+        
+        // Применяем текущий поисковый запрос после загрузки списка
+        const searchInput = document.getElementById('friendsSearchInput');
+        if (searchInput && searchInput.value.trim()) {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            filterFriendsList(searchTerm);
         }
     } catch (error) {
         console.error('Ошибка при загрузке заявок в друзья:', error);
-        requestsList.innerHTML = '<div class="error-message">Ошибка при загрузке заявок</div>';
+        // Скрываем грид и показываем сообщение об ошибке
+        const requestsTab = document.querySelector('.friends-tab[data-tab="requests"]');
+        const isActiveRequestsTab = requestsTab && requestsTab.classList.contains('active');
+        
+        if (isActiveRequestsTab) {
+            requestsList.style.display = 'none';
+        }
+        
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = 'Ошибка при загрузке заявок';
+        modalBody.appendChild(errorMessage);
     }
 }
 
@@ -637,6 +1116,14 @@ async function acceptFriendRequest(userId) {
         
         requestsTab.style.display = 'none';
         friendsTab.style.display = 'grid';
+        
+        // Скрываем все сообщения об отсутствии элементов
+        const modalBody = document.querySelector('.friends-modal-body');
+        const existingNoFriends = modalBody.querySelector('.no-friends');
+        const existingNoRequests = modalBody.querySelector('.no-requests');
+        
+        if (existingNoFriends) existingNoFriends.style.display = 'none';
+        if (existingNoRequests) existingNoRequests.style.display = 'none';
 
         // Перезагружаем списки
         await loadFriendsList();
@@ -668,6 +1155,14 @@ async function cancelFriendRequest(userId) {
         updates[`friendships/${userId}/${currentUserData.numericId}`] = null;
 
         await update(ref(db), updates);
+        
+        // Скрываем все сообщения об отсутствии элементов
+        const modalBody = document.querySelector('.friends-modal-body');
+        const existingNoFriends = modalBody.querySelector('.no-friends');
+        const existingNoRequests = modalBody.querySelector('.no-requests');
+        
+        if (existingNoFriends) existingNoFriends.style.display = 'none';
+        if (existingNoRequests) existingNoRequests.style.display = 'none';
         
         // Обновляем списки и состояние кнопки
         loadFriendsList();
@@ -895,7 +1390,7 @@ async function loadFriendsPreview() {
                 previewGrid.style.display = 'none';
                 const noFriendsMessage = document.createElement('div');
                 noFriendsMessage.className = 'no-friends-message';
-                noFriendsMessage.textContent = 'Список друзей пуст';
+                noFriendsMessage.innerHTML = '<i class="far fa-sad-tear"></i><span>Список друзей пуст</span>';
                 previewContainer.appendChild(noFriendsMessage);
             }
         } else {
@@ -910,7 +1405,7 @@ async function loadFriendsPreview() {
             previewGrid.style.display = 'none';
             const noFriendsMessage = document.createElement('div');
             noFriendsMessage.className = 'no-friends-message';
-            noFriendsMessage.textContent = 'Список друзей пуст';
+            noFriendsMessage.innerHTML = '<i class="far fa-sad-tear"></i><span>Список друзей пуст</span>';
             previewContainer.appendChild(noFriendsMessage);
         }
     } catch (error) {
@@ -923,15 +1418,21 @@ async function loadFriendsPreview() {
         errorMessage.textContent = 'Ошибка при загрузке списка друзей';
         previewContainer.appendChild(errorMessage);
     }
+
+    // Добавим вызов функции обновления статусов
+    updateAllFriendsStatuses();
 }
 
 // Функция создания превью элемента друга
 function createFriendPreviewElement(user) {
     const div = document.createElement('div');
     div.className = 'friend-preview-item';
+    div.setAttribute('data-friend-id', user.numericId); // Добавляем идентификатор друга как атрибут
     
     const avatar = document.createElement('div');
     avatar.className = 'friend-preview-avatar';
+    avatar.setAttribute('data-status', 'offline'); // Устанавливаем начальный статус как оффлайн
+    
     if (user.photoURL) {
         avatar.innerHTML = `<img src="${user.photoURL}" alt="${user.name}">`;
     } else {
@@ -951,7 +1452,68 @@ function createFriendPreviewElement(user) {
         window.location.href = `profile.html?id=${user.numericId}`;
     });
     
+    // Получаем и обновляем статус пользователя
+    updateFriendStatus(user.numericId, avatar);
+    
     return div;
+}
+
+// Функция для обновления статуса друга
+function updateFriendStatus(numericId, avatarElement) {
+    const db = getDatabase();
+    
+    // Сначала находим userId по numericId
+    const usersRef = ref(db, 'users');
+    get(usersRef).then((snapshot) => {
+        if (snapshot.exists()) {
+            const users = snapshot.val();
+            let userId = null;
+            
+            // Ищем пользователя с нужным numericId
+            for (const [id, userData] of Object.entries(users)) {
+                if (userData.numericId === parseInt(numericId)) {
+                    userId = id;
+                    break;
+                }
+            }
+            
+            if (userId) {
+                // Получаем статус пользователя
+                const statusRef = ref(db, `status/${userId}`);
+                onValue(statusRef, (statusSnapshot) => {
+                    if (statusSnapshot.exists()) {
+                        const statusData = statusSnapshot.val();
+                        // Обновляем атрибут data-status
+                        avatarElement.setAttribute('data-status', statusData.state || 'offline');
+                        
+                        // Если пользователь установил статус "невидимка", показываем как "оффлайн"
+                        if (statusData.preferredStatus === 'invisible') {
+                            avatarElement.setAttribute('data-status', 'offline');
+                        }
+                    } else {
+                        // Если статус не найден, устанавливаем "оффлайн"
+                        avatarElement.setAttribute('data-status', 'offline');
+                    }
+                });
+            }
+        }
+    }).catch((error) => {
+        console.error("Ошибка при получении данных пользователей:", error);
+    });
+}
+
+// Функция для обновления статусов всех друзей в списке
+function updateAllFriendsStatuses() {
+    const friendAvatars = document.querySelectorAll('.friend-preview-avatar');
+    friendAvatars.forEach(avatar => {
+        const friendItem = avatar.closest('.friend-preview-item');
+        if (friendItem) {
+            const friendId = friendItem.getAttribute('data-friend-id');
+            if (friendId) {
+                updateFriendStatus(friendId, avatar);
+            }
+        }
+    });
 }
 
 // Добавим функцию для настройки слушателя состояния дружбы
@@ -976,31 +1538,53 @@ function setupFriendshipStatusListener() {
 
 // Функция для обновления UI кнопки без обращения к базе данных
 function updateFriendButtonUI(status) {
-    const friendButton = document.getElementById('friendButton');
-    const friendButtonText = document.getElementById('friendButtonText');
-    
-    if (!friendButton || !friendButtonText) return;
+	const friendButton = document.getElementById('friendButton');
+	const friendButtonText = document.getElementById('friendButtonText');
+	const messageButton = document.getElementById('messageButton');
+	
+	if (!friendButton || !friendButtonText) return;
 
-    switch (status) {
-        case 'friends':
-            friendButtonText.textContent = 'Удалить из друзей';
-            friendButton.querySelector('i').className = 'fas fa-user-minus';
-            break;
-        case 'pending_sent':
-            friendButtonText.textContent = 'Заявка отправлена';
-            friendButton.querySelector('i').className = 'fas fa-user-clock';
-            break;
-        case 'pending_received':
-            friendButtonText.textContent = 'Принять заявку';
-            friendButton.querySelector('i').className = 'fas fa-user-check';
-            break;
-        case 'none':
-        default:
-            friendButtonText.textContent = 'Добавить в друзья';
-            friendButton.querySelector('i').className = 'fas fa-user-plus';
-            break;
-    }
+	switch (status) {
+			case 'friends':
+					friendButtonText.textContent = 'Удалить из друзей';
+					friendButton.querySelector('i').className = 'fas fa-user-minus';
+					
+					// Показываем кнопку сообщений
+					if (messageButton) {
+							messageButton.style.display = 'flex';
+					}
+					break;
+			case 'pending_sent':
+					friendButtonText.textContent = 'Заявка отправлена';
+					friendButton.querySelector('i').className = 'fas fa-user-clock';
+					
+					// Скрываем кнопку сообщений
+					if (messageButton) {
+							messageButton.style.display = 'none';
+					}
+					break;
+			case 'pending_received':
+					friendButtonText.textContent = 'Принять заявку';
+					friendButton.querySelector('i').className = 'fas fa-user-check';
+					
+					// Скрываем кнопку сообщений
+					if (messageButton) {
+							messageButton.style.display = 'none';
+					}
+					break;
+			case 'none':
+			default:
+					friendButtonText.textContent = 'Добавить в друзья';
+					friendButton.querySelector('i').className = 'fas fa-user-plus';
+					
+					// Скрываем кнопку сообщений
+					if (messageButton) {
+							messageButton.style.display = 'none';
+					}
+					break;
+	}
 }
+
 
 // Обновим функцию setupFriendsListListener
 function setupFriendsListListener() {
@@ -1032,8 +1616,16 @@ function setupRequestsListener() {
     const db = getDatabase();
     const friendshipsRef = ref(db, `friendships/${currentUserData.numericId}`);
     
+    // Устанавливаем флаг инициализации слушателя уведомлений
+    isFriendRequestNotificationsInitialized = true;
+    console.log('Слушатель уведомлений о заявках в друзья инициализирован через setupRequestsListener');
+    
+    // Для отслеживания новых заявок в друзья
+    let previousRequests = new Set();
+    let isFirstLoad = true;
+    
     // Слушаем изменения в списке заявок
-    onValue(friendshipsRef, (snapshot) => {
+    onValue(friendshipsRef, async (snapshot) => {
         // Проверяем, открыто ли модальное окно и активна ли вкладка заявок
         const modal = document.getElementById('friendsModal');
         const requestsTab = document.querySelector('.friends-tab[data-tab="requests"]');
@@ -1046,21 +1638,152 @@ function setupRequestsListener() {
             loadRequestsList();
         }
         
-        // Обновляем счетчик заявок в любом случае
+        // Обновляем счетчик заявок и проверяем новые заявки
         if (snapshot.exists()) {
             const friendships = snapshot.val();
-            const requestsCount = Object.values(friendships)
-                .filter(data => data && data.status === 'pending_received')
-                .length;
+            
+            // Фильтруем заявки
+            const pendingRequests = Object.entries(friendships)
+                .filter(([_, data]) => data && data.status === 'pending_received')
+                .map(([userId, _]) => userId);
+            
+            const requestsCount = pendingRequests.length;
             
             const modalRequestsCount = document.getElementById('modalRequestsCount');
             
             if (requestsCount > 0) {
                 modalRequestsCount.textContent = requestsCount;
                 modalRequestsCount.style.display = 'flex';
+                
+                // Проверяем новые заявки (не при первой загрузке)
+                if (!isFirstLoad) {
+                    // Находим новые заявки, которых не было ранее
+                    const newRequests = pendingRequests.filter(userId => !previousRequests.has(userId));
+                    
+                    // Для каждой новой заявки показываем уведомление
+                    if (newRequests.length > 0) {
+                        const usersRef = ref(db, 'users');
+                        const usersSnapshot = await get(usersRef);
+                        
+                        if (usersSnapshot.exists()) {
+                            const users = usersSnapshot.val();
+                            
+                            for (const userId of newRequests) {
+                                // Находим пользователя по numericId
+                                const sender = Object.values(users).find(user => user.numericId.toString() === userId);
+                                
+                                if (sender) {
+                                    // Показываем уведомление
+                                    showFriendRequestNotification(sender);
+                                }
+                            }
+                        }
+                    }
+                }
             } else {
                 modalRequestsCount.style.display = 'none';
             }
+            
+            // Обновляем предыдущий список заявок
+            previousRequests = new Set(pendingRequests);
         }
+        
+        // После первой загрузки сбрасываем флаг
+        isFirstLoad = false;
     });
+}
+
+// Функция для инициализации отслеживания заявок в друзья для использования в sidebar
+export function initializeFriendRequestsNotifications() {
+    // Проверяем, не был ли уже инициализирован слушатель
+    if (isFriendRequestNotificationsInitialized) {
+        console.log('Слушатель уведомлений о заявках в друзья уже инициализирован');
+        return;
+    }
+    
+    // Проверяем, находимся ли мы на странице профиля
+    const isProfilePage = window.location.pathname.includes('profile.html');
+    
+    // Если мы на странице профиля, не инициализируем слушатель здесь,
+    // так как он будет инициализирован через функцию setupRequestsListener
+    if (isProfilePage) {
+        console.log('Страница профиля: используем существующий слушатель заявок в друзья');
+        return;
+    }
+    
+    // Получаем данные текущего пользователя
+    const userData = JSON.parse(localStorage.getItem('userData'));
+    if (!userData || !userData.numericId) {
+        console.error('Пользователь не авторизован, невозможно отслеживать заявки в друзья');
+        return;
+    }
+
+    const db = getDatabase();
+    const friendshipsRef = ref(db, `friendships/${userData.numericId}`);
+    
+    // Для отслеживания новых заявок в друзья
+    let previousRequests = new Set();
+    let isFirstLoad = true;
+    
+    // Слушаем изменения в списке заявок
+    onValue(friendshipsRef, async (snapshot) => {
+        // Обновляем счетчик заявок и проверяем новые заявки
+        if (snapshot.exists()) {
+            const friendships = snapshot.val();
+            
+            // Фильтруем заявки
+            const pendingRequests = Object.entries(friendships)
+                .filter(([_, data]) => data && data.status === 'pending_received')
+                .map(([userId, _]) => userId);
+            
+            const requestsCount = pendingRequests.length;
+            
+            // Обновляем счетчик в шапке (если он есть)
+            const modalRequestsCount = document.getElementById('modalRequestsCount');
+            if (modalRequestsCount) {
+                if (requestsCount > 0) {
+                    modalRequestsCount.textContent = requestsCount;
+                    modalRequestsCount.style.display = 'flex';
+                } else {
+                    modalRequestsCount.style.display = 'none';
+                }
+            }
+                
+            // Проверяем новые заявки (не при первой загрузке)
+            if (!isFirstLoad) {
+                // Находим новые заявки, которых не было ранее
+                const newRequests = pendingRequests.filter(userId => !previousRequests.has(userId));
+                
+                // Для каждой новой заявки показываем уведомление
+                if (newRequests.length > 0) {
+                    const usersRef = ref(db, 'users');
+                    const usersSnapshot = await get(usersRef);
+                    
+                    if (usersSnapshot.exists()) {
+                        const users = usersSnapshot.val();
+                        
+                        for (const userId of newRequests) {
+                            // Находим пользователя по numericId
+                            const sender = Object.values(users).find(user => user.numericId.toString() === userId);
+                            
+                            if (sender) {
+                                // Показываем уведомление
+                                showFriendRequestNotification(sender);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Обновляем предыдущий список заявок
+            previousRequests = new Set(pendingRequests);
+        }
+        
+        // После первой загрузки сбрасываем флаг
+        isFirstLoad = false;
+    });
+    
+    // Устанавливаем флаг инициализации
+    isFriendRequestNotificationsInitialized = true;
+    console.log('Слушатель уведомлений о заявках в друзья инициализирован');
 } 

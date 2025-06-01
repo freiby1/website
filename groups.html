@@ -5,6 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 	<title>Группы</title>
+	<script type="module" src="online-status.js"></script>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
 	<link rel="stylesheet" href="styles.css">
 	<link rel="preload" href="./sidebar_old.js" as="script" crossorigin="anonymous">
@@ -27,12 +28,19 @@
 	</script>
 
 	<style>
+
+		.dark-mode {
+			background-color: #212121;
+			color: #f5f5f5;
+		}
+
 		.groups-container {
 			max-width: 1200px;
 			margin: 20px auto;
 			padding: 0 20px;
 			display: flex;
 			flex-wrap: wrap;
+			margin-bottom: 50px;
 		}
 
 		.main-content {
@@ -113,6 +121,7 @@
 			width: 100%;
 			display: flex;
 			flex-direction: row;
+			flex-wrap: wrap;
 			align-items: center;
 			padding: 15px 0;
 			border-bottom: 1px solid #eee;
@@ -161,7 +170,9 @@
 		.group-content {
 			padding: 0;
 			text-align: left;
-			width: 100%;
+			flex: 1;
+			min-width: 0;
+			max-width: calc(100% - 160px);
 			display: flex;
 			flex-direction: column;
 		}
@@ -173,7 +184,9 @@
 			color: #333;
 			overflow: hidden;
 			text-overflow: ellipsis;
-			white-space: nowrap;
+			white-space: normal;
+			word-wrap: break-word;
+			margin-right: 25px;
 		}
 
 		.dark-mode .group-name {
@@ -182,12 +195,14 @@
 
 		.group-description {
 			display: block;
-			font-size: 14px;
+			font-size: 12px;
 			color: #777;
 			margin-bottom: 5px;
 			overflow: hidden;
 			text-overflow: ellipsis;
-			white-space: nowrap;
+			white-space: normal;
+			word-wrap: break-word;
+			margin-right: 25px;
 		}
 
 		.dark-mode .group-description {
@@ -196,6 +211,7 @@
 
 		.group-meta {
 			display: flex;
+			flex-wrap: wrap;
 			justify-content: flex-start;
 			font-size: 13px;
 			color: #888;
@@ -209,6 +225,7 @@
 			display: inline-flex;
 			align-items: center;
 			margin-right: 15px;
+			margin-bottom: 5px;
 			padding: 3px 8px;
 			background-color: #4a76a81a;
 			border-radius: 12px;
@@ -237,29 +254,63 @@
 		}
 
 		.create-group-btn {
-			display: inline-block;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			margin-bottom: 20px;
-			padding: 10px 20px;
+			padding: 12px 25px;
 			background-color: #4a76a8;
 			color: white;
 			border: none;
-			border-radius: 5px;
+			border-radius: 8px;
 			font-size: 16px;
 			font-weight: 500;
 			cursor: pointer;
-			transition: background-color 0.3s;
+			transition: all 0.3s ease;
+			box-shadow: 0 4px 6px rgba(74, 118, 168, 0.1);
+			width: auto;
+			max-width: 100%;
+		}
+
+		.create-group-btn i {
+			margin-right: 8px;
+			font-size: 18px;
 		}
 
 		.create-group-btn:hover {
 			background-color: #3a5b80;
+			transform: translateY(-2px);
+			box-shadow: 0 6px 8px rgba(74, 118, 168, 0.2);
 		}
 
 		.dark-mode .create-group-btn {
 			background-color: #5a86b8;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 		}
 
 		.dark-mode .create-group-btn:hover {
 			background-color: #4a76a8;
+			box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+		}
+		
+		@media (max-width: 768px) {
+			.create-group-btn {
+				padding: 10px 20px;
+				font-size: 15px;
+				margin-bottom: 15px;
+			}
+		}
+		
+		@media (max-width: 576px) {
+			.create-group-btn {
+				width: 100%;
+				padding: 12px 15px;
+				font-size: 14px;
+			}
+			
+			.create-group-btn i {
+				font-size: 16px;
+			}
 		}
 
 		.empty-state {
@@ -309,6 +360,32 @@
 			.main-content {
 				margin-right: 0;
 				width: 100%;
+			}
+			
+			.group-content {
+				max-width: calc(100% - 140px);
+			}
+		}
+		
+		@media (max-width: 576px) {
+			.group-card {
+				padding: 12px 0;
+			}
+			
+			.group-content {
+				max-width: 100%;
+				margin-bottom: 10px;
+			}
+			
+			.subscribe-btn,
+			.unsubscribe-btn {
+				margin-left: 15px;
+				margin-top: 5px;
+			}
+			
+			.group-cover {
+				width: 40px;
+				height: 40px;
 			}
 		}
 
@@ -385,21 +462,47 @@
 		}
 
 		.modal-close {
-			background: none;
-			border: none;
-			font-size: 20px;
+			position: absolute;
+			top: 15px;
+			right: 15px;
+			color: #fff;
+			font-size: 30px;
 			cursor: pointer;
-			color: #888;
-			padding: 5px;
+			z-index: 1001;
+			background: rgba(0, 0, 0, 0.5);
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			transition: all 0.2s;
+			opacity: 0.7;
+			text-align: center;
+			line-height: 1;
+			/* Изменено с 36px на 1 для лучшего центрирования */
+			padding-bottom: 7px;
+			/* Небольшой отступ снизу для визуального центрирования */
 		}
-
+		
+		.modal-close:hover {
+			background-color: rgba(0, 0, 0, 0.1);
+			color: #333;
+		}
+		
 		.dark-mode .modal-close {
 			color: #ccc;
+		}
+		
+		.dark-mode .modal-close:hover {
+			background-color: rgba(255, 255, 255, 0.1);
+			color: #fff;
 		}
 
 		#create-group-form {
 			display: flex;
 			flex-direction: column;
+			
 			flex: 1;
 		}
 
@@ -457,6 +560,35 @@
 			background-color: #3d3d3d;
 			border-color: #555;
 			color: #eee;
+		}
+
+		/* Стили для счетчика символов */
+		.char-counter {
+			display: flex;
+			justify-content: flex-end;
+			margin-top: 5px;
+			font-size: 12px;
+			color: #777;
+		}
+
+		.dark-mode .char-counter {
+			color: #aaa;
+		}
+
+		.char-counter.limit-close {
+			color: #ff9900;
+		}
+
+		.char-counter.limit-reached {
+			color: #ff3300;
+		}
+
+		.dark-mode .char-counter.limit-close {
+			color: #ffaa33;
+		}
+
+		.dark-mode .char-counter.limit-reached {
+			color: #ff5533;
 		}
 
 		.group-avatar-container,
@@ -878,6 +1010,7 @@
 			padding: 8px 15px;
 			transition: background-color 0.2s;
 			cursor: pointer;
+			flex-wrap: wrap;
 		}
 
 		.popular-group-item:hover {
@@ -892,20 +1025,33 @@
 			width: 40px;
 			height: 40px;
 			border-radius: 50%;
-			background-color: #eee;
+			background-color: #3d3d3d;
 			margin-right: 10px;
 			overflow: hidden;
 			flex-shrink: 0;
 		}
-
+		
 		.popular-group-avatar img {
 			width: 100%;
 			height: 100%;
 			object-fit: cover;
 		}
 
+		@media (max-width: 576px) {
+			.popular-group-item {
+				padding: 10px;
+			}
+			
+			.popular-group-category, 
+			.popular-group-members {
+				margin-top: 2px;
+			}
+		}
+
 		.popular-group-info {
 			flex-grow: 1;
+			min-width: 0;
+			overflow: hidden;
 		}
 
 		.popular-group-name {
@@ -913,6 +1059,11 @@
 			font-weight: 500;
 			margin-bottom: 2px;
 			color: #333;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: normal;
+			word-wrap: break-word;
+			margin-right: 5px;
 		}
 
 		.dark-mode .popular-group-name {
@@ -922,10 +1073,34 @@
 		.popular-group-members {
 			font-size: 12px;
 			color: #888;
+			white-space: normal;
+			word-wrap: break-word;
 		}
 
 		.dark-mode .popular-group-members {
 			color: #aaa;
+		}
+
+		.popular-group-category {
+			display: inline-flex;
+			align-items: center;
+			margin-right: 5px;
+			margin-bottom: 2px;
+			padding: 2px 6px;
+			background-color: #4a76a81a;
+			border-radius: 10px;
+			font-size: 11px;
+			color: #4a76a8;
+		}
+		
+		.dark-mode .popular-group-category {
+			background-color: #5a86b81a;
+			color: #5a86b8;
+		}
+		
+		.popular-group-category i {
+			margin-right: 4px;
+			font-size: 9px;
 		}
 
 		/* Стили для табов групп */
@@ -934,7 +1109,8 @@
 			border-bottom: 1px solid #ddd;
 			padding: 0;
 			width: 100%;
-			justify-content: space-between;
+			display: flex;
+			justify-content: flex-start;
 			align-items: center;
 		}
 
@@ -947,6 +1123,7 @@
 			list-style: none;
 			padding: 0;
 			margin: 0;
+			flex-wrap: wrap;
 		}
 
 		.tab-item {
@@ -958,6 +1135,17 @@
 			position: relative;
 			margin-right: 10px;
 			transition: color 0.2s;
+		}
+		
+		@media (max-width: 576px) {
+			.tabs-container {
+				justify-content: center;
+			}
+			
+			.tab-item {
+				padding: 10px 15px;
+				font-size: 14px;
+			}
 		}
 
 		.tab-item.active {
@@ -992,7 +1180,7 @@
 		}
 
 		.tab-content {
-			display: none;
+			display: none !important;
 			padding: 0;
 			width: 100%;
 			box-sizing: border-box;
@@ -1000,7 +1188,7 @@
 		}
 
 		.tab-content.active {
-			display: block;
+			display: block !important;
 		}
 
 		.tab-badge {
@@ -1040,8 +1228,7 @@
 		}
 
 		/* Стили для кнопки подписки */
-		.subscribe-btn,
-		.unsubscribe-btn {
+		.subscribe-btn {
 			background-color: #4a76a8;
 			color: white;
 			border: none;
@@ -1053,44 +1240,50 @@
 			margin-left: auto;
 			white-space: nowrap;
 			margin-right: 15px;
+			flex-shrink: 0;
 		}
 
-		.subscribe-btn:hover,
-		.unsubscribe-btn:hover {
+		.subscribe-btn:hover {
 			background-color: #3a5b80;
 		}
 
-		.dark-mode .subscribe-btn,
-		.dark-mode .unsubscribe-btn {
+		.dark-mode .subscribe-btn {
 			background-color: #5a86b8;
 		}
 
-		.dark-mode .subscribe-btn:hover,
-		.dark-mode .unsubscribe-btn:hover {
+		.dark-mode .subscribe-btn:hover {
 			background-color: #4a76a8;
 		}
 
+		/* Стили для кнопки отписки - всегда видна и нейтрального цвета */
 		.unsubscribe-btn {
-			display: none;
-			background-color: #e74c3c;
+			display: block;
+			background-color: #f8f8f8;
+			color: #666;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			padding: 6px 12px;
+			font-size: 14px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			margin-left: auto;
+			white-space: nowrap;
 			margin-right: 15px;
+			flex-shrink: 0;
 		}
 
 		.unsubscribe-btn:hover {
-			background-color: #c0392b;
+			background-color: #f1f1f1;
 		}
 
 		.dark-mode .unsubscribe-btn {
-			background-color: #e74c3c;
+			background-color: #333;
+			color: #ccc;
+			border: 1px solid #444;
 		}
 
 		.dark-mode .unsubscribe-btn:hover {
-			background-color: #c0392b;
-		}
-
-		/* Показываем кнопку отписки при наведении */
-		.group-card.subscribed:hover .unsubscribe-btn {
-			display: block;
+			background-color: #3a3a3a;
 		}
 
 		/* Стили для разделителя между группами */
@@ -1101,11 +1294,50 @@
 			margin: 20px 0 15px 0;
 			padding-bottom: 10px;
 			border-bottom: 1px solid #eee;
+			cursor: pointer;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			user-select: none;
+			transition: color 0.2s ease, background-color 0.2s ease;
+		}
+		
+		.groups-section-title:hover {
+			background-color: rgba(0, 0, 0, 0.03);
+			border-radius: 5px;
+		}
+		
+		.dark-mode .groups-section-title:hover {
+			background-color: rgba(255, 255, 255, 0.05);
+		}
+		
+		.groups-section-title .toggle-icon {
+			font-size: 16px;
+			transition: transform 0.3s ease;
+			margin-right: 10px;
+		}
+		
+		.groups-section-title.collapsed .toggle-icon {
+			transform: rotate(180deg);
 		}
 
 		.dark-mode .groups-section-title {
 			color: #f5f5f5;
 			border-bottom-color: #333;
+		}
+		
+		.section-content {
+			transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+			max-height: 5000px;
+			opacity: 1;
+			overflow: hidden;
+		}
+		
+		.section-content.collapsed {
+			max-height: 0;
+			opacity: 0;
+			margin-top: 0;
+			margin-bottom: 0;
 		}
 
 		/* Стили для всплывающих сообщений */
@@ -1156,6 +1388,181 @@
 
 		.message-exit {
 			animation: slideOut 0.3s ease forwards;
+		}
+
+		/* Стили для блока фильтров */
+		.filters-container {
+			display: flex;
+			flex-wrap: wrap;
+			margin-top: 10px;
+			gap: 15px;
+			padding: 15px;
+			background-color: #f9f9f9;
+			border-radius: 8px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+		}
+		
+		.dark-mode .filters-container {
+			background-color: #2d2d2d;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		}
+		
+		.filter-group {
+			flex: 1 1 auto;
+			min-width: 200px;
+		}
+		
+		.filter-title {
+			font-weight: 500;
+			font-size: 14px;
+			margin-bottom: 8px;
+			color: #555;
+			display: flex;
+			align-items: center;
+		}
+		
+		.filter-title i {
+			margin-right: 6px;
+		}
+		
+		.dark-mode .filter-title {
+			color: #ddd;
+		}
+		
+		.sort-options {
+			display: flex;
+			gap: 10px;
+		}
+		
+		.sort-btn {
+			padding: 6px 12px;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			background-color: #fff;
+			color: #555;
+			font-size: 13px;
+			cursor: pointer;
+			transition: all 0.2s;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			position: relative;
+		}
+		
+		.sort-btn i {
+			margin-left: 5px;
+			font-size: 12px;
+			transition: transform 0.2s;
+		}
+		
+		.sort-btn.active {
+			background-color: #4a76a8;
+			color: white;
+			border-color: #4a76a8;
+		}
+		
+		.sort-btn.reversed i {
+			transform: rotate(180deg);
+		}
+		
+		.dark-mode .sort-btn {
+			background-color: #3d3d3d;
+			border-color: #444;
+			color: #ddd;
+		}
+		
+		.dark-mode .sort-btn.active {
+			background-color: #5a86b8;
+			border-color: #5a86b8;
+			color: white;
+		}
+		
+		.category-filters {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			max-height: none;
+			overflow-y: visible;
+			padding-right: 5px;
+		}
+		
+		.category-checkbox {
+			display: none;
+		}
+		
+		.category-label {
+			display: inline-flex;
+			align-items: center;
+			padding: 4px 10px;
+			border-radius: 15px;
+			font-size: 12px;
+			background-color: #f0f0f0;
+			color: #555;
+			cursor: pointer;
+			transition: all 0.2s;
+			white-space: nowrap;
+		}
+		
+		.category-label i {
+			margin-right: 5px;
+			font-size: 10px;
+		}
+		
+		.category-checkbox:checked + .category-label {
+			background-color: #4a76a8;
+			color: white;
+		}
+		
+		.dark-mode .category-label {
+			background-color: #3d3d3d;
+			color: #ddd;
+		}
+		
+		.dark-mode .category-checkbox:checked + .category-label {
+			background-color: #5a86b8;
+			color: white;
+		}
+		
+		@media (max-width: 768px) {
+			.filters-container {
+				flex-direction: column;
+				gap: 10px;
+				padding: 15px 15px 20px 15px;
+			}
+			
+			.filter-group {
+				width: 100%;
+				min-width: 100%;
+			}
+			
+			.category-filters {
+				max-height: none;
+				overflow-y: visible;
+				padding-top: 5px;
+			}
+		}
+		
+		@media (max-width: 576px) {
+			.filters-container {
+				padding: 15px 15px 25px 15px;
+			}
+			
+			.filter-group {
+				margin-bottom: 5px;
+			}
+			
+			.category-filters {
+				max-height: none;
+				overflow-y: visible;
+				padding-bottom: 10px;
+				padding-top: 10px;
+				gap: 8px;
+			}
+			
+			.category-label {
+				padding: 5px 12px;
+				font-size: 13px;
+			}
 		}
 	</style>
 
@@ -1346,20 +1753,6 @@
 				let userGroups = []; // Группы, в которых пользователь состоит
 				let otherGroups = []; // Группы, в которых пользователь не состоит
 				
-				// Проверяем, есть ли у пользователя созданные группы
-				if (userData.createdGroups) {
-					for (const groupId in userData.createdGroups) {
-						const groupRef = ref(db, `groups/${groupId}`);
-						const groupSnapshot = await get(groupRef);
-						
-						if (groupSnapshot.exists()) {
-							const groupData = groupSnapshot.val();
-							groupData.id = groupId;
-							adminGroups.push(groupData);
-						}
-					}
-				}
-				
 				// Загружаем все группы из базы данных
 				const groupsRef = ref(db, 'groups');
 				const groupsSnapshot = await get(groupsRef);
@@ -1370,14 +1763,23 @@
 						groupData.id = childSnapshot.key;
 						allGroups.push(groupData);
 						
+						// Проверяем, является ли пользователь создателем группы (администратором)
+						if (groupData.createdBy === userId) {
+							adminGroups.push(groupData);
+						}
+						
 						// Проверяем, является ли пользователь участником группы
 						if (groupData.members && groupData.members[userId]) {
 							userGroups.push(groupData);
-						} else {
+						} else if (groupData.createdBy !== userId) { // Только если пользователь не создатель
 							otherGroups.push(groupData);
 						}
 					});
 				}
+				
+				// Очищаем контейнеры перед добавлением новых элементов
+				allGroupsContainer.innerHTML = '';
+				adminGroupsContainer.innerHTML = '';
 				
 				// Отображаем количество групп в табах
 				document.getElementById('all-groups-count').textContent = userGroups.length;
@@ -1385,13 +1787,15 @@
 				
 				// Отображаем группы в табе "Управление"
 				if (adminGroups.length > 0) {
+					// Добавляем заголовок "Вы администратор"
+					const adminGroupsGrid = document.createElement('div');
+					adminGroupsGrid.className = 'groups-grid section-content';
+					createSectionTitle(`Вы администратор (${adminGroups.length})`, adminGroupsContainer, adminGroupsGrid);
+					
 					renderGroups(adminGroups, adminGroupsContainer);
 				} else {
 					adminGroupsContainer.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><p>У вас пока нет созданных групп</p><button class="create-group-btn">Создать группу</button></div>';
 				}
-				
-				// Очищаем контейнер для таба "Группы"
-				allGroupsContainer.innerHTML = '';
 				
 				// Создаем div-контейнеры для разных типов групп
 				const userGroupsSection = document.createElement('div');
@@ -1402,10 +1806,10 @@
 				
 				// Отображаем группы, в которых пользователь участвует
 				if (userGroups.length > 0) {
-					const sectionTitle = document.createElement('div');
-					sectionTitle.className = 'groups-section-title';
-					sectionTitle.textContent = 'Мои группы';
-					userGroupsSection.appendChild(sectionTitle);
+					// Добавляем заголовок "Вы подписаны" с возможностью сворачивания
+					const userGroupsGrid = document.createElement('div');
+					userGroupsGrid.className = 'groups-grid section-content';
+					createSectionTitle(`Вы подписаны (${userGroups.length})`, allGroupsContainer, userGroupsGrid);
 					
 					renderGroups(userGroups, userGroupsSection);
 					allGroupsContainer.appendChild(userGroupsSection);
@@ -1419,10 +1823,10 @@
 				
 				// Отображаем группы, в которых пользователь не участвует
 				if (otherGroups.length > 0) {
-					const sectionTitle = document.createElement('div');
-					sectionTitle.className = 'groups-section-title';
-					sectionTitle.textContent = 'Рекомендуемые группы';
-					otherGroupsSection.appendChild(sectionTitle);
+					// Создаем контент и заголовок с возможностью сворачивания
+					const otherGroupsGrid = document.createElement('div');
+					otherGroupsGrid.className = 'groups-grid section-content';
+					createSectionTitle(`Все группы (${otherGroups.length})`, otherGroupsSection, otherGroupsGrid);
 					
 					renderGroupsWithSubscribe(otherGroups, otherGroupsSection, userId);
 					allGroupsContainer.appendChild(otherGroupsSection);
@@ -1483,6 +1887,10 @@
 			topGroups.forEach((group, index) => {
 				const memberCount = group.members ? Object.keys(group.members).length : 0;
 				
+				// Получаем информацию о категории
+				const categoryName = getCategoryName(group.category || '');
+				const categoryIcon = getCategoryIcon(group.category || '');
+				
 				const groupItem = document.createElement('div');
 				groupItem.className = 'popular-group-item';
 				groupItem.onclick = () => {
@@ -1495,6 +1903,7 @@
 					</div>
 					<div class="popular-group-info">
 						<div class="popular-group-name">${group.name}</div>
+						${group.category ? `<div class="popular-group-category"><i class="fas ${categoryIcon}"></i> ${categoryName}</div>` : ''}
 						<div class="popular-group-members">${memberCount} ${getWordForm(memberCount, ['участник', 'участника', 'участников'])}</div>
 					</div>
 				`;
@@ -1506,7 +1915,7 @@
 		// Функция для отображения групп с кнопкой подписки
 		function renderGroupsWithSubscribe(groups, container, userId) {
 			const groupsGrid = document.createElement('div');
-			groupsGrid.className = 'groups-grid';
+			groupsGrid.className = 'groups-grid section-content';
 			
 			for (const group of groups) {
 				const groupCard = document.createElement('div');
@@ -1624,89 +2033,246 @@
 		// Функция инициализации поиска
 		function initSearch(allGroups, adminGroups, userGroups, otherGroups, userId) {
 			const groupsSearchInput = document.getElementById('groups-search');
-			const adminSearchInput = document.getElementById('admin-search');
 			const allGroupsContainer = document.getElementById('all-groups');
 			const adminGroupsContainer = document.getElementById('admin-groups');
 			
-			// Поиск для групп в табе "Группы"
-			groupsSearchInput.addEventListener('input', function() {
-				const query = this.value.trim().toLowerCase();
+			// Глобальные переменные для сортировки и фильтрации
+			let currentSortOrder = 'date-desc'; // Начальное значение - сортировка по дате (новые сверху)
+			let selectedCategories = []; // массив выбранных категорий
+			
+			// Инициализируем фильтры
+			initFilters();
+			
+			// Функция для инициализации фильтров
+			function initFilters() {
+				// Переменные для отслеживания состояния сортировки
+				let currentSortType = 'date'; // 'date' или 'members'
+				let isDateReversed = false; // false - новые сверху, true - старые сверху
+				let isMembersReversed = false; // false - много сверху, true - мало сверху
 				
+				// Инициализация кнопок сортировки
+				const sortDateBtn = document.getElementById('sort-date');
+				const sortMembersBtn = document.getElementById('sort-members');
+				
+				// Обработчик для кнопки сортировки по дате
+				sortDateBtn.addEventListener('click', () => {
+					if (currentSortType === 'date') {
+						// Если уже сортируем по дате, меняем направление
+						isDateReversed = !isDateReversed;
+						sortDateBtn.classList.toggle('reversed', isDateReversed);
+					} else {
+						// Меняем тип сортировки на дату
+						currentSortType = 'date';
+						// Активируем кнопку даты и деактивируем кнопку участников
+						sortDateBtn.classList.add('active');
+						sortMembersBtn.classList.remove('active');
+						// Устанавливаем начальное направление сортировки по дате
+						sortDateBtn.classList.toggle('reversed', isDateReversed);
+					}
+					
+					// Обновляем глобальное состояние сортировки
+					if (currentSortType === 'date') {
+						currentSortOrder = isDateReversed ? 'date-asc' : 'date-desc';
+					} else {
+						currentSortOrder = isMembersReversed ? 'members-asc' : 'members-desc';
+					}
+					
+					applyFilters();
+				});
+				
+				// Обработчик для кнопки сортировки по участникам
+				sortMembersBtn.addEventListener('click', () => {
+					if (currentSortType === 'members') {
+						// Если уже сортируем по участникам, меняем направление
+						isMembersReversed = !isMembersReversed;
+						sortMembersBtn.classList.toggle('reversed', isMembersReversed);
+					} else {
+						// Меняем тип сортировки на участников
+						currentSortType = 'members';
+						// Активируем кнопку участников и деактивируем кнопку даты
+						sortMembersBtn.classList.add('active');
+						sortDateBtn.classList.remove('active');
+						// Устанавливаем начальное направление сортировки по участникам
+						sortMembersBtn.classList.toggle('reversed', isMembersReversed);
+					}
+					
+					// Обновляем глобальное состояние сортировки
+					if (currentSortType === 'date') {
+						currentSortOrder = isDateReversed ? 'date-asc' : 'date-desc';
+					} else {
+						currentSortOrder = isMembersReversed ? 'members-asc' : 'members-desc';
+					}
+					
+					applyFilters();
+				});
+				
+				// Инициализация фильтров по категориям
+				const categoryFilters = document.getElementById('category-filters');
+				const categories = {
+					'technology': { name: 'Технологии', icon: 'fa-laptop' },
+					'programming': { name: 'Программирование', icon: 'fa-code' },
+					'design': { name: 'Дизайн', icon: 'fa-palette' },
+					'education': { name: 'Образование', icon: 'fa-graduation-cap' },
+					'business': { name: 'Бизнес', icon: 'fa-briefcase' },
+					'entertainment': { name: 'Развлечения', icon: 'fa-theater-masks' },
+					'health': { name: 'Здоровье и спорт', icon: 'fa-heartbeat' },
+					'cooking': { name: 'Кулинария и рецепты', icon: 'fa-utensils' },
+					'art': { name: 'Искусство', icon: 'fa-paint-brush' },
+					'music': { name: 'Музыка', icon: 'fa-music' },
+					'literature': { name: 'Литература', icon: 'fa-book' },
+					'travel': { name: 'Путешествия', icon: 'fa-plane' },
+					'photography': { name: 'Фотография', icon: 'fa-camera' },
+					'gaming': { name: 'Игры', icon: 'fa-gamepad' },
+					'science': { name: 'Наука', icon: 'fa-flask' },
+					'hobbies': { name: 'Хобби и творчество', icon: 'fa-puzzle-piece' },
+					'nature': { name: 'Природа и животные', icon: 'fa-leaf' },
+					'languages': { name: 'Языки', icon: 'fa-language' },
+					'fashion': { name: 'Мода и стиль', icon: 'fa-tshirt' },
+					'psychology': { name: 'Психология', icon: 'fa-brain' }
+				};
+				
+				// Создаем чекбоксы для каждой категории
+				categoryFilters.innerHTML = '';
+				Object.entries(categories).forEach(([code, data]) => {
+					const categoryHtml = `
+						<div class="category-item">
+							<input type="checkbox" id="cat-${code}" class="category-checkbox" value="${code}">
+							<label for="cat-${code}" class="category-label">
+								<i class="fas ${data.icon}"></i> ${data.name}
+							</label>
+						</div>
+					`;
+					categoryFilters.innerHTML += categoryHtml;
+				});
+				
+				// Добавляем обработчики событий для чекбоксов категорий
+				document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+					checkbox.addEventListener('change', () => {
+						const categoryValue = checkbox.value;
+						
+						if (checkbox.checked) {
+							if (!selectedCategories.includes(categoryValue)) {
+								selectedCategories.push(categoryValue);
+							}
+						} else {
+							selectedCategories = selectedCategories.filter(cat => cat !== categoryValue);
+						}
+						
+						applyFilters();
+					});
+				});
+				
+				// Устанавливаем начальное значение сортировки (по дате, новые сверху)
+				currentSortOrder = 'date-desc';
+				
+				// Применяем фильтры сразу после инициализации
+				applyFilters();
+			}
+			
+			// Функция для применения всех фильтров
+			function applyFilters() {
+				const query = groupsSearchInput.value.trim().toLowerCase();
+				const activeTab = document.querySelector('.tab-item.active').getAttribute('data-tab');
+				
+				// Применяем фильтры в зависимости от активного таба
+				if (activeTab === 'groups-tab') {
+					applyGroupsTabFilters(query);
+				} else {
+					applyAdminTabFilters(query);
+				}
+			}
+			
+			// Функция для применения фильтров в табе "Группы"
+			function applyGroupsTabFilters(query) {
 				// Очищаем контейнер
 				allGroupsContainer.innerHTML = '';
 				
-				if (!query) {
-					// Если поле поиска пустое, показываем все группы как обычно
-					const userGroupsSection = document.createElement('div');
-					userGroupsSection.className = 'user-groups-section';
+				// Фильтруем группы по поисковому запросу
+				let filteredUserGroups = userGroups.filter(group => {
+					return !query || group.name.toLowerCase().includes(query) || 
+						(group.description && group.description.toLowerCase().includes(query));
+				});
+				
+				let filteredOtherGroups = otherGroups.filter(group => {
+					return !query || group.name.toLowerCase().includes(query) || 
+						(group.description && group.description.toLowerCase().includes(query));
+				});
+				
+				// Фильтруем по категориям, если выбраны
+				if (selectedCategories.length > 0) {
+					filteredUserGroups = filteredUserGroups.filter(group => 
+						group.category && selectedCategories.includes(group.category)
+					);
 					
-					const otherGroupsSection = document.createElement('div');
-					otherGroupsSection.className = 'other-groups-section';
-					
-					if (userGroups.length > 0) {
-						const sectionTitle = document.createElement('div');
-						sectionTitle.className = 'groups-section-title';
-						sectionTitle.textContent = 'Мои группы';
-						userGroupsSection.appendChild(sectionTitle);
-						
-						renderGroups(userGroups, userGroupsSection);
-						allGroupsContainer.appendChild(userGroupsSection);
-					} else {
-						const emptyState = document.createElement('div');
-						emptyState.className = 'empty-state';
-						emptyState.innerHTML = '<i class="fas fa-users-slash"></i><p>Вы пока не состоите ни в одной группе</p>';
-						userGroupsSection.appendChild(emptyState);
-						allGroupsContainer.appendChild(userGroupsSection);
-					}
-					
-					if (otherGroups.length > 0) {
-						const sectionTitle = document.createElement('div');
-						sectionTitle.className = 'groups-section-title';
-						sectionTitle.textContent = 'Рекомендуемые группы';
-						otherGroupsSection.appendChild(sectionTitle);
-						
-						renderGroupsWithSubscribe(otherGroups, otherGroupsSection, userId);
-						allGroupsContainer.appendChild(otherGroupsSection);
-					}
-					
-					return;
+					filteredOtherGroups = filteredOtherGroups.filter(group => 
+						group.category && selectedCategories.includes(group.category)
+					);
 				}
 				
-				// Ищем среди групп, в которых пользователь участвует
-				const filteredUserGroups = userGroups.filter(group => {
-					return group.name.toLowerCase().includes(query) || 
-						(group.description && group.description.toLowerCase().includes(query));
-				});
-				
-				// Ищем среди групп, в которых пользователь не участвует
-				const filteredOtherGroups = otherGroups.filter(group => {
-					return group.name.toLowerCase().includes(query) || 
-						(group.description && group.description.toLowerCase().includes(query));
-				});
-				
-				// Отображаем результаты поиска
-				if (filteredUserGroups.length > 0 || filteredOtherGroups.length > 0) {
-					if (filteredUserGroups.length > 0) {
-						const userGroupsSection = document.createElement('div');
-						userGroupsSection.className = 'user-groups-section';
+				// Применяем сортировку в зависимости от выбранного типа и направления
+				if (currentSortOrder) {
+					// Сортировка по количеству участников
+					if (currentSortOrder === 'members-desc' || currentSortOrder === 'members-asc') {
+						const getMemberCount = group => group.members ? Object.keys(group.members).length : 0;
 						
-						const sectionTitle = document.createElement('div');
-						sectionTitle.className = 'groups-section-title';
-						sectionTitle.textContent = 'Мои группы';
-						userGroupsSection.appendChild(sectionTitle);
+						if (currentSortOrder === 'members-asc') {
+							// По возрастанию (мало -> много)
+							filteredUserGroups.sort((a, b) => getMemberCount(a) - getMemberCount(b));
+							filteredOtherGroups.sort((a, b) => getMemberCount(a) - getMemberCount(b));
+						} else {
+							// По убыванию (много -> мало)
+							filteredUserGroups.sort((a, b) => getMemberCount(b) - getMemberCount(a));
+							filteredOtherGroups.sort((a, b) => getMemberCount(b) - getMemberCount(a));
+						}
+					} 
+					// Сортировка по дате вступления
+					else if (currentSortOrder === 'date-desc' || currentSortOrder === 'date-asc') {
+						// Сортируем пользовательские группы по дате вступления
+						filteredUserGroups.sort((a, b) => {
+							const aJoinedAt = a.members && a.members[userId] ? a.members[userId].joinedAt || 0 : 0;
+							const bJoinedAt = b.members && b.members[userId] ? b.members[userId].joinedAt || 0 : 0;
+							
+							// По умолчанию сортировка от новых к старым, но можно изменить
+							return currentSortOrder === 'date-desc' ? 
+								bJoinedAt - aJoinedAt : // Новые сверху
+								aJoinedAt - bJoinedAt;  // Старые сверху
+						});
+						
+						// Остальные группы сортируем по дате создания
+						filteredOtherGroups.sort((a, b) => {
+							const aCreatedAt = a.createdAt || 0;
+							const bCreatedAt = b.createdAt || 0;
+							
+							return currentSortOrder === 'date-desc' ? 
+								bCreatedAt - aCreatedAt : // Новые сверху
+								aCreatedAt - bCreatedAt;  // Старые сверху
+						});
+					}
+				}
+				
+				// Отображаем результаты
+				if (filteredUserGroups.length > 0 || filteredOtherGroups.length > 0) {
+					// Отображаем группы, в которых пользователь участвует
+					if (filteredUserGroups.length > 0) {
+						// Создаем контейнер для групп пользователя
+						const userGroupsSection = document.createElement('div');
+						userGroupsSection.className = 'user-groups-section section-content';
+						
+						// Создаем заголовок с возможностью сворачивания
+						createSectionTitle(`Вы подписаны (${filteredUserGroups.length})`, allGroupsContainer, userGroupsSection);
 						
 						renderGroups(filteredUserGroups, userGroupsSection);
 						allGroupsContainer.appendChild(userGroupsSection);
 					}
 					
+					// Отображаем группы, в которых пользователь не участвует
 					if (filteredOtherGroups.length > 0) {
+						// Создаем контейнер для всех групп
 						const otherGroupsSection = document.createElement('div');
-						otherGroupsSection.className = 'other-groups-section';
+						otherGroupsSection.className = 'other-groups-section section-content';
 						
-						const sectionTitle = document.createElement('div');
-						sectionTitle.className = 'groups-section-title';
-						sectionTitle.textContent = 'Рекомендуемые группы';
-						otherGroupsSection.appendChild(sectionTitle);
+						// Создаем заголовок с возможностью сворачивания
+						createSectionTitle(`Все группы (${filteredOtherGroups.length})`, allGroupsContainer, otherGroupsSection);
 						
 						renderGroupsWithSubscribe(filteredOtherGroups, otherGroupsSection, userId);
 						allGroupsContainer.appendChild(otherGroupsSection);
@@ -1714,20 +2280,108 @@
 				} else {
 					const emptyState = document.createElement('div');
 					emptyState.className = 'empty-state';
-					emptyState.innerHTML = '<i class="fas fa-search"></i><p>Групп с таким названием не найдено</p>';
+					emptyState.innerHTML = '<i class="fas fa-search"></i><p>Групп, соответствующих выбранным критериям, не найдено</p>';
 					allGroupsContainer.appendChild(emptyState);
 				}
+			}
+			
+			// Функция для применения фильтров в табе "Управление"
+			function applyAdminTabFilters(query) {
+				// Очищаем контейнер
+				adminGroupsContainer.innerHTML = '';
+				
+				// Фильтруем группы по поисковому запросу
+				let filteredAdminGroups = adminGroups.filter(group => {
+					return !query || group.name.toLowerCase().includes(query) || 
+						(group.description && group.description.toLowerCase().includes(query));
+				});
+				
+				// Фильтруем по категориям, если выбраны
+				if (selectedCategories.length > 0) {
+					filteredAdminGroups = filteredAdminGroups.filter(group => 
+						group.category && selectedCategories.includes(group.category)
+					);
+				}
+				
+				// Применяем сортировку в зависимости от выбранного типа и направления
+				if (currentSortOrder) {
+					// Сортировка по количеству участников
+					if (currentSortOrder === 'members-desc' || currentSortOrder === 'members-asc') {
+						const getMemberCount = group => group.members ? Object.keys(group.members).length : 0;
+						
+						if (currentSortOrder === 'members-asc') {
+							// По возрастанию (мало -> много)
+							filteredAdminGroups.sort((a, b) => getMemberCount(a) - getMemberCount(b));
+						} else {
+							// По убыванию (много -> мало)
+							filteredAdminGroups.sort((a, b) => getMemberCount(b) - getMemberCount(a));
+						}
+					} 
+					// Сортировка по дате создания
+					else if (currentSortOrder === 'date-desc' || currentSortOrder === 'date-asc') {
+						filteredAdminGroups.sort((a, b) => {
+							const aCreatedAt = a.createdAt || 0;
+							const bCreatedAt = b.createdAt || 0;
+							
+							return currentSortOrder === 'date-desc' ? 
+								bCreatedAt - aCreatedAt : // Новые сверху
+								aCreatedAt - bCreatedAt;  // Старые сверху
+						});
+					}
+				}
+				
+				// Отображаем результаты
+				if (filteredAdminGroups.length > 0) {
+					// Создаем контейнер для групп администратора
+					const adminGroupsSection = document.createElement('div');
+					adminGroupsSection.className = 'admin-groups-section section-content';
+					
+					// Создаем заголовок с возможностью сворачивания
+					createSectionTitle(`Вы администратор (${filteredAdminGroups.length})`, adminGroupsContainer, adminGroupsSection);
+					
+					renderGroups(filteredAdminGroups, adminGroupsSection);
+					adminGroupsContainer.appendChild(adminGroupsSection);
+				} else {
+					const emptyState = document.createElement('div');
+					emptyState.className = 'empty-state';
+					emptyState.innerHTML = '<i class="fas fa-search"></i><p>Групп, соответствующих выбранным критериям, не найдено</p>';
+					adminGroupsContainer.appendChild(emptyState);
+				}
+			}
+			
+			// Поиск групп во всех табах (заменяем стандартный обработчик ввода)
+			groupsSearchInput.addEventListener('input', function() {
+				applyFilters();
 			});
 			
-			// Поиск для групп, где пользователь администратор
-			adminSearchInput.addEventListener('input', function() {
-				searchGroups(this.value, adminGroups, adminGroupsContainer);
+			// Добавляем обработчик переключения табов для обновления результатов
+			document.querySelectorAll('.tab-item').forEach(tab => {
+				tab.addEventListener('click', () => {
+					// Применяем фильтры при переключении вкладки
+					applyFilters();
+				});
 			});
 		}
 		
 		// Функция для поиска групп
 		function searchGroups(query, groups, container) {
+			// Очищаем контейнер перед новым поиском
+			container.innerHTML = '';
+			
 			if (!query.trim()) {
+				// Если контейнер это admin-groups, добавляем заголовок "Вы администратор"
+				if (container.id === 'admin-groups' && groups.length > 0) {
+					const adminTitle = document.createElement('div');
+					adminTitle.className = 'groups-section-title';
+					adminTitle.textContent = `Вы администратор (${groups.length})`;
+					container.appendChild(adminTitle);
+				}
+				
+				if (groups.length === 0) {
+					container.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><p>Группы не найдены</p></div>';
+					return;
+				}
+				
 				renderGroups(groups, container);
 				return;
 			}
@@ -1739,6 +2393,14 @@
 			});
 			
 			if (filteredGroups.length > 0) {
+				// Если контейнер это admin-groups, добавляем заголовок "Вы администратор"
+				if (container.id === 'admin-groups') {
+					const adminTitle = document.createElement('div');
+					adminTitle.className = 'groups-section-title';
+					adminTitle.textContent = `Вы администратор (${filteredGroups.length})`;
+					container.appendChild(adminTitle);
+				}
+				
 				renderGroups(filteredGroups, container);
 			} else {
 				container.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>Групп с таким названием не найдено</p></div>';
@@ -1749,9 +2411,23 @@
 		function initCreateGroupModal(userId) {
 			// Добавляем обработчик для кнопки создания группы
 			document.querySelectorAll('.create-group-btn').forEach(button => {
-				button.addEventListener('click', () => {
-					// Показываем модальное окно для создания группы
-					document.getElementById('create-group-modal-overlay').classList.add('active');
+				button.addEventListener('click', async () => {
+					try {
+						// Проверяем количество групп перед открытием модального окна
+						const groupsCheck = await checkAdminGroupsCount(userId);
+						
+						if (groupsCheck.reachedLimit) {
+							// Если достигнут лимит, показываем сообщение об ошибке
+							showError('Вы уже являетесь администратором максимального количества групп (10). Удалите какую-либо из существующих групп перед созданием новой.');
+							return;
+						}
+						
+						// Если лимит не достигнут, показываем модальное окно
+						document.getElementById('create-group-modal-overlay').classList.add('active');
+					} catch (error) {
+						console.error('Ошибка при проверке групп:', error);
+						showError('Произошла ошибка при проверке групп');
+					}
 				});
 			});
 
@@ -1764,20 +2440,60 @@
 			const groupCoverInput = document.getElementById('group-cover-input');
 			const groupAvatarPreview = document.getElementById('group-avatar-preview');
 			const groupCoverPreview = document.getElementById('group-cover-preview');
+			
+			// Инициализация счетчиков символов
+			const nameInput = document.getElementById('group-name');
+			const descriptionInput = document.getElementById('group-description');
+			const nameCounter = document.getElementById('name-counter');
+			const descriptionCounter = document.getElementById('description-counter');
+			
+			// Функция обновления счетчика символов
+			function updateCharCounter(input, counter, limit) {
+				const length = input.value.length;
+				counter.textContent = `${length}/${limit}`;
+				
+				// Изменение цвета счетчика в зависимости от заполнения
+				if (length >= limit) {
+					counter.className = 'char-counter limit-reached';
+				} else if (length >= limit * 0.8) {
+					counter.className = 'char-counter limit-close';
+				} else {
+					counter.className = 'char-counter';
+				}
+			}
+			
+			// Добавляем обработчики событий для обновления счетчиков
+			nameInput.addEventListener('input', () => updateCharCounter(nameInput, nameCounter, 64));
+			descriptionInput.addEventListener('input', () => updateCharCounter(descriptionInput, descriptionCounter, 128));
+			
+			// Инициализация счетчиков при открытии формы
+			updateCharCounter(nameInput, nameCounter, 64);
+			updateCharCounter(descriptionInput, descriptionCounter, 128);
+			
+			// Сброс счетчиков при закрытии модального окна
+			function resetCounters() {
+				nameCounter.textContent = '0/64';
+				nameCounter.className = 'char-counter';
+				descriptionCounter.textContent = '0/128';
+				descriptionCounter.className = 'char-counter';
+			}
 
 			// Закрытие модального окна
 			modalClose.addEventListener('click', () => {
 				modalOverlay.classList.remove('active');
+				resetCounters();
 			});
 
 			cancelBtn.addEventListener('click', () => {
 				modalOverlay.classList.remove('active');
+				resetCounters();
 			});
 
 			// Клик вне модального окна закрывает его
 			modalOverlay.addEventListener('click', (e) => {
 				if (e.target === modalOverlay) {
 					modalOverlay.classList.remove('active');
+					resetCounters();
 				}
 			});
 			
@@ -1795,11 +2511,24 @@
 						return;
 					}
 					
+					// Проверяем, является ли файл GIF
+					const isGif = file.type === 'image/gif';
+					
 					const reader = new FileReader();
 					
 					reader.onload = function(e) {
-						// Открываем модальное окно обрезки аватарки
-						openAvatarCropModal(e.target.result);
+						if (isGif) {
+							// Для GIF файлов пропускаем кроппер и сразу показываем в превью
+							document.getElementById('group-avatar-preview').innerHTML = `<img src="${e.target.result}" alt="Group avatar">`;
+							
+							// Создаем Blob из файла для последующей загрузки
+							file.arrayBuffer().then(buffer => {
+								croppedAvatarBlob = new Blob([buffer], { type: 'image/gif' });
+							});
+						} else {
+							// Для других форматов открываем модальное окно обрезки
+							openAvatarCropModal(e.target.result);
+						}
 					};
 					
 					reader.readAsDataURL(file);
@@ -1820,11 +2549,24 @@
 						return;
 					}
 					
+					// Проверяем, является ли файл GIF
+					const isGif = file.type === 'image/gif';
+					
 					const reader = new FileReader();
 					
 					reader.onload = function(e) {
-						// Открываем модальное окно обрезки обложки
-						openCoverCropModal(e.target.result);
+						if (isGif) {
+							// Для GIF файлов пропускаем кроппер и сразу показываем в превью
+							document.getElementById('group-cover-preview').innerHTML = `<img src="${e.target.result}" alt="Group cover">`;
+							
+							// Создаем Blob из файла для последующей загрузки
+							file.arrayBuffer().then(buffer => {
+								croppedCoverBlob = new Blob([buffer], { type: 'image/gif' });
+							});
+						} else {
+							// Для других форматов открываем модальное окно обрезки
+							openCoverCropModal(e.target.result);
+						}
 					};
 					
 					reader.readAsDataURL(file);
@@ -1883,6 +2625,9 @@
 						croppedAvatarBlob = null;
 						croppedCoverBlob = null;
 						
+						// Сбрасываем счетчики символов
+						resetCounters();
+						
 						// Восстанавливаем кнопку
 						submitButton.disabled = false;
 						submitButton.innerHTML = 'Создать группу';
@@ -1907,6 +2652,28 @@
 		// Функция для создания группы - выносим логику создания в отдельную функцию
 		async function createGroup(groupName, groupDescription, groupCategory, groupCustomId, userId, croppedAvatarBlob, croppedCoverBlob) {
 			try {
+				// Проверяем количество групп, где пользователь уже является администратором
+				// Теперь ищем группы с полем createdBy = userId вместо проверки через createdGroups
+				const groupsRef = ref(db, 'groups');
+				const groupsSnapshot = await get(groupsRef);
+				
+				let adminGroupsCount = 0;
+				
+				// Считаем группы, где пользователь является создателем (createdBy = userId)
+				if (groupsSnapshot.exists()) {
+					const groups = groupsSnapshot.val();
+					for (const groupId in groups) {
+						if (groups[groupId].createdBy === userId) {
+							adminGroupsCount++;
+						}
+					}
+				}
+				
+				// Если пользователь уже является администратором 10 групп, не даем создать новую
+				if (adminGroupsCount >= 10) {
+					throw new Error('Вы уже являетесь администратором максимального количества групп (10). Удалите какую-либо из существующих групп перед созданием новой.');
+				}
+				
 				// Проверяем уникальность ID группы, если он указан
 				if (groupCustomId) {
 					const customIdRef = ref(db, `groupIds/${groupCustomId}`);
@@ -1953,7 +2720,11 @@
 				
 				// Загрузка аватарки в Storage (если есть)
 				if (croppedAvatarBlob) {
-					const avatarRef = storageRef(storage, `groups/${groupId}/avatar.jpg`);
+					// Определяем расширение файла на основе типа Blob
+					const isGifAvatar = croppedAvatarBlob.type === 'image/gif';
+					const avatarExtension = isGifAvatar ? 'gif' : 'jpg';
+					
+					const avatarRef = storageRef(storage, `groups/${groupId}/avatar.${avatarExtension}`);
 					const avatarSnapshot = await uploadBytes(avatarRef, croppedAvatarBlob);
 					const avatarURL = await getDownloadURL(avatarRef);
 					groupData.photoURL = avatarURL;
@@ -1963,7 +2734,11 @@
 				
 				// Загрузка обложки в Storage (если есть)
 				if (croppedCoverBlob) {
-					const coverRef = storageRef(storage, `groups/${groupId}/cover.jpg`);
+					// Определяем расширение файла на основе типа Blob
+					const isGifCover = croppedCoverBlob.type === 'image/gif';
+					const coverExtension = isGifCover ? 'gif' : 'jpg';
+					
+					const coverRef = storageRef(storage, `groups/${groupId}/cover.${coverExtension}`);
 					const coverSnapshot = await uploadBytes(coverRef, croppedCoverBlob);
 					const coverURL = await getDownloadURL(coverRef);
 					groupData.coverImage = coverURL;
@@ -1971,9 +2746,11 @@
 					await set(ref(db, `groups/${groupId}/coverImage`), coverURL);
 				}
 				
-				// Добавляем группу в список созданных групп пользователя
-				const userCreatedGroupsRef = ref(db, `users/${userId}/createdGroups/${groupId}`);
-				await set(userCreatedGroupsRef, true);
+				// Больше не добавляем группу в createdGroups пользователя
+				// Эта информация будет определяться по полю createdBy в группе
+				
+				// Добавляем группу в список групп пользователя (для подписки)
+				await set(ref(db, `users/${userId}/groups/${groupId}`), true);
 				
 				console.log('Группа успешно создана:', groupId);
 				return groupId;
@@ -1983,12 +2760,47 @@
 			}
 		}
 
+		// Модифицируем функцию для создания заголовка раздела с иконкой сворачивания
+		function createSectionTitle(text, container, targetContent) {
+			const title = document.createElement('div');
+			title.className = 'groups-section-title';
+			title.innerHTML = `
+				<span>${text}</span>
+				<i class="fas fa-chevron-up toggle-icon"></i>
+			`;
+			
+			// Добавляем обработчик клика для сворачивания/разворачивания
+			title.addEventListener('click', () => {
+				title.classList.toggle('collapsed');
+				targetContent.classList.toggle('collapsed');
+			});
+			
+			container.appendChild(title);
+			return title;
+		}
+		
 		// Функция для отображения групп (в которых пользователь уже состоит)
 		function renderGroups(groups, container) {
-			container.innerHTML = '';
+			// Удаляем только существующую сетку групп (.groups-grid)
+			const existingGrid = container.querySelector('.groups-grid');
+			if (existingGrid) {
+				existingGrid.remove();
+			}
+			
+			// Если групп нет, показываем сообщение только если в контейнере нет других элементов
+			if (groups.length === 0) {
+				// Проверяем, есть ли в контейнере другие элементы, кроме .empty-state
+				const hasOtherElements = Array.from(container.children).some(child => !child.classList.contains('empty-state'));
+				
+				// Если в контейнере нет других элементов (кроме пустого состояния), показываем сообщение
+				if (!hasOtherElements) {
+					container.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><p>Группы не найдены</p></div>';
+				}
+				return;
+			}
 			
 			const groupsGrid = document.createElement('div');
-			groupsGrid.className = 'groups-grid';
+			groupsGrid.className = 'groups-grid section-content';
 			
 			for (const group of groups) {
 				const groupCard = document.createElement('div');
@@ -2032,11 +2844,6 @@
 				groupCard.addEventListener('click', () => {
 					window.location.href = `group.html?id=${group.id}`;
 				});
-			}
-			
-			if (groups.length === 0) {
-				container.innerHTML = '<div class="empty-state"><i class="fas fa-users-slash"></i><p>Группы не найдены</p></div>';
-				return;
 			}
 			
 			container.appendChild(groupsGrid);
@@ -2319,12 +3126,46 @@
 				closeCoverCropModal();
 			}
 		}
+
+		// Функция для проверки количества групп, администрируемых пользователем
+		async function checkAdminGroupsCount(userId) {
+			try {
+				// Запрашиваем все группы из базы данных
+				const groupsRef = ref(db, 'groups');
+				const groupsSnapshot = await get(groupsRef);
+				
+				let adminGroupsCount = 0;
+				
+				// Считаем группы, где пользователь является создателем (createdBy = userId)
+				if (groupsSnapshot.exists()) {
+					const groups = groupsSnapshot.val();
+					for (const groupId in groups) {
+						if (groups[groupId].createdBy === userId) {
+							adminGroupsCount++;
+						}
+					}
+				}
+				
+				// Возвращаем текущее количество групп и флаг превышения лимита
+				return {
+					count: adminGroupsCount,
+					reachedLimit: adminGroupsCount >= 10
+				};
+			} catch (error) {
+				console.error('Ошибка при проверке количества групп:', error);
+				throw error;
+			}
+		}
 	</script>
 </head>
 
 <body>
 	<div class="groups-container">
 		<div class="main-content">
+			<button class="create-group-btn">
+				<i class="fas fa-plus-circle"></i> Создать группу
+			</button>
+			
 			<div class="tabs-container">
 				<ul class="tabs">
 					<li class="tab-item active" data-tab="groups-tab">
@@ -2334,24 +3175,46 @@
 						Управление <span class="tab-badge" id="admin-groups-count">0</span>
 					</li>
 				</ul>
-				<button class="create-group-btn">
-					<i class="fas fa-plus-circle"></i> Создать группу
-				</button>
+			</div>
+			
+			<div class="search-wrapper">
+				<input type="text" id="groups-search" class="search-input" placeholder="Поиск групп...">
+				
+				<div class="filters-container">
+					<!-- Фильтр по количеству участников -->
+					<div class="filter-group">
+						<div class="filter-title">
+							<i class="fas fa-sort"></i> Сортировка
+						</div>
+						<div class="sort-options">
+							<button id="sort-date" class="sort-btn active">
+								По дате вступления <i class="fas fa-arrow-down"></i>
+							</button>
+							<button id="sort-members" class="sort-btn">
+								По участникам <i class="fas fa-arrow-down"></i>
+							</button>
+						</div>
+					</div>
+					
+					<!-- Фильтр по категориям -->
+					<div class="filter-group">
+						<div class="filter-title">
+							<i class="fas fa-tag"></i> Категории
+						</div>
+						<div class="category-filters" id="category-filters">
+							<!-- Категории будут добавлены динамически через JavaScript -->
+						</div>
+					</div>
+				</div>
 			</div>
 			
 			<div id="groups-tab" class="tab-content active">
-				<div class="search-wrapper">
-					<input type="text" id="groups-search" class="search-input" placeholder="Поиск групп...">
-				</div>
 				<div id="all-groups" class="all-groups">
 					<!-- Здесь будут отображаться все группы -->
 				</div>
 			</div>
 			
 			<div id="admin-tab" class="tab-content">
-				<div class="search-wrapper">
-					<input type="text" id="admin-search" class="search-input" placeholder="Поиск групп...">
-				</div>
 				<div id="admin-groups" class="admin-groups">
 					<!-- Здесь будут отображаться группы, созданные пользователем (админ) -->
 				</div>
@@ -2372,21 +3235,47 @@
 
 	<!-- Модальное окно создания группы -->
 	<div id="create-group-modal-overlay" class="modal-overlay">
+		<div id="modal-close" class="modal-close"><i class="fas fa-times"></i></div>
 		<div class="create-group-modal">
 			<div class="modal-header">
 				<h3 class="modal-title">Создание новой группы</h3>
-				<button id="modal-close" class="modal-close"><i class="fas fa-times"></i></button>
 			</div>
 			<form id="create-group-form">
 				<div class="groups-modal-body">
+					<div class="group-avatar-container">
+						<label class="form-label">Аватарка группы</label>
+						<div id="group-avatar-preview" class="group-avatar-preview">
+							<div class="preview-placeholder">
+								<i class="fas fa-camera"></i>
+								<div>Добавить аватарку</div>
+							</div>
+						</div>
+						<input type="file" id="group-avatar-input" class="image-upload-btn" accept="image/*">
+						<div class="upload-hint">Нажмите на область выше, чтобы загрузить изображение</div>
+					</div>
+					
+					<div class="group-cover-container">
+						<label class="form-label">Обложка группы</label>
+						<div id="group-cover-preview" class="group-cover-preview">
+							<div class="preview-placeholder">
+								<i class="fas fa-image"></i>
+								<div>Добавить обложку</div>
+							</div>
+						</div>
+						<input type="file" id="group-cover-input" class="image-upload-btn" accept="image/*">
+						<div class="upload-hint">Нажмите на область выше, чтобы загрузить изображение</div>
+					</div>
+					
 					<div class="form-group">
 						<label for="group-name" class="form-label">Название группы*</label>
-						<input type="text" id="group-name" class="form-input" placeholder="Введите название группы" required>
+						<input type="text" id="group-name" class="form-input" placeholder="Введите название группы" required maxlength="64">
+						<div class="char-counter" id="name-counter">0/64</div>
 					</div>
 					
 					<div class="form-group">
 						<label for="group-description" class="form-label">Описание группы</label>
-						<textarea id="group-description" class="form-textarea" placeholder="Введите описание группы"></textarea>
+						<textarea id="group-description" class="form-textarea" placeholder="Введите описание группы" maxlength="128"></textarea>
+						<div class="char-counter" id="description-counter">0/128</div>
 					</div>
 					
 					<div class="form-group">
@@ -2418,32 +3307,8 @@
 					
 					<div class="form-group">
 						<label for="group-id" class="form-label">Уникальный ID группы (опционально)</label>
-						<input type="text" id="group-id" class="form-input" placeholder="Например: groupCursor1">
+						<input type="text" id="group-id" class="form-input" placeholder="Например: group123">
 						<div class="upload-hint">Если не указать, будет сгенерирован автоматически</div>
-					</div>
-					
-					<div class="group-avatar-container">
-						<label class="form-label">Аватарка группы</label>
-						<div id="group-avatar-preview" class="group-avatar-preview">
-							<div class="preview-placeholder">
-								<i class="fas fa-camera"></i>
-								<div>Добавить аватарку</div>
-							</div>
-						</div>
-						<input type="file" id="group-avatar-input" class="image-upload-btn" accept="image/*">
-						<div class="upload-hint">Нажмите на область выше, чтобы загрузить изображение</div>
-					</div>
-					
-					<div class="group-cover-container">
-						<label class="form-label">Обложка группы</label>
-						<div id="group-cover-preview" class="group-cover-preview">
-							<div class="preview-placeholder">
-								<i class="fas fa-image"></i>
-								<div>Добавить обложку</div>
-							</div>
-						</div>
-						<input type="file" id="group-cover-input" class="image-upload-btn" accept="image/*">
-						<div class="upload-hint">Нажмите на область выше, чтобы загрузить изображение</div>
 					</div>
 				</div>
 				

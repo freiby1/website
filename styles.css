@@ -13,18 +13,6 @@ body {
 	background-color: var(--background-color);
 	color: var(--text-color);
 }
-.profile-container {
-	max-width: 1200px;
-	margin: 2rem auto;
-	padding: 0 1rem;
-	position: relative;
-	/* Относительное позиционирование для абсолютного позиционирования дочерних элементов */
-	/* Добавим достаточный отступ снизу контейнера, чтобы кнопка не перекрывалась следующими элементами */
-	margin-bottom: 30px;
-	width: 100%;
-	box-sizing: border-box;
-	overflow: hidden;
-}
 .playing-indicator {
   width: 16px;
   height: 16px;
@@ -1583,7 +1571,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 }
 
 /* Стили для опций темы */
-.theme-options {
+.theme-options, .status-options {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
@@ -1601,7 +1589,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   overflow: visible; /* Разрешаем контенту выходить за пределы контейнера */
 }
 
-.theme-options.active {
+.theme-options.active, .status-options.active {
   max-height: 150px;
   padding: 8px 0;
   opacity: 1;
@@ -1610,7 +1598,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 }
 
 /* Стили для кнопок выбора темы */
-.theme-option {
+.theme-option, .status-option {
   display: flex;
   align-items: center;
   width: 100%;
@@ -1624,39 +1612,43 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   text-align: left;
 }
 
-.theme-option:hover {
+.theme-option:hover, .status-option:hover {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-.theme-option i {
+.theme-option i, .status-option i {
   margin-right: 12px;
   width: 20px;
   text-align: center;
   font-size: 16px;
 }
 
-.theme-option span {
+.theme-option span, .status-option span {
   flex-grow: 1;
 }
 
 /* Стили для активной темы */
-.theme-option.active {
+.theme-option.active, .status-option.active {
   background-color: rgba(33, 150, 243, 0.1);
   font-weight: 500;
 }
 
-.theme-option.active i {
+.theme-option.active i, .status-option.active i {
   color: var(--primary-color);
 }
 
 /* Добавляем стрелку для кнопки выбора темы */
 .dropdown-button#theme-settings,
-.dropdown-button#theme-settings-standalone {
+.dropdown-button#theme-settings-standalone,
+.dropdown-button#status-settings,
+.dropdown-button#status-settings-standalone {
   position: relative;
 }
 
 .dropdown-button#theme-settings::after,
-.dropdown-button#theme-settings-standalone::after {
+.dropdown-button#theme-settings-standalone::after,
+.dropdown-button#status-settings::after,
+.dropdown-button#status-settings-standalone::after {
   content: '\f054';
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
@@ -1670,67 +1662,80 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 }
 
 .dropdown-button#theme-settings:hover::after,
-.dropdown-button#theme-settings-standalone:hover::after {
+.dropdown-button#theme-settings-standalone:hover::after,
+.dropdown-button#status-settings:hover::after,
+.dropdown-button#status-settings-standalone:hover::after {
   opacity: 1;
 }
 
 /* Поворачиваем стрелку при активном состоянии */
 .theme-dropdown-container:has(.theme-options.active) .dropdown-button#theme-settings::after,
-.theme-dropdown-container:has(.theme-options.active) .dropdown-button#theme-settings-standalone::after {
+.theme-dropdown-container:has(.theme-options.active) .dropdown-button#theme-settings-standalone::after,
+.theme-dropdown-container:has(.status-options.active) .dropdown-button#status-settings::after,
+.theme-dropdown-container:has(.status-options.active) .dropdown-button#status-settings-standalone::after {
   transform: translateY(-50%) rotate(90deg);
 }
 
 /* Адаптивные стили для мобильных устройств */
 @media (max-width: 768px) {
-  .theme-options {
+  .theme-options, .status-options {
     left: auto;
     right: 100%;
     transform: translateX(20px);
   }
   
-  .theme-options.active {
+  .theme-options.active, .status-options.active {
     transform: translateX(-10px);
     max-height: 180px;
   }
   
   .dropdown-button#theme-settings::after,
-  .dropdown-button#theme-settings-standalone::after {
+  .dropdown-button#theme-settings-standalone::after,
+  .dropdown-button#status-settings::after,
+  .dropdown-button#status-settings-standalone::after {
     content: '\f053';
     right: auto;
     left: 16px;
   }
   
   .theme-dropdown-container:has(.theme-options.active) .dropdown-button#theme-settings::after,
-  .theme-dropdown-container:has(.theme-options.active) .dropdown-button#theme-settings-standalone::after {
+  .theme-dropdown-container:has(.theme-options.active) .dropdown-button#theme-settings-standalone::after,
+  .theme-dropdown-container:has(.status-options.active) .dropdown-button#status-settings::after,
+  .theme-dropdown-container:has(.status-options.active) .dropdown-button#status-settings-standalone::after {
     transform: translateY(-50%) rotate(-90deg);
   }
   
-  .theme-option {
+  .theme-option, .status-option {
     padding: 12px 16px;
   }
 }
 
 /* Стили для автономного выпадающего меню */
-.profile-dropdown-standalone .theme-options {
+.profile-dropdown-standalone .theme-options,
+.profile-dropdown-standalone .status-options {
   left: 100%;
   top: 0;
 }
 
-.profile-dropdown-standalone .theme-options.active {
+.profile-dropdown-standalone .theme-options.active,
+.profile-dropdown-standalone .status-options.active {
   transform: translateX(10px);
 }
 
 /* Темная тема */
-.dark-mode .theme-options {
+.dark-mode .theme-options,
+.dark-mode .status-options {
   background: var(--form-container-dark);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.dark-mode .theme-option:hover {
+.dark-mode .theme-option:hover,
+.dark-mode .status-option:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-.dark-mode .theme-option.active {
+.dark-mode .theme-option.active,
+.dark-mode .status-option.active {
   background-color: rgba(33, 150, 243, 0.2);
 }
 
@@ -1905,35 +1910,6 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
         margin-top: 20px;
         padding: 15px;
     }
-}
-
-.edit-profile-btn {
-    margin-top: 15px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-}
-
-.edit-profile-btn:hover {
-    background: #1976D2;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.edit-profile-btn i {
-    font-size: 16px;
-}
-
-.dark-mode .edit-profile-btn:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* =================== */
@@ -3154,13 +3130,6 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
     font-size: 18px;
 }
 
-.friends-preview-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    margin-top: 15px;
-}
-
 .no-friends-message {
     text-align: center;
     color: var(--text-secondary);
@@ -3175,15 +3144,6 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
     .friends-preview-grid {
         grid-template-columns: repeat(6, 1fr);
     }
-}
-
-.friends-preview-header {
-    display: inline-flex; /* Меняем на inline-flex чтобы контейнер занимал только нужную ширину */
-    align-items: center;
-    margin-bottom: 15px;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-    padding: 5px 10px; /* Добавляем небольшие отступы для комфортного клика */
 }
 
 .friends-preview-header:hover {
@@ -3255,7 +3215,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
     margin-left: auto;
 }
 
-.friend-item {
+.friend-item, .group-item {
     padding: 12px;
     display: flex;
     align-items: center;
@@ -3265,16 +3225,16 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
     transition: transform 0.2s, background-color 0.2s;
 }
 
-.friend-item:hover {
+.friend-item:hover, .group-item:hover {
     transform: translateY(-2px);
     background: rgba(255, 255, 255, 0.15);
 }
 
-.dark-mode .friend-item {
+.dark-mode .friend-item, .dark-mode .group-item {
     background: rgba(0, 0, 0, 0.1);
 }
 
-.dark-mode .friend-item:hover {
+.dark-mode .friend-item:hover, .dark-mode .group-item:hover {
     background: rgba(0, 0, 0, 0.15);
 }
 
@@ -4354,11 +4314,6 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	background: var(--bg-color);
 	border-radius: 8px;
 	text-align: center;
-}
-
-.edit-profile-btn {
-	margin-top: 1.5rem;
-	width: 100%;
 }
 
 /* Медиа-запрос для мобильных устройств */
@@ -6253,34 +6208,8 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	color: var(--secondary-text);
 }
 
-/* Стили для кнопки добавления в друзья */
-.friend-button {
-	margin-top: 15px;
-	background: var(--primary-color);
-	color: white;
-	border: none;
-	border-radius: 8px;
-	padding: 8px 16px;
-	font-size: 14px;
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	transition: all 0.3s ease;
-}
-
-.friend-button:hover {
-	background: #1976D2;
-	transform: translateY(-2px);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.friend-button i {
-	font-size: 16px;
-}
-
 /* Стили для модального окна друзей */
-.friends-modal {
+.friends-modal, .groups-modal {
 	display: none;
 	position: fixed;
 	top: 0;
@@ -6291,7 +6220,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	z-index: 1000;
 }
 
-.friends-modal-content {
+.friends-modal-content, .groups-modal-content {
 	position: absolute;
 	top: 50%;
 	left: 50%;
@@ -6300,13 +6229,14 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	border-radius: 12px;
 	width: 90%;
 	max-width: 600px;
+	min-height: 400px;
 	max-height: 80vh;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 }
 
-.friends-modal-header {
+.friends-modal-header, .groups-modal-header {
 	padding: 15px 20px;
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
@@ -6316,14 +6246,16 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	z-index: 10;
 }
 
-.friends-modal-body {
-	padding: 20px;
+.friends-modal-body, .groups-modal-body {
+	position: relative;
 	overflow-y: auto;
+	min-height: 200px;
+	padding: 20px;
 	flex: 1;
 	max-height: calc(80vh - 70px); /* Учитываем высоту шапки */
 }
 
-.friends-modal-close {
+.friends-modal-close, .groups-modal-close {
 	background: none;
 	border: none;
 	cursor: pointer;
@@ -6336,7 +6268,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	background-color: transparent;
 }
 
-.friends-modal-close::before {
+.friends-modal-close::before, .groups-modal-close::before {
 	content: '\00D7';
 	position: absolute;
 	left: 0;
@@ -6351,26 +6283,26 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	margin-top: -2px;
 }
 
-.friends-modal-close:hover {
+.friends-modal-close:hover, .groups-modal-close:hover {
 	background: var(--hover-bg);
 	color: var(--text-color);
 }
 
-.dark-mode .friends-modal-content {
+.dark-mode .friends-modal-content, .dark-mode .groups-modal-content {
 	background: var(--card-background-dark, #2a2a2a);
 	border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.dark-mode .friends-modal-header {
+.dark-mode .friends-modal-header, .dark-mode .groups-modal-header {
 	background: var(--card-background-dark, #2a2a2a);
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.dark-mode .friends-modal-close {
+.dark-mode .friends-modal-close, .dark-mode .groups-modal-close {
 	color: rgba(255, 255, 255, 0.6);
 }
 
-.dark-mode .friends-modal-close:hover {
+.dark-mode .friends-modal-close:hover, .dark-mode .groups-modal-close:hover {
 	background: rgba(255, 255, 255, 0.1);
 	color: rgba(255, 255, 255, 0.9);
 }
@@ -6388,7 +6320,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 		max-height: calc(90vh - 70px);
 	}
 
-	.friends-tab {
+	.friends-tab, .groups-tab {
 		padding: 10px 15px;
 		font-size: 14px;
 	}
@@ -6409,19 +6341,19 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 		max-height: calc(100% - 70px);
 	}
 
-	.friends-tab {
+	.friends-tab, .groups-tab {
 		padding: 10px;
 		font-size: 14px;
 	}
 }
 
-.friends-tabs {
+.friends-tabs, .groups-tabs {
 	display: flex;
 	border-bottom: none;
 	margin-bottom: 0;
 }
 
-.friends-tab {
+.friends-tab, .groups-tab {
 	padding: 10px 20px;
 	cursor: pointer;
 	border: none;
@@ -6431,11 +6363,11 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	position: relative;
 }
 
-.friends-tab.active {
+.friends-tab.active, .groups-tab.active {
 	color: var(--primary-color);
 }
 
-.friends-tab.active::after {
+.friends-tab.active::after, .groups-tab.active::after {
 	content: '';
 	position: absolute;
 	bottom: -1px;
@@ -6449,7 +6381,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	display: grid;
 }
 
-.friend-item {
+.friend-item, .group-item {
 	display: flex;
 	align-items: center;
 	padding: 10px;
@@ -6459,7 +6391,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	cursor: pointer;
 }
 
-.friend-item:hover {
+.friend-item:hover, .group-item:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 	background: rgba(255, 255, 255, 0.15);
@@ -6477,7 +6409,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	/* Чтобы кнопки были кликабельны */
 }
 
-.friend-avatar {
+.friend-avatar, .group-avatar {
 	width: 50px;
 	height: 50px;
 	border-radius: 50%;
@@ -6485,7 +6417,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	margin-right: 15px;
 }
 
-.friend-avatar img {
+.friend-avatar img, .group-avatar img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
@@ -6557,36 +6489,10 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	box-shadow: var(--card-shadow);
 }
 
-.friends-preview-header {
-	display: flex;
-	align-items: center;
-	margin-bottom: 15px;
-	cursor: pointer;
-	transition: opacity 0.2s ease;
-}
-
-.friends-preview-header:hover {
-	opacity: 0.8;
-}
-
-.friends-preview-header h3 {
-	font-size: 18px;
-	margin: 0;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
 
 .friends-count {
 	color: var(--text-secondary);
 	font-weight: normal;
-}
-
-.friends-preview-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-	gap: 15px;
-	margin-top: 15px;
 }
 
 .friend-preview-item {
@@ -6597,24 +6503,71 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	color: var(--text-color);
 	transition: transform 0.2s ease;
 	cursor: pointer;
+	border-radius: 8px;
 }
 
 .friend-preview-item:hover {
 	transform: translateY(-2px);
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Добавляем стиль для темной темы */
+.dark-mode .friend-preview-item:hover {
+	background-color: rgba(255, 255, 255, 0.05);
 }
 
 .friend-preview-avatar {
-	width: 70px;
-	height: 70px;
-	border-radius: 50%;
-	overflow: hidden;
-	margin-bottom: 8px;
+    position: relative;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    overflow: visible; /* Изменяем overflow на visible */
+    margin-bottom: 8px;
 }
 
 .friend-preview-avatar img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* Стили для индикатора статуса */
+.friend-preview-avatar::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    background-color: #ccc;
+    border-radius: 50%;
+    border: 2px solid var(--bg-primary);
+    z-index: 2;
+    transition: background-color 0.3s ease;
+}
+
+/* Стили для разных статусов */
+.friend-preview-avatar[data-status="online"]::after {
+    background-color: #44b700;
+}
+
+.friend-preview-avatar[data-status="away"]::after {
+    background-color: #ffa726;
+}
+
+.friend-preview-avatar[data-status="busy"]::after {
+    background-color: #e53935;
+}
+
+.friend-preview-avatar[data-status="invisible"]::after,
+.friend-preview-avatar[data-status="offline"]::after {
+    background-color: #ccc;
+}
+
+/* Стили для темной темы */
+.dark-mode .friend-preview-avatar::after {
+    border-color: var(--bg-secondary);
 }
 
 .friend-preview-name {
@@ -7400,4 +7353,239 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 /* Обеспечиваем корректное позиционирование внутри кнопок */
 .nav-button {
   position: relative;
+}
+
+.no-search-results i, .no-friends i, .no-requests i, .no-friends-message i {
+	font-size: 3rem;
+	color: var(--text-secondary);
+	margin-bottom: 8px;
+}
+
+.no-search-results span, .no-friends span, .no-requests span, .no-friends-message span {
+	font-size: 16px;
+	font-weight: 500;
+}
+
+.error-message {
+	color: var(--error-color, #e53935);
+}
+
+.no-search-results i, .no-friends i, .no-requests i, .no-friends-message i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: var(--text-color-secondary);
+}
+
+.no-search-results span, .no-friends span, .no-requests span, .no-friends-message span {
+    font-weight: 500;
+}
+
+.error-message {
+    color: white;
+}
+
+.friends-preview-container {
+	margin-bottom: 20px;
+	border-radius: 12px;
+	background: var(--card-background);
+	position: relative;
+	overflow: hidden;
+}
+
+.friends-preview-container .no-friends-message {
+    position: relative;
+    top: 60px;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-color-secondary);
+    font-size: 16px;
+    padding: 30px 0;
+    margin-top: 10px;
+}
+
+.friends-preview-container .no-friends-message i {
+    font-size: 36px;
+    margin-bottom: 10px;
+    color: var(--text-color-secondary);
+}
+
+.friends-preview-container .no-friends-message span {
+    font-weight: 500;
+}
+
+.friends-preview-header:hover {
+	opacity: 0.9;
+}
+
+.groups-preview-container {
+    margin-bottom: 20px;
+    border-radius: 12px;
+    background: var(--card-background);
+    position: relative;
+    overflow: hidden;
+}
+
+.groups-preview-container .no-groups-message {
+    position: relative;
+    top: 60px;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-color-secondary);
+    font-size: 16px;
+    padding: 30px 0;
+    margin-top: 10px;
+}
+
+.groups-preview-container .no-groups-message i {
+    font-size: 36px;
+    margin-bottom: 10px;
+    color: var(--text-color-secondary);
+}
+
+.groups-preview-container .no-groups-message span {
+    font-weight: 500;
+}
+
+.groups-preview-header:hover {
+    opacity: 0.8;
+    background-color: rgba(0, 0, 0, 0.05); /* Добавляем легкий фон при наведении */
+}
+
+/* Для темной темы */
+.dark-mode .groups-preview-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Стили для мобильных устройств */
+@media (max-width: 767px) {
+    .groups-modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .groups-modal-body {
+        max-height: 400px;
+    }
+}
+
+/* Стили для списка групп */
+.groups-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.group-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e0e0e0;
+    color: #777;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.dark-mode .group-avatar-placeholder {
+    background-color: #4a4a4a;
+    color: #ddd;
+}
+
+.group-info {
+    text-align: center;
+    width: 100%;
+}
+
+.group-name {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.group-status {
+    font-size: 12px;
+    color: #777;
+}
+
+.dark-mode .group-status {
+    color: #bbb;
+}
+
+/* Скрываем элементы с классом hidden */
+.hidden {
+    display: none !important;
+}
+
+/* Стили для сообщений */
+.no-groups, .no-search-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+    color: #777;
+}
+
+.no-groups i, .no-search-results i {
+    font-size: 40px;
+    margin-bottom: 15px;
+    color: #ccc;
+}
+
+.dark-mode .no-groups i, .dark-mode .no-search-results i {
+    color: #555;
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    color: #999;
+}
+
+.dark-mode .search-icon {
+    color: #777;
+}
+
+.clear-search-button {
+    position: absolute;
+    right: 15px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+}
+
+.dark-mode .clear-search-button {
+    color: #777;
+}
+
+.clear-search-button:hover {
+    color: #555;
+}
+
+.dark-mode .clear-search-button:hover {
+    color: #aaa;
 }
