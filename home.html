@@ -8,13 +8,80 @@
 	<script type="module" src="online-status.js"></script>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
 	<link rel="stylesheet" href="styles.css">
-	<link rel="preload" href="./sidebar_old.js" as="script" crossorigin="anonymous">
+	<link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
 	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script"
 		crossorigin="anonymous">
 	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script"
 		crossorigin="anonymous">
 	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js" as="script"
 		crossorigin="anonymous">
+		
+	<script>
+		async function checkToxicity(text) {
+			const apiKey = 'AIzaSyCggXjtWA9E5zcEmQAmrAqznNVYsp48hms';
+			const url = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${apiKey}`;
+			const body = {
+				comment: { text },
+				languages: ["ru", "en"],
+				requestedAttributes: {
+					TOXICITY: {},
+					SEVERE_TOXICITY: {},
+					INSULT: {},
+					PROFANITY: {},
+					THREAT: {}
+				}
+			};
+
+			try {
+				const response = await fetch(url, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body)
+				});
+
+				if (!response.ok) {
+					console.error("Perspective API error:", response.status, await response.text());
+					return false;
+				}
+
+				const result = await response.json();
+				const scores = result.attributeScores || {};
+				console.log("Perspective scores:", scores);
+
+				const toxic = scores.TOXICITY?.summaryScore?.value || 0;
+				const severe = scores.SEVERE_TOXICITY?.summaryScore?.value || 0;
+				const insult = scores.INSULT?.summaryScore?.value || 0;
+				const profanity = scores.PROFANITY?.summaryScore?.value || 0;
+				const threat = scores.THREAT?.summaryScore?.value || 0;
+
+				return (
+					toxic > 0.8 ||
+					severe > 0.7 ||
+					insult > 0.7 ||
+					profanity > 0.7 ||
+					threat > 0.6
+				);
+			} catch (err) {
+				console.error("Ошибка анализа токсичности:", err);
+				return false;
+			}
+		}
+		
+		function showToxicContentModal() {
+			const modal = document.getElementById('toxicContentModal');
+			modal.style.display = 'flex';
+			
+			// Добавляем обработчик для кнопки закрытия
+			const closeBtn = document.getElementById('closeToxicContentBtn');
+			if (closeBtn) {
+				const closeToxicModal = function() {
+					modal.style.display = 'none';
+					closeBtn.removeEventListener('click', closeToxicModal);
+				};
+				closeBtn.addEventListener('click', closeToxicModal);
+			}
+		}
+	</script>
 
 	<style>
 		.test-rating-block {
@@ -2277,7 +2344,7 @@
 
 	<!-- Добавляем импорт и инициализацию сайдбара -->
 	<script type="module">
-		import { initializeSidebar } from './sidebar_old.js';
+		import { initializeSidebar } from './sidebar.js';
 		
 		document.addEventListener('DOMContentLoaded', () => {
 			initializeSidebar();
@@ -2298,7 +2365,7 @@
 			browserLocalPersistence
 		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js';
 		import { getDatabase, ref, get, update, connectDatabaseEmulator, query, orderByChild, equalTo, limitToLast, set, push, onValue, serverTimestamp, onChildAdded, remove, onChildRemoved } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
-		import { initializeSidebar } from './sidebar_old.js';
+		import { initializeSidebar } from './sidebar.js';
 
 		// Добавляем глобальную переменную для отслеживания состояния загрузки
 		let isLoading = true;
@@ -4531,6 +4598,15 @@
 					try {
 						const commentText = commentInput.value.trim();
 						
+						// 🔍 Проверка текста через Perspective API
+						if (commentText) {
+							const isToxic = await checkToxicity(commentText);
+							if (isToxic) {
+								showToxicContentModal();
+								return; // Прерываем отправку комментария, если он токсичный
+							}
+						}
+						
 						// Получаем URL аватара пользователя
 						let authorPhotoURL = '';
 						try {
@@ -4773,6 +4849,15 @@
 			}
 			
 			const replyText = replyInput.value.trim();
+			
+			// 🔍 Проверка текста через Perspective API
+			if (replyText) {
+				const isToxic = await checkToxicity(replyText);
+				if (isToxic) {
+					showToxicContentModal();
+					return; // Прерываем отправку ответа, если он токсичный
+				}
+			}
 			
 			try {
 				// Находим элемент комментария, чтобы получить данные о группе и родительском комментарии
@@ -5797,5 +5882,20 @@
 </script>
 
 <!-- Скрипт для добавления обработчиков на click для имен и аватаров в комментариях -->
+
+<!-- Модальное окно для предупреждения о токсичном контенте -->
+<div id="toxicContentModal" class="confirm-delete-modal">
+	<div class="confirm-delete-content">
+		<div class="confirm-delete-header">
+			<h3>Предупреждение</h3>
+		</div>
+		<div class="confirm-delete-body">
+			<p>Комментарий содержит оскорбления, токсичность или ненормативную лексику и не может быть опубликован.</p>
+		</div>
+		<div class="confirm-delete-footer">
+			<button id="closeToxicContentBtn" class="cancel-btn">Закрыть</button>
+		</div>
+	</div>
+</div>
 </body>
 </html>

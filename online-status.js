@@ -1,8 +1,3 @@
-/**
- * Система онлайна/оффлайна пользователей
- * Работает с Firebase Realtime Database для отслеживания статуса пользователей в реальном времени
- */
-
 // Инициализация системы онлайн/оффлайн статуса
 function initializeOnlineStatus() {
   // Импортируем необходимые функции Firebase
@@ -686,7 +681,45 @@ function setupOnlineStatus(firebaseApp, firebaseAuth, firebaseDb) {
 function addOnlineStatusStyles() {
   const styleElement = document.createElement('style');
   styleElement.textContent = `
-    .name-status-container {
+    html.light-mode .online-status-indicator,
+body.light-mode .online-status-indicator,
+.theme-light.light-mode .online-status-indicator {
+  color: var(--text-secondary, #555) !important;
+}
+
+html.light-mode .online-status-indicator.interactive,
+body.light-mode .online-status-indicator.interactive,
+.theme-light.light-mode .online-status-indicator.interactive {
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.04)) !important;
+}
+
+html.light-mode .status-menu,
+body.light-mode .status-menu,
+.theme-light.light-mode .status-menu {
+  background-color: var(--bg-secondary, #ffffff) !important;
+  border-color: var(--border-color, #e0e0e0) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.light-mode .status-menu-item,
+body.light-mode .status-menu-item,
+.theme-light.light-mode .status-menu-item {
+  color: var(--text-primary, #333) !important;
+}
+
+html.light-mode .status-menu-item:hover,
+body.light-mode .status-menu-item:hover,
+.theme-light.light-mode .status-menu-item:hover {
+  background-color: var(--bg-hover, #f5f5f5) !important;
+}
+
+html.light-mode .status-menu-item.active,
+body.light-mode .status-menu-item.active,
+.theme-light.light-mode .status-menu-item.active {
+  background-color: var(--bg-active, #e3f2fd) !important;
+}
+  
+  .name-status-container {
       display: flex;
       align-items: center;
       gap: 10px;

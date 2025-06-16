@@ -8,7 +8,7 @@
 	<script type="module" src="online-status.js"></script>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
 	<link rel="stylesheet" href="styles.css">
-	<link rel="preload" href="./sidebar_old.js" as="script" crossorigin="anonymous">
+	<link rel="preload" href="./sidebar.js" as="script" crossorigin="anonymous">
 	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js" as="script"
 		crossorigin="anonymous">
 	<link rel="preload" href="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js" as="script"
@@ -20,7 +20,7 @@
 
 	<!-- Добавляем импорт и инициализацию сайдбара -->
 	<script type="module">
-		import { initializeSidebar } from './sidebar_old.js';
+		import { initializeSidebar } from './sidebar.js';
 		
 		document.addEventListener('DOMContentLoaded', () => {
 			initializeSidebar();
@@ -1662,7 +1662,7 @@
 			uploadBytes,
 			getDownloadURL
 		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
-		import { initializeSidebar } from './sidebar_old.js';
+		import { initializeSidebar } from './sidebar.js';
 
 		// Инициализация Firebase
 		const firebaseConfig = {

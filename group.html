@@ -16,6 +16,73 @@
 		crossorigin="anonymous">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+	
+	<script>
+		async function checkToxicity(text) {
+			const apiKey = 'AIzaSyCggXjtWA9E5zcEmQAmrAqznNVYsp48hms';
+			const url = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${apiKey}`;
+			const body = {
+				comment: { text },
+				languages: ["ru", "en"],
+				requestedAttributes: {
+					TOXICITY: {},
+					SEVERE_TOXICITY: {},
+					INSULT: {},
+					PROFANITY: {},
+					THREAT: {}
+				}
+			};
+
+			try {
+				const response = await fetch(url, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body)
+				});
+
+				if (!response.ok) {
+					console.error("Perspective API error:", response.status, await response.text());
+					return false;
+				}
+
+				const result = await response.json();
+				const scores = result.attributeScores || {};
+				console.log("Perspective scores:", scores);
+
+				const toxic = scores.TOXICITY?.summaryScore?.value || 0;
+				const severe = scores.SEVERE_TOXICITY?.summaryScore?.value || 0;
+				const insult = scores.INSULT?.summaryScore?.value || 0;
+				const profanity = scores.PROFANITY?.summaryScore?.value || 0;
+				const threat = scores.THREAT?.summaryScore?.value || 0;
+
+				return (
+					toxic > 0.8 ||
+					severe > 0.7 ||
+					insult > 0.7 ||
+					profanity > 0.7 ||
+					threat > 0.6
+				);
+			} catch (err) {
+				console.error("Ошибка анализа токсичности:", err);
+				return false;
+			}
+		}
+		
+		function showToxicContentModal() {
+			const modal = document.getElementById('toxicContentModal');
+			modal.style.display = 'flex';
+			
+			// Добавляем обработчик для кнопки закрытия
+			const closeBtn = document.getElementById('closeToxicContentBtn');
+			if (closeBtn) {
+				const closeToxicModal = function() {
+					modal.style.display = 'none';
+					closeBtn.removeEventListener('click', closeToxicModal);
+				};
+				closeBtn.addEventListener('click', closeToxicModal);
+			}
+		}
+	</script>
 
 	<style>
 		.group-container {
@@ -199,11 +266,20 @@
 			width: 300px;
 			flex-shrink: 0;
 		}
+		
+		.group-sidebar .content-section {
+			padding: 15px;
+		}
+		
+		.group-sidebar .section-title {
+			margin-top: 0;
+		}
 
 		.content-section {
 			background-color: #fff;
 			border-radius: 10px;
 			margin-bottom: 20px;
+			padding: 15px;
 			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 		}
 
@@ -408,7 +484,8 @@
 			visibility: visible;
 		}
 
-		.modal-container {
+		/* Стили для модального окна редактирования группы */
+		.edit-group-modal-container {
 			background-color: #fff;
 			border-radius: 10px;
 			width: 90%;
@@ -419,14 +496,22 @@
 			position: relative;
 			display: flex;
 			flex-direction: column;
+			opacity: 0;
+			transition: opacity 0.3s ease, transform 0.3s ease;
+			transform: translateY(-20px);
 		}
 
-		.dark-mode .modal-container {
+		.dark-mode .edit-group-modal-container {
 			background-color: #2d2d2d;
 			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 		}
 
-		.modal-header {
+		.modal-overlay.active .edit-group-modal-container {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
+		.edit-group-modal-header {
 			padding: 15px 20px;
 			border-bottom: 1px solid #eee;
 			display: flex;
@@ -438,21 +523,21 @@
 			z-index: 10;
 		}
 
-		.dark-mode .modal-header {
+		.dark-mode .edit-group-modal-header {
 			border-bottom-color: #444;
 		}
 
-		.modal-title {
+		.edit-group-modal-title {
 			font-size: 18px;
 			font-weight: 600;
 			color: #333;
 		}
 
-		.dark-mode .modal-title {
+		.dark-mode .edit-group-modal-title {
 			color: #f5f5f5;
 		}
 
-		.modal-close {
+		.edit-group-modal-close {
 			background: none;
 			border: none;
 			color: #888;
@@ -460,14 +545,618 @@
 			cursor: pointer;
 		}
 
-		.dark-mode .modal-close {
+		.dark-mode .edit-group-modal-close {
 			color: #bbb;
 		}
 
-		.modal-body {
+		.edit-group-modal-body {
 			padding: 20px;
 			flex: 1;
 			overflow-y: auto;
+			scroll-behavior: smooth;
+			-webkit-overflow-scrolling: touch;
+		}
+
+		.edit-group-modal-footer {
+			padding: 15px 20px;
+			border-top: 1px solid #eee;
+			display: flex;
+			justify-content: flex-end;
+			gap: 10px;
+			position: sticky;
+			bottom: 0;
+			background-color: inherit;
+			z-index: 10;
+		}
+
+		.dark-mode .edit-group-modal-footer {
+			border-top-color: #444;
+		}
+
+		.edit-group-modal-btn {
+			padding: 8px 16px;
+			border-radius: 4px;
+			font-size: 14px;
+			font-weight: 500;
+			cursor: pointer;
+			transition: all 0.2s ease;
+		}
+
+		.edit-group-modal-btn.primary {
+			background-color: #4a76a8;
+			color: white;
+			border: none;
+		}
+
+		.edit-group-modal-btn.primary:hover {
+			background-color: #3d6999;
+		}
+
+		.dark-mode .edit-group-modal-btn.primary {
+			background-color: #5b86b3;
+		}
+
+		.dark-mode .edit-group-modal-btn.primary:hover {
+			background-color: #4a76a8;
+		}
+
+		.edit-group-modal-btn.secondary {
+			background-color: transparent;
+			color: #666;
+			border: 1px solid #ddd;
+		}
+
+		.edit-group-modal-btn.secondary:hover {
+			background-color: #f5f5f5;
+		}
+
+		.dark-mode .edit-group-modal-btn.secondary {
+			color: #bbb;
+			border-color: #555;
+		}
+
+		.dark-mode .edit-group-modal-btn.secondary:hover {
+			background-color: #333;
+		}
+
+		/* Стили для контейнеров обрезки изображений */
+		#edit-avatar-crop-container, #edit-cover-crop-container {
+			max-width: 100%;
+			height: 400px;
+			overflow: hidden;
+			margin-bottom: 15px;
+			background-color: #f5f5f5;
+		}
+
+		.dark-mode #edit-avatar-crop-container, 
+		.dark-mode #edit-cover-crop-container {
+			background-color: #333;
+		}
+
+		/* Исправления для кроппера в модальном окне */
+		.edit-group-modal-body .cropper-container {
+			max-width: 100%;
+			height: auto !important;
+		}
+
+		.edit-group-modal-body .cropper-view-box,
+		.edit-group-modal-body .cropper-face {
+			border-radius: 0;
+		}
+		
+		/* Улучшения для модальных окон обрезки */
+		#edit-avatar-crop-modal .edit-group-modal-container,
+		#edit-cover-crop-modal .edit-group-modal-container {
+			max-width: 800px;
+			width: 95%;
+		}
+		
+		#edit-avatar-crop-modal .edit-group-modal-body,
+		#edit-cover-crop-modal .edit-group-modal-body {
+			padding: 10px;
+		}
+		
+		/* Адаптивные стили для кроппера */
+		@media (max-width: 768px) {
+			#edit-avatar-crop-container, 
+			#edit-cover-crop-container {
+				height: 300px;
+			}
+		}
+		
+		@media (max-width: 480px) {
+			#edit-avatar-crop-container, 
+			#edit-cover-crop-container {
+				height: 250px;
+			}
+			
+			.crop-controls {
+				flex-direction: column;
+				gap: 10px;
+			}
+			
+			.crop-btn {
+				width: 100%;
+				padding: 10px;
+			}
+		}
+
+		/* Адаптивные стили для модального окна редактирования группы */
+		@media (max-width: 768px) {
+			.edit-group-modal-container {
+				width: 95%;
+				max-height: 80vh;
+			}
+			
+			.edit-group-modal-footer {
+				flex-wrap: wrap;
+				justify-content: center;
+			}
+			
+			.edit-group-modal-btn {
+				flex: 1;
+				text-align: center;
+				min-width: 120px;
+			}
+		}
+
+		.members-modal-close {
+			background: none;
+			border: none;
+			color: #888;
+			font-size: 20px;
+			cursor: pointer;
+		}
+
+		.dark-mode .members-modal-close {
+			color: #bbb;
+		}
+
+		.members-modal-body {
+			padding: 20px;
+			flex: 1;
+			overflow-y: auto;
+			scroll-behavior: smooth;
+			-webkit-overflow-scrolling: touch;
+		}
+
+		/* Адаптивные стили для модального окна участников на маленьких экранах */
+		@media (max-width: 768px) {
+			.members-modal-container {
+				width: 95%;
+				max-height: 80vh;
+			}
+			
+			.members-modal-list {
+				grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+				gap: 15px;
+			}
+			
+			.members-modal-item {
+				padding: 5px;
+			}
+			
+			.members-modal-item:active {
+				background-color: rgba(0, 0, 0, 0.05);
+				border-radius: 8px;
+			}
+			
+			.dark-mode .members-modal-item:active {
+				background-color: rgba(255, 255, 255, 0.1);
+			}
+			
+			.members-modal-avatar {
+				width: 70px;
+				height: 70px;
+			}
+			
+			.members-modal-name {
+				font-size: 13px;
+			}
+			
+			.members-modal-role {
+				font-size: 11px;
+			}
+			
+			.members-modal-header {
+				padding: 12px 15px;
+			}
+			
+			.members-modal-body {
+				padding: 15px;
+				-webkit-overflow-scrolling: touch; /* Плавный скроллинг на iOS */
+			}
+			
+			.members-modal-title {
+				font-size: 16px;
+			}
+			
+			.members-modal-close {
+				width: 32px;
+				height: 32px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				touch-action: manipulation; /* Улучшает отзывчивость на мобильных */
+			}
+		}
+
+		@media (max-width: 480px) {
+			.members-modal-container {
+				width: 98%;
+				border-radius: 8px;
+				max-height: 90vh;
+			}
+			
+			.members-modal-list {
+				grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+				gap: 10px;
+			}
+			
+			.members-modal-avatar {
+				width: 60px;
+				height: 60px;
+				margin-bottom: 6px;
+			}
+			
+			.members-modal-name {
+				font-size: 12px;
+			}
+			
+			.members-modal-role {
+				font-size: 10px;
+			}
+			
+			.tab-button {
+				padding: 8px 10px;
+				font-size: 12px;
+				margin-right: 5px;
+			}
+			
+			.members-modal-tabs {
+				margin-bottom: 15px;
+				position: sticky;
+				top: 0;
+				background-color: #fff;
+				z-index: 2;
+				padding-top: 5px;
+				padding-bottom: 5px;
+				border-radius: 0 0 8px 8px;
+			}
+			
+			.dark-mode .members-modal-tabs {
+				background-color: #2d2d2d;
+			}
+			
+			.tab-button.active {
+				position: relative;
+			}
+			
+			.tab-button.active:after {
+				content: '';
+				position: absolute;
+				bottom: -5px;
+				left: 50%;
+				transform: translateX(-50%);
+				width: 5px;
+				height: 5px;
+				background-color: #4a76a8;
+				border-radius: 50%;
+			}
+			
+			.dark-mode .tab-button.active:after {
+				background-color: #5a86b8;
+			}
+			
+			.members-modal-body {
+				padding: 12px;
+			}
+			
+			.empty-tab-message {
+				padding: 20px 0;
+				font-size: 13px;
+			}
+		}
+
+		@media (max-width: 360px) {
+			.members-modal-list {
+				grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+				gap: 8px;
+			}
+			
+			.members-modal-avatar {
+				width: 50px;
+				height: 50px;
+			}
+			
+			.members-modal-name {
+				font-size: 11px;
+			}
+			
+			.members-modal-role {
+				font-size: 9px;
+			}
+			
+			.members-modal-tabs {
+				display: flex;
+				justify-content: center;
+				flex-wrap: wrap;
+			}
+			
+			.tab-button {
+				padding: 6px 8px;
+				font-size: 11px;
+				margin: 2px;
+			}
+			
+			.members-modal-header {
+				padding: 10px;
+			}
+			
+			.members-modal-body {
+				padding: 10px;
+			}
+		}
+
+		/* Стили для модального окна кадрирования */
+		.crop-modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.7);
+			z-index: 10000;
+			overflow: hidden;
+		}
+
+		.crop-modal.active {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.crop-avatar-modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.7);
+			z-index: 10000;
+			overflow: hidden;
+		}
+
+		.crop-avatar-modal.active {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.crop-avatar-modal .crop-area,
+		.crop-modal .crop-area {
+			width: 100%;
+			height: 400px;
+			max-height: 400px;
+			margin-bottom: 1rem;
+			background-color: #333;
+			overflow: hidden;
+		}
+
+		.crop-avatar-modal .crop-container,
+		.crop-modal .crop-container {
+			width: 90%;
+			max-width: 500px;
+			background-color: #fff;
+			border-radius: 10px;
+			padding: 1rem;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+		}
+		
+		/* Стили для контейнера аватара */
+		#edit-avatar-crop-modal .crop-area {
+			height: 400px;
+			max-height: 400px;
+		}
+		
+		/* Стили для контейнера обложки */
+		#edit-cover-crop-modal .crop-area {
+			height: 300px;
+			max-height: 300px;
+		}
+		
+		#edit-cover-crop-modal .crop-container {
+			max-width: 600px;
+		}
+		
+		.dark-mode .crop-avatar-modal .crop-container,
+		.dark-mode .crop-modal .crop-container {
+			background-color: #2d2d2d;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+		}
+
+		.crop-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 1rem;
+			padding-bottom: 0.5rem;
+			border-bottom: 1px solid #eee;
+		}
+
+		.dark-mode .crop-header {
+			border-bottom-color: #444;
+		}
+
+		.crop-title {
+			font-size: 1.2rem;
+			font-weight: bold;
+			color: #333;
+		}
+
+		.dark-mode .crop-title {
+			color: #f5f5f5;
+		}
+
+		.crop-close {
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			color: #888;
+			cursor: pointer;
+			padding: 0.25rem;
+			line-height: 1;
+		}
+
+		.dark-mode .crop-close {
+			color: #ccc;
+		}
+
+		.crop-close:hover {
+			color: #333;
+		}
+
+		.dark-mode .crop-close:hover {
+			color: #fff;
+		}
+
+		.crop-img {
+			display: block;
+			max-width: 100%;
+		}
+
+		.crop-controls {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.crop-zoom {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+
+		.zoom-slider {
+			width: 150px;
+			margin: 0 10px;
+		}
+
+		.crop-actions {
+			display: flex;
+			gap: 1rem;
+		}
+
+		.crop-btn {
+			padding: 0.5rem 1rem;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 14px;
+			transition: all 0.2s;
+		}
+
+		.crop-btn.cancel {
+			background: transparent;
+			color: #666;
+			border: 1px solid #ddd;
+		}
+
+		.dark-mode .crop-btn.cancel {
+			color: #ddd;
+			border-color: #555;
+		}
+
+		.crop-btn.cancel:hover {
+			background: #f5f5f5;
+		}
+
+		.dark-mode .crop-btn.cancel:hover {
+			background: #333;
+		}
+		
+		.crop-btn.apply {
+			background-color: #4a76a8;
+			color: white;
+			border: none;
+		}
+
+		.crop-btn.apply:hover {
+			background-color: #3a5b80;
+		}
+
+		.dark-mode .crop-btn.apply {
+			background-color: #5a86b8;
+		}
+
+		.dark-mode .crop-btn.apply:hover {
+			background-color: #4a76a8;
+		}
+
+		@media (max-width: 576px) {
+			.crop-avatar-modal .crop-container,
+			.crop-modal .crop-container {
+				width: 95%;
+				padding: 0.75rem;
+			}
+			
+			.crop-avatar-modal .crop-area,
+			.crop-modal .crop-area {
+				height: 300px;
+				max-height: 300px;
+			}
+			
+			.crop-controls {
+				flex-direction: column;
+				gap: 1rem;
+			}
+			
+			.crop-zoom {
+				width: 100%;
+				justify-content: center;
+			}
+			
+			.zoom-slider {
+				width: 100%;
+				max-width: 200px;
+			}
+			
+			.crop-actions {
+				width: 100%;
+				justify-content: space-between;
+			}
+			
+			.crop-btn {
+				flex: 1;
+				text-align: center;
+				padding: 0.5rem 0.75rem;
+				font-size: 13px;
+			}
+		}
+
+		@media (max-width: 360px) {
+			.crop-avatar-modal .crop-area,
+			.crop-modal .crop-area {
+				height: 250px;
+				max-height: 250px;
+			}
+			
+			.crop-title {
+				font-size: 1rem;
+			}
+			
+			.crop-close {
+				font-size: 1.2rem;
+			}
+			
+			.crop-btn {
+				padding: 0.4rem 0.5rem;
+				font-size: 12px;
+			}
 		}
 
 		.form-group {
@@ -803,11 +1492,18 @@
 			flex-direction: column;
 			align-items: center;
 			cursor: pointer;
-			transition: transform 0.2s;
+			transition: transform 0.2s, background-color 0.2s;
+			border-radius: 10px;
+			padding: 8px;
 		}
 
 		.members-modal-item:hover {
 			transform: translateY(-5px);
+			background-color: rgba(0, 0, 0, 0.03);
+		}
+		
+		.dark-mode .members-modal-item:hover {
+			background-color: rgba(255, 255, 255, 0.05);
 		}
 
 		.members-modal-avatar {
@@ -930,6 +1626,12 @@
 			margin-bottom: 15px;
 			color: #333;
 			line-height: 1.5;
+			word-wrap: break-word;
+			overflow-wrap: break-word;
+			word-break: break-word;
+			hyphens: auto;
+			max-width: 100%;
+			overflow: hidden;
 		}
 
 		.dark-mode .post-content {
@@ -1095,6 +1797,8 @@
 
 		.pending-post-item {
 			border-left: 3px solid #f39c12;
+			height: auto;
+			min-height: 100px;
 		}
 
 		.dark-mode .pending-post-item {
@@ -1103,10 +1807,25 @@
 
 		.pending-post-status {
 			display: flex;
+			flex-wrap: wrap;
 			justify-content: space-between;
 			margin-top: 10px;
 			padding-top: 10px;
 			border-top: 1px solid #eee;
+			gap: 10px;
+		}
+
+		.pending-post-info {
+			flex: 1;
+			min-width: 180px;
+			word-wrap: break-word;
+			overflow-wrap: break-word;
+		}
+
+		.pending-post-actions {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
 		}
 
 		.dark-mode .pending-post-status {
@@ -1159,6 +1878,7 @@
 		/* Стили для блока создания поста */
 		.create-post-inline {
 			display: flex;
+			flex-wrap: wrap;
 			align-items: flex-start;
 			padding: 15px;
 			background-color: #fff;
@@ -1241,6 +1961,8 @@
 			display: flex;
 			justify-content: flex-end;
 			align-items: center;
+			flex-wrap: wrap;
+			gap: 10px;
 		}
 
 		.post-inline-attach-btn,
@@ -1289,6 +2011,216 @@
 
 		.post-inline-send-btn i {
 			margin-right: 5px; /* Отступ между иконкой и текстом */
+		}
+		
+		/* Стили для адаптивности на мобильных устройствах */
+		@media (max-width: 768px) {
+			.create-post-inline {
+				padding: 10px;
+			}
+			
+			.post-inline-actions {
+				flex-direction: column;
+				align-items: flex-start !important;
+				gap: 10px;
+			}
+			
+			.post-inline-actions > div {
+				width: 100%;
+			}
+			
+			.image-upload-container {
+				justify-content: space-between;
+				width: 100%;
+			}
+			
+			.image-upload-button span {
+				display: none; /* Скрываем текст кнопки на маленьких экранах */
+			}
+			
+			.image-upload-button {
+				padding: 8px 12px;
+			}
+			
+			.post-inline-send-btn {
+				padding: 8px 12px;
+			}
+			
+			/* Стили для адаптивности comment-form-content и comment-form-buttons */
+			.comment-form-content {
+				width: 100%;
+			}
+			
+			.comment-form-buttons {
+				flex-wrap: wrap;
+				gap: 8px;
+			}
+			
+			.comment-form button.secondary,
+			.comment-form button.primary {
+				width: auto;
+				flex: 1;
+				min-width: 100px;
+				white-space: nowrap;
+				padding: 8px 10px;
+				font-size: 13px;
+			}
+			
+			.comment-form .image-upload-button span {
+				display: none;
+			}
+			
+			.reply-form .comment-form-buttons {
+				flex-wrap: wrap;
+				gap: 8px;
+			}
+			
+			.reply-form button.secondary,
+			.reply-form button.primary {
+				width: auto;
+				flex: 1;
+				min-width: 100px;
+				white-space: nowrap;
+				padding: 8px 10px;
+				font-size: 13px;
+			}
+			
+			.reply-form .image-upload-button span {
+				display: none;
+			}
+		}
+		
+		@media (max-width: 480px) {
+			.create-post-inline .post-author-avatar {
+				width: 30px;
+				height: 30px;
+				margin-right: 10px;
+			}
+			
+			.post-input-area {
+				width: calc(100% - 40px);
+			}
+			
+			#inline-post-content {
+				padding: 8px 10px;
+				font-size: 13px;
+			}
+			
+			/* Дополнительные стили для comment-form-content на маленьких экранах */
+			.comment-form-avatar {
+				width: 30px;
+				height: 30px;
+			}
+			
+			.comment-form textarea {
+				font-size: 13px;
+				min-height: 45px;
+			}
+			
+			.comment-form button {
+				padding: 6px 10px;
+				font-size: 12px;
+			}
+			
+			.reply-form textarea {
+				font-size: 13px;
+				min-height: 45px;
+			}
+			
+			.comment-form-buttons {
+				justify-content: space-between;
+			}
+			
+			.comment-form button.secondary,
+			.comment-form button.primary {
+				min-width: 80px;
+			}
+		}
+		
+		/* Для очень маленьких экранов скроем текст кнопок */
+		@media (max-width: 360px) {
+			.comment-form button span,
+			.reply-form button span {
+				display: none;
+			}
+			
+			.comment-form button,
+			.reply-form button {
+				padding: 6px;
+				min-width: 36px;
+			}
+			
+			.comment-form button i,
+			.reply-form button i {
+				margin-right: 0;
+			}
+		}
+
+		/* Медиа-запросы для адаптивности post-item и pending-post-item */
+		@media (max-width: 768px) {
+			.post-item {
+				padding: 15px;
+			}
+			
+			.post-header {
+				flex-wrap: wrap;
+			}
+			
+			.post-author-avatar {
+				width: 40px;
+				height: 40px;
+			}
+			
+			.post-actions {
+				flex-wrap: wrap;
+				gap: 8px;
+			}
+			
+			.pending-post-status {
+				flex-direction: column;
+			}
+			
+			.pending-post-info {
+				margin-bottom: 10px;
+			}
+			
+			.pending-post-actions {
+				justify-content: flex-start;
+			}
+		}
+		
+		@media (max-width: 480px) {
+			.post-item {
+				padding: 12px;
+			}
+			
+			.post-author-avatar {
+				width: 35px;
+				height: 35px;
+				margin-right: 10px;
+			}
+			
+			.post-author-name {
+				font-size: 14px;
+			}
+			
+			.post-date {
+				font-size: 11px;
+			}
+			
+			.post-content {
+				font-size: 14px;
+			}
+			
+			.post-action-btn {
+				padding: 3px 8px;
+				font-size: 12px;
+			}
+			
+			.approve-btn, .reject-btn {
+				padding: 4px 8px;
+				font-size: 12px;
+			}
 		}
 
 		.post-author-avatar, .post-author-name {
@@ -1441,7 +2373,7 @@
 		}
 		
 		.comment-images.count-1 {
-			grid-template-columns: minmax(0, 300px);
+			grid-template-columns: minmax(0, 250px);
 		}
 		
 		.comment-image-item {
@@ -2377,7 +3309,7 @@
 			uploadBytesResumable,
 			getDownloadURL
 		} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
-		import { initializeSidebar } from './sidebar_old.js'; // Добавляем импорт сайдбара
+		import { initializeSidebar } from './sidebar.js'; // Добавляем импорт сайдбара
 
 		// Инициализация Firebase
 		const firebaseConfig = {
@@ -2507,6 +3439,9 @@
                             groupData.members[userId] && 
                             groupData.members[userId].role === 'admin';
                 const isMember = groupData.members && userId in groupData.members;
+                
+                // Устанавливаем глобальную переменную для доступа из других функций
+                window.isCurrentUserAdmin = isAdmin;
                 
                 // Обновляем секцию постов
                 updatePostSection(isAdmin, groupId, userId); // Передаем userId
@@ -2689,7 +3624,6 @@
             const newPostsSection = document.createElement('div');
             newPostsSection.className = 'content-section';
             
-            // --- НАЧАЛО: Получаем данные текущего пользователя для аватара ---
             let currentUserAvatarURL = '';
             try {
                 const userRef = ref(db, `users/${userId}`);
@@ -2700,9 +3634,7 @@
             } catch (error) {
                 console.error("Error fetching current user data for post input:", error);
             }
-            // --- КОНЕЦ: Получаем данные текущего пользователя ---
             
-            // --- НАЧАЛО: Новая форма для создания поста ---
             newPostsSection.innerHTML = `
                 <div class="create-post-inline">
                     <div class="post-author-avatar">
@@ -2710,22 +3642,22 @@
                     </div>
                     <div class="post-input-area">
                         <textarea id="inline-post-content" placeholder="Что у вас нового?"></textarea>
-                        <div class="post-inline-actions" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="post-inline-actions" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
                             ${isAdmin ? `
-                            <div style="display: flex; align-items: center;">
-                                <div class="publish-as-group-option" style="display: flex; align-items: center; white-space: nowrap; margin-right: 15px;">
+                            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                                <div class="publish-as-group-option" style="display: flex; align-items: center; margin-right: 5px;">
                                     <input type="checkbox" id="publish-as-group" style="margin-right: 5px;" checked>
-                                    <label for="publish-as-group" style="font-size: 13px; color: #666; white-space: nowrap;">От имени группы</label>
+                                    <label for="publish-as-group" style="font-size: 13px; color: #666;">От имени группы</label>
                                 </div>
-                                <div class="show-author-option" style="display: flex; align-items: center; white-space: nowrap;">
+                                <div class="show-author-option" style="display: flex; align-items: center;">
                                     <input type="checkbox" id="show-author" style="margin-right: 5px;" checked>
-                                    <label for="show-author" style="font-size: 13px; color: #666; white-space: nowrap;">Указать автора</label>
+                                    <label for="show-author" style="font-size: 13px; color: #666;">Указать автора</label>
                                 </div>
                             </div>
                             ` : `<div></div>`}
-                            <div class="image-upload-container">
+                            <div class="image-upload-container" style="display: flex; flex-wrap: wrap; align-items: center; gap: 5px;">
                                 <button type="button" class="image-upload-button post-image-upload-button">
-<i class="fas fa-image"></i> <span>Прикрепить медиа</span>
+                                    <i class="fas fa-image"></i> <span>Прикрепить медиа</span>
                                 </button>
                                 <input type="file" class="image-upload-input post-image-upload-input" accept="image/*,video/*" multiple>
                                 <div class="image-counter post-image-counter" style="display: none;">0/10</div>
@@ -2744,7 +3676,6 @@
                     </div>
                 </div>
             `;
-            // --- КОНЕЦ: Новая форма для создания поста ---
             
             if (isAdmin) {
                 // Для администраторов показываем табы (Опубликованные, Предложенные)
@@ -2779,7 +3710,6 @@
             // Добавляем секцию в главный контейнер
             groupMain.prepend(newPostsSection);
             
-            // --- НАЧАЛО: Обработчики для нового поля ввода ---
             const postContentInput = document.getElementById('inline-post-content');
             const sendButton = document.querySelector('.post-inline-send-btn');
             const postForm = document.querySelector('.create-post-inline');
@@ -2875,6 +3805,15 @@
                     return;
                 }
                 
+                // 🔍 Проверка текста через Perspective API
+                if (content) {
+                    const isToxic = await checkToxicity(content);
+                    if (isToxic) {
+                        showToxicContentModal();
+                        return; // Прерываем отправку поста, если он токсичный
+                    }
+                }
+                
                 // Показываем индикатор загрузки
                 sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 sendButton.disabled = true;
@@ -2938,7 +3877,6 @@
                     sendButton.disabled = true;
                 }
             });
-            // --- КОНЕЦ: Обработчики для нового поля ввода ---
             
             // Добавляем обработчики для табов
             const tabButtons = document.querySelectorAll('.post-tab');
@@ -3081,7 +4019,7 @@
                                 <div class="character-counter">0/1000</div>
                                 <div class="image-upload-container">
                                     <button type="button" class="image-upload-button">
-<i class="fas fa-image"></i> <span>Прикрепить медиа</span>
+                                      <i class="fas fa-image"></i> <span>Прикрепить медиа</span>
                                     </button>
                                     <input type="file" class="image-upload-input" accept="image/*,video/*" multiple>
                                     <div class="image-counter" style="display: none;">0/10</div>
@@ -3094,10 +4032,10 @@
                                 </div>
                                 <div class="comment-form-buttons">
                                     <button type="button" class="secondary cancel-comment-button">
-                                        <i class="fas fa-times"></i> Отмена
+                                        <i class="fas fa-times"></i> <span>Отмена</span>
                                     </button>
                                     <button type="submit" class="primary">
-                                        <i class="fas fa-paper-plane"></i> Отправить
+                                        <i class="fas fa-paper-plane"></i> <span>Отправить</span>
                                     </button>
                                 </div>
                             </div>
@@ -3291,6 +4229,16 @@
                     }
                     submitButton.disabled = false; // Разблокируем кнопку
                     return;
+                }
+                
+                // 🔍 Проверка текста через Perspective API
+                if (text) {
+                    const isToxic = await checkToxicity(text);
+                    if (isToxic) {
+                        showToxicContentModal();
+                        submitButton.disabled = false; // Разблокируем кнопку
+                        return; // Прерываем отправку комментария, если он токсичный
+                    }
                 }
                 
                 try {
@@ -3531,7 +4479,7 @@
                 }
                 
                 .comment-images.count-1 {
-                    grid-template-columns: minmax(0, 300px);
+                    grid-template-columns: minmax(0, 250px);
                 }
                 
                 .comment-image-item {
@@ -4265,12 +5213,12 @@
 			if (!document.getElementById('members-modal-overlay')) {
 				const membersModalHTML = `
 					<div id="members-modal-overlay" class="modal-overlay">
-						<div class="modal-container">
-							<div class="modal-header">
-								<h3 class="modal-title">Подписчики группы</h3>
-								<button class="modal-close" id="members-modal-close">&times;</button>
+						<div class="members-modal-container">
+							<div class="members-modal-header">
+								<h3 class="members-modal-title">Подписчики группы</h3>
+								<button class="members-modal-close" id="members-modal-close">&times;</button>
 							</div>
-							<div class="modal-body">
+							<div class="members-modal-body">
 								<div class="members-modal-tabs">
 									<button class="tab-button active" data-tab="all-members">Подписчики</button>
 									<button class="tab-button" data-tab="admins">Администраторы</button>
@@ -4302,12 +5250,12 @@
 			if (!document.getElementById('edit-group-modal-overlay')) {
 				const modalHTML = `
 					<div id="edit-group-modal-overlay" class="modal-overlay">
-						<div class="modal-container">
-							<div class="modal-header">
-								<h3 class="modal-title">Редактирование группы</h3>
-								<button class="modal-close" id="edit-modal-close">&times;</button>
+						<div class="edit-group-modal-container">
+							<div class="edit-group-modal-header">
+								<h3 class="edit-group-modal-title">Редактирование группы</h3>
+								<button class="edit-group-modal-close" id="edit-group-modal-close">&times;</button>
 							</div>
-							<div class="modal-body">
+							<div class="edit-group-modal-body">
 								<form id="edit-group-form">
 									<div class="form-group">
 										<label for="edit-group-name" class="form-label">Название группы</label>
@@ -4383,40 +5331,54 @@
 									</div>
 								</form>
 							</div>
-							<div class="modal-footer">
-								<button class="modal-btn secondary" id="cancel-edit-group">Отмена</button>
-								<button class="modal-btn primary" id="save-edit-group">Сохранить</button>
+							<div class="edit-group-modal-footer">
+								<button class="edit-group-modal-btn secondary" id="cancel-edit-group">Отмена</button>
+								<button class="edit-group-modal-btn primary" id="save-edit-group">Сохранить</button>
 							</div>
 						</div>
 					</div>
 
-					<div id="edit-avatar-crop-modal" class="modal-overlay">
-						<div class="modal-container">
-							<div class="modal-header">
-								<h3 class="modal-title">Обрезка аватара</h3>
-								<button class="modal-close" id="edit-avatar-crop-close">&times;</button>
+					<div id="edit-avatar-crop-modal" class="crop-avatar-modal">
+						<div class="crop-container">
+							<div class="crop-header">
+								<div class="crop-title">Обрезка аватарки группы</div>
+								<button class="crop-close" id="edit-avatar-crop-close"><i class="fas fa-times"></i></button>
 							</div>
-							<div class="modal-body">
+							<div class="crop-area" id="edit-avatar-crop-area">
 								<div id="edit-avatar-crop-container"></div>
-								<div class="crop-controls">
+							</div>
+							<div class="crop-controls">
+								<div class="crop-zoom">
+									<i class="fas fa-search-minus"></i>
+									<input type="range" id="edit-avatar-zoom" class="zoom-slider" min="0.5" max="1.5" step="0.1" value="1">
+									<i class="fas fa-search-plus"></i>
+								</div>
+								<div class="crop-actions">
 									<button class="crop-btn cancel" id="edit-avatar-crop-cancel">Отмена</button>
-									<button class="crop-btn save" id="edit-avatar-crop-save">Сохранить</button>
+									<button class="crop-btn apply" id="edit-avatar-crop-save">Применить</button>
 								</div>
 							</div>
 						</div>
 					</div>
 
-					<div id="edit-cover-crop-modal" class="modal-overlay">
-						<div class="modal-container">
-							<div class="modal-header">
-								<h3 class="modal-title">Обрезка обложки</h3>
-								<button class="modal-close" id="edit-cover-crop-close">&times;</button>
+					<div id="edit-cover-crop-modal" class="crop-modal">
+						<div class="crop-container">
+							<div class="crop-header">
+								<div class="crop-title">Обрезка обложки группы</div>
+								<button class="crop-close" id="edit-cover-crop-close"><i class="fas fa-times"></i></button>
 							</div>
-							<div class="modal-body">
+							<div class="crop-area" id="edit-cover-crop-area">
 								<div id="edit-cover-crop-container"></div>
-								<div class="crop-controls">
+							</div>
+							<div class="crop-controls">
+								<div class="crop-zoom">
+									<i class="fas fa-search-minus"></i>
+									<input type="range" id="edit-cover-zoom" class="zoom-slider" min="0.5" max="1.5" step="0.1" value="1">
+									<i class="fas fa-search-plus"></i>
+								</div>
+								<div class="crop-actions">
 									<button class="crop-btn cancel" id="edit-cover-crop-cancel">Отмена</button>
-									<button class="crop-btn save" id="edit-cover-crop-save">Сохранить</button>
+									<button class="crop-btn apply" id="edit-cover-crop-save">Применить</button>
 								</div>
 							</div>
 						</div>
@@ -4482,7 +5444,7 @@
 		// Настройка обработчиков для модального окна редактирования
 		function setupEditModalHandlers() {
 			const modalOverlay = document.getElementById('edit-group-modal-overlay');
-			const modalClose = document.getElementById('edit-modal-close');
+			const modalClose = document.getElementById('edit-group-modal-close');
 			const cancelBtn = document.getElementById('cancel-edit-group');
 			const saveBtn = document.getElementById('save-edit-group');
 			const avatarInput = document.getElementById('edit-group-avatar-input');
@@ -4829,13 +5791,27 @@
 			// Инициализируем Cropper только после загрузки изображения
 			image.onload = function() {
 				try {
+					// Получаем размеры контейнера
+					const containerWidth = container.clientWidth;
+					
 					window.editAvatarCropper = new Cropper(image, {
 						aspectRatio: 1, // квадратное соотношение сторон для аватара
 						viewMode: 1,
 						zoomable: true,
 						cropBoxResizable: true,
-						minContainerWidth: 300,
-						minContainerHeight: 300
+						responsive: true,
+						restore: false,
+						autoCropArea: 0.8,
+						minContainerWidth: containerWidth,
+						minContainerHeight: 300,
+						ready: function() {
+							// Дополнительная настройка после инициализации
+							const cropperInstance = this.cropper;
+							if (cropperInstance) {
+								// Принудительно обновляем размер кроппера
+								cropperInstance.resize();
+							}
+						}
 					});
 				} catch (error) {
 					console.error('Error initializing avatar cropper:', error);
@@ -4874,13 +5850,27 @@
 			// Инициализируем Cropper только после загрузки изображения
 			image.onload = function() {
 				try {
+					// Получаем размеры контейнера
+					const containerWidth = container.clientWidth;
+					
 					window.editCoverCropper = new Cropper(image, {
 						aspectRatio: 16 / 9, // широкоэкранное соотношение для обложки
 						viewMode: 1,
 						zoomable: true,
 						cropBoxResizable: true,
-						minContainerWidth: 300,
-						minContainerHeight: 150
+						responsive: true,
+						restore: false,
+						autoCropArea: 1,
+						minContainerWidth: containerWidth,
+						minContainerHeight: 200,
+						ready: function() {
+							// Дополнительная настройка после инициализации
+							const cropperInstance = this.cropper;
+							if (cropperInstance) {
+								// Принудительно обновляем размер кроппера
+								cropperInstance.resize();
+							}
+						}
 					});
 				} catch (error) {
 					console.error('Error initializing cover cropper:', error);
@@ -4894,6 +5884,38 @@
 			const closeBtn = document.getElementById('edit-avatar-crop-close');
 			const cancelBtn = document.getElementById('edit-avatar-crop-cancel');
 			const saveBtn = document.getElementById('edit-avatar-crop-save');
+			const zoomSlider = document.getElementById('edit-avatar-zoom');
+			
+			// Обработчик изменения размера окна для обновления кроппера
+			const resizeHandler = () => {
+				if (window.editAvatarCropper) {
+					try {
+						window.editAvatarCropper.resize();
+					} catch (error) {
+						console.warn('Error resizing avatar cropper:', error);
+					}
+				}
+			};
+			
+			// Обработчик изменения масштаба с помощью ползунка
+			zoomSlider.addEventListener('input', function() {
+				if (window.editAvatarCropper) {
+					try {
+						window.editAvatarCropper.zoomTo(parseFloat(this.value));
+					} catch (error) {
+						console.warn('Error zooming avatar cropper:', error);
+					}
+				}
+			});
+			
+			// Добавляем обработчик при открытии модального окна
+			modal.addEventListener('transitionend', () => {
+				if (modal.classList.contains('active')) {
+					window.addEventListener('resize', resizeHandler);
+				} else {
+					window.removeEventListener('resize', resizeHandler);
+				}
+			});
 			
 			// Закрытие модального окна
 			closeBtn.addEventListener('click', () => {
@@ -4943,6 +5965,38 @@
 			const closeBtn = document.getElementById('edit-cover-crop-close');
 			const cancelBtn = document.getElementById('edit-cover-crop-cancel');
 			const saveBtn = document.getElementById('edit-cover-crop-save');
+			const zoomSlider = document.getElementById('edit-cover-zoom');
+			
+			// Обработчик изменения размера окна для обновления кроппера
+			const resizeHandler = () => {
+				if (window.editCoverCropper) {
+					try {
+						window.editCoverCropper.resize();
+					} catch (error) {
+						console.warn('Error resizing cover cropper:', error);
+					}
+				}
+			};
+			
+			// Обработчик изменения масштаба с помощью ползунка
+			zoomSlider.addEventListener('input', function() {
+				if (window.editCoverCropper) {
+					try {
+						window.editCoverCropper.zoomTo(parseFloat(this.value));
+					} catch (error) {
+						console.warn('Error zooming cover cropper:', error);
+					}
+				}
+			});
+			
+			// Добавляем обработчик при открытии модального окна
+			modal.addEventListener('transitionend', () => {
+				if (modal.classList.contains('active')) {
+					window.addEventListener('resize', resizeHandler);
+				} else {
+					window.removeEventListener('resize', resizeHandler);
+				}
+			});
 			
 			// Закрытие модального окна
 			closeBtn.addEventListener('click', () => {
@@ -5046,17 +6100,20 @@
 		// Функция настройки обработчиков для модального окна участников
 		function setupMembersModalHandlers() {
 			const modal = document.getElementById('members-modal-overlay');
+			const modalContainer = modal.querySelector('.members-modal-container');
 			const closeBtn = document.getElementById('members-modal-close');
 			
 			// Закрытие модального окна
 			closeBtn.addEventListener('click', () => {
 				modal.classList.remove('active');
+				modalContainer.style.opacity = '0';
 			});
 			
 			// Клик вне модального окна закрывает его
 			modal.addEventListener('click', (e) => {
 				if (e.target === modal) {
 					modal.classList.remove('active');
+					modalContainer.style.opacity = '0';
 				}
 			});
 			
@@ -5079,6 +6136,7 @@
 		// Функция открытия модального окна участников
 		async function openMembersModal(groupData, currentUserId) {
 			const modal = document.getElementById('members-modal-overlay');
+			const modalContainer = modal.querySelector('.members-modal-container');
 			
 			// Очищаем списки перед заполнением
 			document.getElementById('all-members-list').innerHTML = '';
@@ -5088,7 +6146,9 @@
 			// Отображаем модальное окно
 			modal.classList.add('active');
 			
-			// --- НАЧАЛО ИЗМЕНЕНИЯ: Получение numericId текущего пользователя ---
+			// Явно устанавливаем opacity для контейнера
+			modalContainer.style.opacity = '1';
+			
 			let currentUserNumericId = null;
 			try {
 				const currentUserRef = ref(db, `users/${currentUserId}`);
@@ -5099,7 +6159,6 @@
 			} catch (error) {
 				console.error("Не удалось получить numericId текущего пользователя:", error);
 				// Обработка ошибки, если не удалось получить numericId
-				// Можно показать сообщение или просто не загружать друзей
 				document.getElementById('friends-list').innerHTML = '<div class="error-message">Ошибка загрузки данных пользователя</div>';
 				return; // Прерываем выполнение, если не можем получить ID
 			}
@@ -5110,9 +6169,7 @@
 				return; // Прерываем выполнение
 			}
 			console.log(`[openMembersModal] Current user numericId: ${currentUserNumericId}`);
-			// --- КОНЕЦ ИЗМЕНЕНИЯ ---
-			
-			// --- НАЧАЛО ИЗМЕНЕНИЯ: Получение друзей из таблицы friendships ---
+
 			// Используем currentUserNumericId для запроса friendships
 			const friendshipsRef = ref(db, `friendships/${currentUserNumericId}`); 
 			const friendshipsSnapshot = await get(friendshipsRef);
@@ -5138,7 +6195,6 @@
 				}
 			}
 			console.log('[openMembersModal] Friend Firebase UIDs from friendships:', friendIds);
-			// --- КОНЕЦ ИЗМЕНЕНИЯ ---
 			
 			// Массивы для хранения данных участников
 			const allMembers = [];
@@ -5415,6 +6471,64 @@
                                 // Если изображение было, но теперь его нет
                                 imageEl.remove();
                             }
+                            
+                            // Обновляем галерею изображений, если она изменилась
+                            const imagesGallery = existingPost.querySelector('.post-images');
+                            if (post.imageUrls && post.imageUrls.length > 0) {
+                                if (!imagesGallery) {
+                                    // Если галереи не было, но теперь она есть
+                                    const galleryContainer = document.createElement('div');
+                                    galleryContainer.className = `post-images ${post.imageUrls.length > 1 ? 'post-images-gallery count-' + post.imageUrls.length : ''}`;
+                                    
+                                    galleryContainer.innerHTML = post.imageUrls.map((url, index) => {
+                                        const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg') || url.includes('.mov') || 
+                                                       url.includes('video') || url.includes('comment_videos');
+                                        return `
+                                            <div class="post-image-item" data-url="${url}" data-index="${index}">
+                                                ${isVideo ? 
+                                                    `<div class="video-container">
+                                                        <video src="${url}" preload="metadata"></video>
+                                                        <div class="video-overlay"></div>
+                                                    </div>` : 
+                                                    `<img src="${url}" alt="Изображение ${index + 1}" class="post-image">`
+                                                }
+                                            </div>
+                                        `;
+                                    }).join('');
+                                    
+                                    // Вставляем после контента или после одиночного изображения
+                                    const afterElement = existingPost.querySelector('.post-image') || existingPost.querySelector('.post-content');
+                                    afterElement.after(galleryContainer);
+                                    
+                                    // Добавляем обработчики для просмотра медиафайлов
+                                    const mediaItems = galleryContainer.querySelectorAll('.post-image-item');
+                                    mediaItems.forEach((item, index) => {
+                                        item.addEventListener('click', (e) => {
+                                            if (e.target.closest('.video-overlay') || e.target.tagName === 'IMG') {
+                                                const url = item.dataset.url;
+                                                if (url) {
+                                                    window.openImageModal(url, existingPost, index);
+                                                }
+                                            }
+                                        });
+                                        
+                                        const videoOverlay = item.querySelector('.video-overlay');
+                                        if (videoOverlay) {
+                                            videoOverlay.addEventListener('click', (e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                const url = item.dataset.url;
+                                                if (url) {
+                                                    window.openImageModal(url, existingPost, index);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            } else if (imagesGallery) {
+                                // Если галерея была, но теперь ее нет
+                                imagesGallery.remove();
+                            }
                         }
                     }
                 });
@@ -5464,7 +6578,24 @@
                         </div>
                     </div>
                     <div class="post-content">${post.content}</div>
-                    ${post.imageURL ? `<img src="${post.imageURL}" alt="Изображение к посту" class="post-image">` : ''}
+                    ${post.imageUrls && post.imageUrls.length > 0 ? `
+                    <div class="post-images ${post.imageUrls.length > 1 ? 'post-images-gallery count-' + post.imageUrls.length : ''}">
+                        ${post.imageUrls.map((url, index) => {
+                            const isVideo = url.includes('.mp4') || url.includes('.webm') || url.includes('.ogg') || url.includes('.mov') || 
+                                           url.includes('video') || url.includes('comment_videos');
+                            return `
+                                <div class="post-image-item" data-url="${url}" data-index="${index}">
+                                    ${isVideo ? 
+                                        `<div class="video-container">
+                                            <video src="${url}" preload="metadata"></video>
+                                            <div class="video-overlay"></div>
+                                        </div>` : 
+                                        `<img src="${url}" alt="Изображение ${index + 1}" class="post-image">`
+                                    }
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>` : ''}
                     <div class="pending-post-status">
                         <div class="pending-post-info">Ожидает одобрения администратора</div>
                         <div class="pending-post-actions">
@@ -5477,6 +6608,33 @@
                 const deleteBtn = postEl.querySelector('.reject-btn');
                 deleteBtn.addEventListener('click', () => {
                     deleteProposedPost(groupId, post.id);
+                });
+                
+                // Добавляем обработчики для просмотра медиафайлов
+                const mediaItems = postEl.querySelectorAll('.post-image-item');
+                mediaItems.forEach((item, index) => {
+                    item.addEventListener('click', (e) => {
+                        // Если клик был по оверлею или изображению, но не по видео
+                        if (e.target.closest('.video-overlay') || e.target.tagName === 'IMG') {
+                            const url = item.dataset.url;
+                            if (url) {
+                                window.openImageModal(url, postEl, index);
+                            }
+                        }
+                    });
+                    
+                    // Добавляем отдельный обработчик для видео-оверлея
+                    const videoOverlay = item.querySelector('.video-overlay');
+                    if (videoOverlay) {
+                        videoOverlay.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const url = item.dataset.url;
+                            if (url) {
+                                window.openImageModal(url, postEl, index);
+                            }
+                        });
+                    }
                 });
                 
                 // Добавляем пост в контейнер
@@ -5527,7 +6685,9 @@
 
 			let deleteButtonHtml = '';
 			if (currentUser) {
-				const canDelete = currentUser.uid === comment.authorId;
+				// Проверяем, является ли пользователь автором комментария или администратором группы
+				const isAdmin = window.isCurrentUserAdmin === true;
+				const canDelete = currentUser.uid === comment.authorId || isAdmin;
 				if (canDelete) {
 					deleteButtonHtml = `
 						<button class="reply-btn delete" onclick="window.deleteComment('${comment.id}')">
@@ -5642,10 +6802,10 @@
 							</div>
 							<div class="comment-form-buttons">
 								<button type="button" class="secondary cancel-reply-button" data-comment-id="${comment.id}">
-									<i class="fas fa-times"></i> Отмена
+									<i class="fas fa-times"></i> <span>Отмена</span>
 								</button>
 								<button type="submit" class="primary">
-									<i class="fas fa-paper-plane"></i> Ответить
+									<i class="fas fa-paper-plane"></i> <span>Ответить</span>
 								</button>
 							</div>
 						</div>
@@ -5697,14 +6857,23 @@
 					// Получаем загруженные изображения
 					const uploadedImages = replyImageUploadManager.getUploadedImagesUrls();
 					
-					// Проверяем, что есть текст или изображения
-					if (!text && (!uploadedImages || uploadedImages.length === 0)) {
-						if (typeof window.showError === 'function') {
-							window.showError('Комментарий должен содержать текст или изображение');
-						} else {
-							alert('Комментарий должен содержать текст или изображение');
-						}
+									// Проверяем, что есть текст или изображения
+				if (!text && (!uploadedImages || uploadedImages.length === 0)) {
+					if (typeof window.showError === 'function') {
+						window.showError('Комментарий должен содержать текст или изображение');
+					} else {
+						alert('Комментарий должен содержать текст или изображение');
+					}
 					return;
+				}
+				
+				// 🔍 Проверка текста через Perspective API
+				if (text) {
+					const isToxic = await checkToxicity(text);
+					if (isToxic) {
+						showToxicContentModal();
+						return; // Прерываем отправку ответа, если он токсичный
+					}
 				}
 
 				try {
@@ -6033,6 +7202,15 @@
 				}
 				return;
 			}
+			
+			// 🔍 Проверка текста через Perspective API
+			if (text) {
+				const isToxic = await checkToxicity(text);
+				if (isToxic) {
+					showToxicContentModal();
+					return; // Прерываем отправку комментария, если он токсичный
+				}
+			}
 
 			try {
 				const commentsRef = ref(db, `groupComments/${groupId}/${postId}`);
@@ -6099,20 +7277,19 @@
 				// Если это ответ на комментарий, прокручиваем к нему после добавления
 				if (parentId) {
 					setTimeout(() => {
-						const replyContainer = document.querySelector(`.comment-replies[data-parent-id="${effectiveParentId}"] .hidden-replies`);
-						if (replyContainer) {
-							// Раскрываем ответы, если они скрыты
-							if (!replyContainer.classList.contains('expanded')) {
-								const showRepliesButton = replyContainer.parentElement.querySelector('.show-more-replies');
-								if (showRepliesButton) {
-									showRepliesButton.click();
-								}
+					const replyContainer = document.querySelector(`.comment-replies[data-parent-id="${effectiveParentId}"] .hidden-replies`);
+					if (replyContainer) {
+						// Раскрываем ответы, если они скрыты
+						if (!replyContainer.classList.contains('expanded')) {
+							const showRepliesButton = replyContainer.parentElement.querySelector('.show-more-replies');
+							if (showRepliesButton) {
+								showRepliesButton.click();
 							}
-							
-							// Прокручиваем к ответам
-							replyContainer.scrollTop = replyContainer.scrollHeight;
 						}
-					}, 1000); // Даём время на обновление DOM
+						// Прокручиваем к ответам
+						replyContainer.scrollTop = replyContainer.scrollHeight;
+					}
+				}, 1000); // Даём время на обновление DOM
 				}
 
 				console.log("Комментарий успешно добавлен:", newCommentId);
@@ -7603,5 +8780,19 @@
 	});
 </script>
 
-</html>
+<!-- Модальное окно для предупреждения о токсичном контенте -->
+<div id="toxicContentModal" class="confirm-delete-modal">
+	<div class="confirm-delete-content">
+		<div class="confirm-delete-header">
+			<h3>Предупреждение</h3>
+		</div>
+		<div class="confirm-delete-body">
+			<p>Комментарий содержит оскорбления, токсичность или ненормативную лексику и не может быть опубликован.</p>
+		</div>
+		<div class="confirm-delete-footer">
+			<button id="closeToxicContentBtn" class="cancel-btn">Закрыть</button>
+		</div>
+	</div>
+</div>
 
+</html>

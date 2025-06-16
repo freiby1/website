@@ -26,7 +26,7 @@ import {
     getDownloadURL,
     uploadBytes
 } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js';
-import { showFriendRequestNotification } from './sidebar_old.js';
+import { showFriendRequestNotification } from './sidebar.js';
 
 // Firebase конфигурация
 const firebaseConfig = {
@@ -1046,7 +1046,6 @@ window.addEventListener('beforeunload', () => {
     if (requestsListener) off(requestsListener);
 });
 
-// Обновим функцию updateFriendRequestsCounter
 function updateFriendRequestsCounter() {
     // Показываем счетчик только если это наш профиль
     if (currentProfileId !== currentUserData.numericId.toString()) {
@@ -1181,12 +1180,6 @@ async function cancelFriendRequest(userId) {
     }
 }
 
-// Добавим функцию для создания кнопки отмены удаления (устаревшая функция)
-function createUndoButton(friendElement, userId, originalActions) {
-    console.log('Функция createUndoButton устарела и будет удалена в будущих версиях');
-    return originalActions;
-}
-
 // Обновим функцию removeFriend
 async function removeFriend(userId) {
     console.log('Запрос на удаление из друзей пользователя:', userId);
@@ -1287,34 +1280,6 @@ async function finalizeRemoveFriend(userId) {
         console.error('Ошибка при удалении из друзей:', error);
         if (typeof window.showError === 'function') {
             window.showError('Произошла ошибка при удалении из друзей');
-        }
-    }
-}
-
-// Функция для восстановления дружбы (теперь используется только для совместимости)
-async function restoreFriendship(userId) {
-    const db = getDatabase();
-    const timestamp = Date.now();
-    
-    try {
-        const updates = {};
-        updates[`friendships/${currentUserData.numericId}/${userId}`] = {
-            status: 'friends',
-            timestamp: timestamp
-        };
-        updates[`friendships/${userId}/${currentUserData.numericId}`] = {
-            status: 'friends',
-            timestamp: timestamp
-        };
-
-        await update(ref(db), updates);
-        if (typeof window.showSuccess === 'function') {
-            window.showSuccess('Друг восстановлен');
-        }
-    } catch (error) {
-        console.error('Ошибка при восстановлении дружбы:', error);
-        if (typeof window.showError === 'function') {
-            window.showError('Произошла ошибка при восстановлении дружбы');
         }
     }
 }
@@ -1611,7 +1576,6 @@ function setupFriendsListListener() {
     });
 }
 
-// Добавим функцию для настройки слушателя заявок в друзья
 function setupRequestsListener() {
     const db = getDatabase();
     const friendshipsRef = ref(db, `friendships/${currentUserData.numericId}`);

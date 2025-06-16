@@ -1,25 +1,21 @@
 // Функция для прокрутки к оригинальному комментарию
 window.scrollToOriginalComment = function(commentId) {
-    console.log("Scrolling to comment:", commentId);
     // Пробуем найти комментарий по data-comment-id
     let originalComment = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
     
     // Если не нашли, пробуем другие варианты селекторов
     if (!originalComment) {
-        console.log("Comment not found by data-comment-id, trying dataset.commentId");
         // Ищем все комментарии и проверяем их dataset
         const allComments = document.querySelectorAll('.comment');
         for (const comment of allComments) {
             if (comment.dataset.commentId === commentId) {
                 originalComment = comment;
-                console.log("Found comment using dataset.commentId");
                 break;
             }
         }
     }
     
     if (originalComment) {
-        console.log("Comment found, scrolling to it");
         // Добавляем подсветку для комментария
         originalComment.classList.add("highlight-comment");
         
@@ -127,7 +123,6 @@ function updateSidebarAvatar(newAvatarURL) {
 
 // Настройка наблюдателя за изменениями в DOM для обработки новых комментариев
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Применяем дополнительные исправления...');
     
     // Счетчик символов и автовысота textarea
     const commentInput = document.getElementById('comment-input');

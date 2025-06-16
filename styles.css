@@ -855,7 +855,7 @@ transform: translateX(0);
 z-index: 1000;
 padding: 20px;
 box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-overflow: visible; /* Изменяем с hidden на visible */
+overflow: visible;
 }
 .sidebar.collapsed {
 width: calc(250px * 0.3);
@@ -1215,7 +1215,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 }
 
 .nav-button.active {
-  color: #007bff; /* или любой другой цвет по вашему выбору */
+  color: #007bff;
 }
 
 .nav-button.active i {
@@ -1637,7 +1637,6 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
   color: var(--primary-color);
 }
 
-/* Добавляем стрелку для кнопки выбора темы */
 .dropdown-button#theme-settings,
 .dropdown-button#theme-settings-standalone,
 .dropdown-button#status-settings,
@@ -3445,6 +3444,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	margin-bottom: 0.5rem;
 	position: relative;
 	overflow: hidden;
+	flex-wrap: nowrap;
 }
 
 .image-upload-button i {
@@ -5780,7 +5780,6 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 	height: 100%;
 	z-index: 10000;
 	overflow: auto;
-	/* Изменено с overflow: hidden на overflow: auto для прокрутки на маленьких экранах */
 }
 
 .edit-profile-modal.active {
@@ -6521,7 +6520,7 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
     width: 70px;
     height: 70px;
     border-radius: 50%;
-    overflow: visible; /* Изменяем overflow на visible */
+    overflow: visible;
     margin-bottom: 8px;
 }
 
@@ -7588,4 +7587,172 @@ body:not(.dark-mode) .sidebar-nav-compact .nav-button::after {
 
 .dark-mode .clear-search-button:hover {
     color: #aaa;
+}
+
+/* Адаптивные стили для кнопок комментариев */
+@media (max-width: 576px) {
+	.comment-form-buttons {
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+	
+	.comment-form-buttons button {
+		flex: 1;
+		min-width: 120px;
+		margin-bottom: 5px;
+		padding: 8px 5px;
+		font-size: 13px;
+	}
+	
+	.comment-form-buttons button i {
+		margin-right: 4px;
+	}
+	
+	.reply-form .comment-form-buttons {
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+	
+	.reply-form .comment-form-buttons button {
+		flex: 1;
+		min-width: 100px;
+		padding: 8px 5px;
+		font-size: 13px;
+	}
+	
+	.comment-form-content {
+		width: 100%;
+	}
+	
+	.comment-form {
+		flex-wrap: wrap;
+	}
+	
+	.comment-form-avatar {
+		margin-bottom: 10px;
+	}
+}
+
+@media (max-width: 380px) {
+	.comment-form-buttons button,
+	.reply-form .comment-form-buttons button {
+		min-width: 0;
+		width: 100%;
+		margin-bottom: 5px;
+	}
+	
+	.comment-form-buttons button.secondary,
+	.reply-form .comment-form-buttons button.secondary {
+		margin-right: 0;
+	}
+	
+	.image-upload-button span {
+		font-size: 13px;
+	}
+	
+	.image-upload-button {
+		padding: 0.4rem;
+	}
+}
+
+/* Стили для модального окна подтверждения удаления и предупреждения о токсичном контенте */
+.confirm-delete-modal {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 1000;
+	background-color: rgba(0, 0, 0, 0.7);
+	align-items: center;
+	justify-content: center;
+}
+
+.confirm-delete-content {
+    background-color: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .confirm-delete-content {
+    background-color: #2a2a2a;
+    color: #f0f0f0;
+}
+
+.confirm-delete-header {
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dark-mode .confirm-delete-header {
+    border-bottom: 1px solid #444;
+}
+
+.confirm-delete-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.confirm-delete-body {
+    padding: 20px 15px;
+}
+
+.confirm-delete-body p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.confirm-delete-footer {
+	display: flex;
+	justify-content: center;
+	padding: 15px 20px;
+	gap: 15px;
+	border-top: 1px solid #e0e0e0;
+}
+
+.dark-mode .confirm-delete-footer {
+    border-top: 1px solid #444;
+}
+
+.confirm-btn, .cancel-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.confirm-btn {
+    background-color: #f44336;
+    color: white;
+}
+
+.confirm-btn:hover {
+    background-color: #d32f2f;
+}
+
+.cancel-btn {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.dark-mode .cancel-btn {
+    background-color: #444;
+    color: #f0f0f0;
+}
+
+.cancel-btn:hover {
+    background-color: #bdbdbd;
+}
+
+.dark-mode .cancel-btn:hover {
+    background-color: #555;
 }

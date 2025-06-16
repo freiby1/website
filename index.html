@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-  <title>Аутентификация | Cosmic Auth</title>
+  <title>Аутентификация</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
 	<link rel="stylesheet" href="styles.css">
 
@@ -50,7 +50,6 @@
       <form id="reset-form">
         <div class="form-field">
           <label for="reset-email">Email</label>
-          <!-- Текст "Заполните обязательное поле" уже внутри -->
           <input type="email" id="reset-email" placeholder="Ваш email" />
           <div class="error-text">Заполните обязательное поле</div>
         </div>
@@ -70,7 +69,6 @@
         <div class="form-field">
           <label for="login-email">Email</label>
           <input type="email" id="login-email" placeholder="Email" />
-          <!-- По умолчанию есть текст ошибки, но скрыт (visibility:hidden) -->
           <div class="error-text">Заполните обязательное поле</div>
         </div>
 
@@ -234,8 +232,6 @@
             </button>
           </div>
           <div class="error-text">Заполните обязательное поле</div>
-
-          <!-- Индикатор сложности пароля (всегда занимает место, но скрыт) -->
           <div class="password-strength-container">
             <div class="password-strength" id="password-strength"></div>
             <span id="password-strength-text">Слабый</span>
@@ -509,7 +505,6 @@
       }
     }
 
-    // Модифицируем обработчик Google-авторизации
     const handleGoogleAuth = async () => {
       try {
         const result = await signInWithPopup(auth, googleProvider);

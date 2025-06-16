@@ -72,7 +72,6 @@
         console.log('Определяем window.onValue из импортированных функций Firebase');
         window.onValue = function(ref, callback) {
             console.warn('Используется заглушка для onValue');
-            // Ничего не делаем, это просто заглушка
         };
     }
 
@@ -130,7 +129,7 @@
                         projectId = window.db.app.options.projectId;
                     } else {
                         // Если не удалось определить projectId, используем значение по умолчанию
-                        projectId = 'tpoproject-35957';
+                        projectId = 'ochat-9cfc9';
                     }
                 }
                 
@@ -194,7 +193,6 @@
         }
         
         // Находим все аватары пользователя в комментариях
-        // ИСПРАВЛЕНО: Изменен селектор, чтобы не затрагивать изображения в комментариях
         const userAvatars = document.querySelectorAll(`
             .comment-avatar[src*="${userId}"], 
             .comment-avatar-link[href*="${userId}"] .comment-avatar, 
@@ -773,10 +771,6 @@
                 // Проверяем, были ли обновления
                 if (updatedCommentsCount === 0 && updatedRepliesCount === 0) {
                     console.warn(`Не найдено комментариев или ответов пользователя ${userId} для обновления`);
-                    console.log('Проверьте следующее:');
-                    console.log('1. Правильно ли передан userId:', userId);
-                    console.log('2. Есть ли у пользователя комментарии в базе данных');
-                    console.log('3. Правильно ли настроены права доступа к базе данных');
                     
                     // Если не удалось обновить через стандартные функции, пробуем прямое обновление
                     console.log('Пробуем прямое обновление через REST API...');
@@ -901,7 +895,6 @@
             }
             
             // Находим все аватары пользователя в комментариях
-            // ИСПРАВЛЕНО: Изменен селектор, чтобы не затрагивать изображения в комментариях
             const userAvatars = document.querySelectorAll(`
                 .comment-avatar[src*="${userId}"], 
                 .comment-avatar-link[href*="${userId}"] .comment-avatar, 
