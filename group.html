@@ -720,11 +720,108 @@
 			-webkit-overflow-scrolling: touch;
 		}
 
+		/* Стили для модального окна участников */
+		.members-modal-container {
+			background-color: #fff; /* Светлая тема */
+			border-radius: 10px;
+			width: 90%;
+			max-width: 800px;
+			max-height: 90vh;
+			overflow-y: auto;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			opacity: 0;
+			transition: opacity 0.3s ease, transform 0.3s ease;
+			transform: translateY(-20px);
+		}
+
+		.dark-mode .members-modal-container {
+			background-color: #2d2d2d; /* Темная тема */
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+		}
+
+		.modal-overlay.active .members-modal-container {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
+		.members-modal-header {
+			padding: 15px 20px;
+			border-bottom: 1px solid #eee;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			position: sticky;
+			top: 0;
+			background-color: #fff; /* Светлая тема */
+			z-index: 10;
+		}
+
+		.dark-mode .members-modal-header {
+			border-bottom-color: #444;
+			background-color: #2d2d2d; /* Темная тема */
+		}
+
+		.members-modal-title {
+			font-size: 18px;
+			font-weight: 600;
+			color: #333;
+		}
+
+		.dark-mode .members-modal-title {
+			color: #f5f5f5;
+		}
+
+		.members-modal-close {
+			background: none;
+			border: none;
+			color: #888;
+			font-size: 20px;
+			cursor: pointer;
+		}
+
+		.dark-mode .members-modal-close {
+			color: #bbb;
+		}
+
+		.members-modal-body {
+			padding: 20px;
+			flex: 1;
+			overflow-y: auto;
+			scroll-behavior: smooth;
+			-webkit-overflow-scrolling: touch;
+			background-color: #fff; /* Светлая тема */
+		}
+
+		.dark-mode .members-modal-body {
+			background-color: #2d2d2d; /* Темная тема */
+		}
+
+		/* Добавим стили для модального окна участников и табов */
+		.members-modal-tabs {
+			display: flex;
+			margin-bottom: 20px;
+			border-bottom: 1px solid #ddd;
+			background-color: #fff; /* Светлая тема */
+		}
+
+		.dark-mode .members-modal-tabs {
+			border-bottom-color: #444;
+			background-color: #2d2d2d; /* Темная тема */
+		}
+
 		/* Адаптивные стили для модального окна участников на маленьких экранах */
 		@media (max-width: 768px) {
 			.members-modal-container {
 				width: 95%;
 				max-height: 80vh;
+				background-color: #fff; /* Светлая тема */
+			}
+			
+			.dark-mode .members-modal-container {
+				background-color: #2d2d2d; /* Темная тема */
 			}
 			
 			.members-modal-list {
@@ -760,11 +857,21 @@
 			
 			.members-modal-header {
 				padding: 12px 15px;
+				background-color: #fff; /* Светлая тема */
+			}
+			
+			.dark-mode .members-modal-header {
+				background-color: #2d2d2d; /* Темная тема */
 			}
 			
 			.members-modal-body {
 				padding: 15px;
 				-webkit-overflow-scrolling: touch; /* Плавный скроллинг на iOS */
+				background-color: #fff; /* Светлая тема */
+			}
+			
+			.dark-mode .members-modal-body {
+				background-color: #2d2d2d; /* Темная тема */
 			}
 			
 			.members-modal-title {
@@ -786,6 +893,11 @@
 				width: 98%;
 				border-radius: 8px;
 				max-height: 90vh;
+				background-color: #fff; /* Светлая тема */
+			}
+			
+			.dark-mode .members-modal-container {
+				background-color: #2d2d2d; /* Темная тема */
 			}
 			
 			.members-modal-list {
@@ -817,7 +929,7 @@
 				margin-bottom: 15px;
 				position: sticky;
 				top: 0;
-				background-color: #fff;
+				background-color: #fff; /* Светлая тема */
 				z-index: 2;
 				padding-top: 5px;
 				padding-bottom: 5px;
@@ -825,7 +937,7 @@
 			}
 			
 			.dark-mode .members-modal-tabs {
-				background-color: #2d2d2d;
+				background-color: #2d2d2d; /* Темная тема */
 			}
 			
 			.tab-button.active {
@@ -895,6 +1007,11 @@
 			
 			.members-modal-body {
 				padding: 10px;
+				background-color: #fff; /* Светлая тема */
+			}
+			
+			.dark-mode .members-modal-body {
+				background-color: #2d2d2d; /* Темная тема */
 			}
 		}
 
@@ -4885,7 +5002,7 @@
                 if (confirm('Опубликовать этот пост от имени группы?')) {
                     postData.publishedAsGroup = true;
                     
-                    // Спрашиваем, нужно ли указывать автора поста
+                    // Спрашиваем, нужно ли указать автора поста
                     postData.showAuthor = confirm('Указать автора поста?');
                 }
                 
