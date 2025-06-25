@@ -2323,7 +2323,17 @@
 
     .search-messages-container.active {
       display: flex;
+    }
+    
+    /* Темная тема для контейнера поиска */
+    .dark-mode .search-messages-container.active {
       background-color: #151515;
+    }
+    
+    /* Светлая тема для контейнера поиска */
+    .light-mode .search-messages-container.active,
+    :root:not(.dark-mode) .search-messages-container.active {
+      background-color: white;
     }
 
     .search-messages-input-wrapper {
@@ -2412,7 +2422,17 @@
 
     .search-results-container.active {
       display: flex;
+    }
+    
+    /* Темная тема для результатов поиска */
+    .dark-mode .search-results-container.active {
       background-color: #151515;
+    }
+    
+    /* Светлая тема для результатов поиска */
+    .light-mode .search-results-container.active,
+    :root:not(.dark-mode) .search-results-container.active {
+      background-color: white;
     }
 
     .search-message-result-item {

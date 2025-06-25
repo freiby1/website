@@ -1266,7 +1266,6 @@ export function initializeSidebar() {
     /* Стили для мобильного плеера */
     .music-player-modal-mobile {
       display: none;
-      background-color: rgba(0, 0, 0, 0.6);
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
@@ -6194,7 +6193,6 @@ const tabContents = document.querySelectorAll('.music-tab-content');
     .music-player-container {
       padding: 10px;
       border-radius: 8px;
-      background-color: rgba(0, 0, 0, 0.15);
       margin-top: auto;
     }
     
